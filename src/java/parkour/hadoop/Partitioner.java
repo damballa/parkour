@@ -5,10 +5,10 @@ import clojure.lang.RT;
 import clojure.lang.Symbol;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.Partitioner;
 
-public class ParkourPartitioner
-    extends Partitioner
+
+public class Partitioner
+    extends org.apache.hadoop.mapreduce.Partitioner
     implements Configurable {
 
 private Configuration conf = null;

@@ -9,5 +9,7 @@ The goals of the Parkour project are to:
      atop the interfaces and abstractions provided by Hadoop itself.
   4. Support composing multiple Hadoop jobs without needing to
      manually link each intermediate job’s input & output location.
-  5. Support building jobs and job-chains using the Clojure `reducers`
-     library.
+  5. Transparently serialize Clojure data in a fashion which supports
+     efficient sorting.
+  6. Support building job-chains using the Clojure `reducers` library
+     over a “collection” type representing MapReduce input sources.
