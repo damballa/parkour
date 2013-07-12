@@ -10,17 +10,28 @@ public class Mappers {
 private static class Base extends org.apache.hadoop.mapreduce.Mapper {
   private static final String CONF_KEY_BASE = "parkour.mapper.";
 
-  private String
-  getConfKey() {
-      return CONF_KEY_BASE + getClass().getName().split("\\$_", 2)[1];
+  private final String varKey;
+  private final String optionsKey;
+  private final long id;
+
+  public
+  Base() {
+      super();
+      this.id = Long.parseLong(getClass().getName().split("\\$_", 2)[1]);
+      String confKey = CONF_KEY_BASE + Long.toString(this.id);
+      this.varKey = confKey + ".var";
+      this.optionsKey = confKey + ".options";
   }
 
   public void
   run(Context context) {
       Configuration conf = context.getConfiguration();
-      String[] fqname = conf.get(getConfKey()).split("/", 2);
+      String[] fqname = conf.get(varKey).split("/", 2);
+      Object options = RT.readString(conf.get(optionsKey, "{}"));
+      if (fqname[0].startsWith("#'")) fqname[0] = fqname[0].substring(2);
       RT.var("clojure.core", "require").invoke(Symbol.intern(fqname[0]));
-      ((IFn) RT.var(fqname[0], fqname[1]).invoke(conf)).invoke(context);
+      IFn tvar = RT.var(fqname[0], fqname[1]);
+      ((IFn) tvar.invoke(conf, options)).invoke(context);
   }
 }
 
@@ -36,4 +47,3 @@ public static class _8 extends Base { }
 public static class _9 extends Base { }
 
 }
-
