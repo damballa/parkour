@@ -12,7 +12,7 @@ public class Partitioner
     implements Configurable {
 
 private static final String VAR_KEY = "parkour.partitioner.var";
-private static final String OPTIONS_KEY = "parkour.partitioner.options";
+private static final String ARGS_KEY = "parkour.partitioner.args";
 
 private Configuration conf = null;
 private IFn f = null;
@@ -26,10 +26,13 @@ public void
 setConf(Configuration conf) {
     this.conf = conf;
     String[] fqname = conf.get(VAR_KEY).split("/", 2);
-    Object options = RT.readString(conf.get(OPTIONS_KEY, "{}"));
     if (fqname[0].startsWith("#'")) fqname[0] = fqname[0].substring(2);
     RT.var("clojure.core", "require").invoke(Symbol.intern(fqname[0]));
-    this.f = (IFn) RT.var(fqname[0], fqname[1]).invoke(conf, options);
+    IFn tvar = RT.var(fqname[0], fqname[1]);
+    String argsEDN = conf.get(ARGS_KEY);
+    this.f = (argsEDN == null)
+        ? (IFn) tvar.invoke(conf)
+        : (IFn) tvar.applyTo(RT.cons(conf, RT.readString(argsEDN)));
 }
 
 @Override
