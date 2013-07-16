@@ -4,13 +4,16 @@
             [clojure.core.reducers :as r]
             [clojure.core.protocols :as ccp]
             [clojure.string :as str]
+            [clojure.reflect :as reflect]
+            [parkour.writable :as w]
             [parkour.util :refer [returning]]
             [parkour.reducers :as pr])
   (:import [java.util Comparator]
            [clojure.lang IPersistentCollection]
+           [org.apache.hadoop.conf Configuration]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapreduce
-             MapContext ReduceContext TaskInputOutputContext]))
+             Job MapContext ReduceContext TaskInputOutputContext]))
 
 (defprotocol MRSource
   (keyvals [source] "")
@@ -130,6 +133,66 @@
     (returning sink (.write sink (NullWritable/get) val)))
 
   IPersistentCollection
-  (emit-keyval [sink keyval] (conj sink keyval))
-  (emit-key [sink key] (conj sink [key nil]))
-  (emit-val [sink val] (conj sink [nil val])))
+  (emit-keyval [sink keyval] (conj sink (mapv w/clone keyval)))
+  (emit-key [sink key] (conj sink [(w/clone key) nil]))
+  (emit-val [sink val] (conj sink [nil (w/clone val)])))
+
+(def ^:private job-factory-method?
+  (->> Job reflect/type-reflect :members (some #(= 'getInstance (:name %)))))
+
+(defmacro ^:private make-job
+  [& args] `(~(if job-factory-method? `Job/getInstance `Job.) ~@args))
+
+(defn job
+  {:tag `Job}
+  ([] (make-job))
+  ([conf]
+     (if (instance? Job conf)
+       (make-job (-> ^Job conf .getConfiguration Configuration.))
+       (make-job ^Configuration conf))))
+
+(defn mapper!
+  [^Job job var & args]
+  (let [conf (.getConfiguration job)
+        i (.getInt conf "parkour.mapper.next" 0)]
+    (doto conf
+      (.setInt "parkour.mapper.next" (inc i))
+      (.set (format "parkour.mapper.%d.var" i) (pr-str var))
+      (.set (format "parkour.mapper.%d.args" i) (pr-str args)))
+    (Class/forName (format "parkour.hadoop.Mappers$_%d" i))))
+
+(defn reducer!
+  [^Job job var & args]
+  (let [conf (.getConfiguration job)
+        i (.getInt conf "parkour.reducer.next" 0)]
+    (doto conf
+      (.setInt "parkour.reducer.next" (inc i))
+      (.set (format "parkour.reducer.%d.var" i) (pr-str var))
+      (.set (format "parkour.reducer.%d.args" i) (pr-str args)))
+    (Class/forName (format "parkour.hadoop.Reducers$_%d" i))))
+
+(defn partitioner!
+  [^Job job var & args]
+  (let [conf (.getConfiguration job)]
+    (doto conf
+      (.set "parkour.partitioner.var" (pr-str var))
+      (.set "parkour.partitioner.args" (pr-str args)))
+    parkour.hadoop.Partitioner))
+
+(defn set-mapper-var
+  [^Job job var & args]
+  (let [[key val] (-> var meta ::output)]
+    (.setMapperClass job (apply mapper! job var args))
+    (when key (.setMapOutputKeyClass job key))
+    (when val (.setMapOutputValueClass job val))))
+
+(defn set-combiner-var
+  [^Job job var & args]
+  (.setCombinerClass job (apply reducer! job var args)))
+
+(defn set-reducer-var
+  [^Job job var & args]
+  (let [[key val] (-> var meta ::output)]
+    (.setReducerClass job (apply reducer! job var args))
+    (when key (.setOutputKeyClass job key))
+    (when val (.setOutputValueClass job val))))
