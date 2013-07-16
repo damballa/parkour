@@ -110,13 +110,13 @@
   (keyvals [source] source)
   (keys [source] (r/map first source))
   (vals [source] (r/map second source))
-  (keyvalgroups
+  (keyvalgroups*
     ([source] (pr/keyvalgroups = source))
     ([source pred] (pr/keyvalgroups pred source)))
-  (keygroups
+  (keygroups*
     ([source] (pr/keygroups = source))
     ([source pred] (pr/keygroups pred source)))
-  (valgroups
+  (valgroups*
     ([source] (pr/valgroups = source))
     ([source pred] (pr/valgroups pred source))))
 
