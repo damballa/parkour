@@ -34,7 +34,7 @@ private static class Base extends org.apache.hadoop.mapreduce.Mapper {
       IFn f = (argsEDN == null)
           ? (IFn) tvar.invoke(conf)
           : (IFn) tvar.applyTo(RT.cons(conf, RT.readString(argsEDN)));
-      f.invoke(context);
+      f.invoke(context, context);
   }
 }
 
