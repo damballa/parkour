@@ -5,7 +5,7 @@
             [clojure.core.protocols :as ccp]
             [clojure.string :as str]
             [clojure.reflect :as reflect]
-            [parkour.writable :as w]
+            [parkour.wrapper :as w]
             [parkour.util :refer [returning]]
             [parkour.reducers :as pr])
   (:import [java.util Comparator]
@@ -16,31 +16,45 @@
              Job MapContext ReduceContext TaskInputOutputContext]))
 
 (defprotocol MRSource
-  (keyvals [source] "")
-  (keys [source] "")
-  (vals [source] "")
-  (keyvalgroups* [source] [source pred] "")
-  (keygroups* [source] [source pred] "")
-  (valgroups* [source] [source pred] ""))
+  (-keyvals [source] [source f] [source kf vf] "")
+  (-keys [source] [source f] "")
+  (-vals [source] [source f] "")
+  (-keyvalgroups [source] [source f] [source kf vf] "")
+  (-keygroups [source] [source f] "")
+  (-valgroups [source] [source f] ""))
+
+(defn keyvals
+  ([source] (-keyvals source))
+  ([f source] (-keyvals source f))
+  ([kf vf source] (-keyvals source kf vf)))
+
+(defn keys
+  ([source] (-keys source))
+  ([f source] (-keys source f)))
+
+(defn vals
+  ([source] (-vals source))
+  ([f source] (-vals source f)))
 
 (defn keyvalgroups
-  ([source] (keyvalgroups* source))
-  ([pred source] (keyvalgroups* source pred)))
+  ([source] (-keyvalgroups source))
+  ([f source] (-keyvalgroups source f))
+  ([kf vf source] (-keyvalgroups source kf vf)))
 
 (defn keygroups
-  ([source] (keygroups* source))
-  ([pred source] (keygroups* source pred)))
+  ([source] (-keygroups source))
+  ([f source] (-keygroups source f)))
 
 (defn valgroups
-  ([source] (valgroups* source))
-  ([pred source] (valgroups* source pred)))
+  ([source] (-valgroups source))
+  ([f source] (-valgroups source f)))
 
 (defprotocol MRSink
   (emit-keyval [sink keyval] "")
   (emit-key [sink key] "")
   (emit-val [sink val] ""))
 
-(defmacro ^:private task-reducer*
+(defmacro ^:private task-reducer
   [nextf dataf]
   `(reify ccp/CollReduce
      (coll-reduce [this# f#] (ccp/coll-reduce this# f# (f#)))
@@ -49,12 +63,6 @@
          (if-not ~nextf
            state#
            (recur (f# state# ~dataf)))))))
-
-(defmacro ^:private task-reducer
-  ([context nextm keym]
-     `(task-reducer* (~nextm ~context) (~keym ~context)))
-  ([context nextm keym valm]
-     `(task-reducer* (~nextm ~context) [(~keym ~context) (~valm ~context)])))
 
 (extend-protocol ccp/CollReduce
   TaskInputOutputContext
@@ -70,58 +78,68 @@
 
 (extend-protocol MRSource
   MapContext
-  (keyvals [^MapContext source]
-    (task-reducer source .nextKeyValue .getCurrentKey .getCurrentValue))
-  (keys [^MapContext source]
-    (task-reducer source .nextKeyValue .getCurrentKey))
-  (vals [^MapContext source]
-    (task-reducer source .nextKeyValue .getCurrentValue))
-  (keyvalgroups
-    ([source] (pr/keyvalgroups = source))
-    ([source pred] (pr/keyvalgroups pred source)))
-  (keygroups
-    ([source] (pr/keygroups = source))
-    ([source pred] (pr/keygroups pred source)))
-  (valgroups
-    ([source] (pr/valgroups = source))
-    ([source pred] (pr/valgroups pred source)))
+  (-keyvals
+    ([^MapContext source]
+       (task-reducer (.nextKeyValue source) [(.getCurrentKey source)
+                                             (.getCurrentValue source)]))
+    ([^MapContext source f]
+       (task-reducer (.nextKeyValue source) [(f (.getCurrentKey source))
+                                             (f (.getCurrentValue source))]))
+    ([^MapContext source kf vf]
+       (task-reducer (.nextKeyValue source) [(kf (.getCurrentKey source))
+                                             (vf (.getCurrentValue source))])))
+  (-keys
+    ([^MapContext source]
+       (task-reducer (.nextKeyValue source) (.getCurrentKey source)))
+    ([^MapContext source f]
+       (task-reducer (.nextKeyValue source) (f (.getCurrentKey source)))))
+  (-vals
+    ([^MapContext source]
+       (task-reducer (.nextKeyValue source) (.getCurrentValue source)))
+    ([^MapContext source f]
+       (task-reducer (.nextKeyValue source) (f (.getCurrentValue source)))))
 
   ReduceContext
-  (keyvals [^ReduceContext source]
-    (task-reducer source .nextKeyValue .getCurrentKey .getCurrentValue))
-  (keys [^ReduceContext source]
-    (task-reducer source .nextKeyValue .getCurrentKey))
-  (vals [^ReduceContext source]
-    (task-reducer source .nextKeyValue .getCurrentValue))
-  (keyvalgroups*
+  (-keyvals
     ([^ReduceContext source]
-       (task-reducer source .nextKey .getCurrentKey .getValues))
-    ([^ReduceContext source pred]
-       (pr/keyvalgroups pred source)))
-  (keygroups*
+       (task-reducer (.nextKeyValue source) [(.getCurrentKey source)
+                                             (.getCurrentValue source)]))
+    ([^ReduceContext source f]
+       (task-reducer (.nextKeyValue source) [(f (.getCurrentKey source))
+                                             (f (.getCurrentValue source))]))
+    ([^ReduceContext source kf vf]
+       (task-reducer (.nextKeyValue source) [(kf (.getCurrentKey source))
+                                             (vf (.getCurrentValue source))])))
+  (-keys
     ([^ReduceContext source]
-       (task-reducer source .nextKey .getCurrentKey))
-    ([^ReduceContext source pred]
-       (pr/keygroups pred source)))
-  (valgroups*
+       (task-reducer (.nextKeyValue source) (.getCurrentKey source)))
+    ([^ReduceContext source f]
+       (task-reducer (.nextKeyValue source) (f (.getCurrentKey source)))))
+  (-vals
     ([^ReduceContext source]
-       (task-reducer source .nextKey .getValues))
-    ([^ReduceContext source pred]
-       (pr/valgroups pred source)))
-
-  IPersistentCollection
-  (keyvals [source] source)
-  (keys [source] (r/map first source))
-  (vals [source] (r/map second source))
-  (keyvalgroups*
-    ([source] (pr/keyvalgroups = source))
-    ([source pred] (pr/keyvalgroups pred source)))
-  (keygroups*
-    ([source] (pr/keygroups = source))
-    ([source pred] (pr/keygroups pred source)))
-  (valgroups*
-    ([source] (pr/valgroups = source))
-    ([source pred] (pr/valgroups pred source))))
+       (task-reducer (.nextKeyValue source) (.getCurrentValue source)))
+    ([^ReduceContext source f]
+       (task-reducer (.nextKeyValue source) (f (.getCurrentValue source)))))
+  (-keyvalgroups
+    ([^ReduceContext source]
+       (task-reducer (.nextKey source) [(.getCurrentKey source)
+                                        (.getValues source)]))
+    ([^ReduceContext source f]
+       (task-reducer (.nextKey source) [(f (.getCurrentKey source))
+                                        (r/map f (.getValues source))]))
+    ([^ReduceContext source kf vf]
+       (task-reducer (.nextKey source) [(kf (.getCurrentKey source))
+                                        (r/map vf (.getValues source))])))
+  (-keygroups
+    ([^ReduceContext source]
+       (task-reducer (.nextKey source) (.getCurrentKey source)))
+    ([^ReduceContext source f]
+       (task-reducer (.nextKey source) (f (.getCurrentKey source)))))
+  (-valgroups
+    ([^ReduceContext source]
+       (task-reducer (.nextKey source) (.getValues source)))
+    ([^ReduceContext source f]
+       (task-reducer (.nextKey source) (r/map f (.getValues source))))))
 
 (extend-protocol MRSink
   TaskInputOutputContext

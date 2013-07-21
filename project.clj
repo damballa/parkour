@@ -8,6 +8,7 @@
   :java-source-paths ["src/java"]
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.codehaus.jsr166-mirror/jsr166y "1.7.0"]]
-  :profiles {:provided
+  :profiles {:dev {:depedencies [[com.damballa/hippy "0.1.0"]]}
+             :provided
              {:dependencies
               [[org.apache.hadoop/hadoop-core "1.0.3"]]}})
