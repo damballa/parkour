@@ -57,7 +57,12 @@
   Text
   (unwrap [wobj] (.toString wobj))
   (rewrap [wobj obj]
-    (returning wobj (.set wobj ^String obj))))
+    (returning wobj (.set wobj ^String obj)))
+
+  Object
+  (unwrap [wobj] wobj)
+  (rewrap [wobj obj]
+    (throw (ex-info "rewrap not implemented" {:wobj wobj, :obj obj}))))
 
 (auto-wrapper
   IntWritable

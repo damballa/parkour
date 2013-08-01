@@ -9,23 +9,24 @@
             [parkour.util :refer [returning]]
             [parkour.reducers :as pr])
   (:import [java.util Comparator]
-           [clojure.lang IPersistentCollection]
+           [clojure.lang IPersistentCollection Indexed Seqable]
            [org.apache.hadoop.conf Configuration]
            [org.apache.hadoop.io NullWritable]
+           [org.apache.hadoop.mapred JobConf]
            [org.apache.hadoop.mapreduce
              Job MapContext ReduceContext TaskInputOutputContext]))
 
 (defprotocol MRSource
-  (-keyvals [source] [source f] [source kf vf] "")
+  (-keyvals [source] [source kf vf] "")
   (-keys [source] [source f] "")
   (-vals [source] [source f] "")
-  (-keyvalgroups [source] [source f] [source kf vf] "")
+  (-keyvalgroups [source] [source kf vf] "")
   (-keygroups [source] [source f] "")
   (-valgroups [source] [source f] ""))
 
 (defn keyvals
   ([source] (-keyvals source))
-  ([f source] (-keyvals source f))
+  ([f source] (-keyvals source f f))
   ([kf vf source] (-keyvals source kf vf)))
 
 (defn keys
@@ -38,7 +39,7 @@
 
 (defn keyvalgroups
   ([source] (-keyvalgroups source))
-  ([f source] (-keyvalgroups source f))
+  ([f source] (-keyvalgroups source f f))
   ([kf vf source] (-keyvalgroups source kf vf)))
 
 (defn keygroups
@@ -82,9 +83,6 @@
     ([^MapContext source]
        (task-reducer (.nextKeyValue source) [(.getCurrentKey source)
                                              (.getCurrentValue source)]))
-    ([^MapContext source f]
-       (task-reducer (.nextKeyValue source) [(f (.getCurrentKey source))
-                                             (f (.getCurrentValue source))]))
     ([^MapContext source kf vf]
        (task-reducer (.nextKeyValue source) [(kf (.getCurrentKey source))
                                              (vf (.getCurrentValue source))])))
@@ -104,9 +102,6 @@
     ([^ReduceContext source]
        (task-reducer (.nextKeyValue source) [(.getCurrentKey source)
                                              (.getCurrentValue source)]))
-    ([^ReduceContext source f]
-       (task-reducer (.nextKeyValue source) [(f (.getCurrentKey source))
-                                             (f (.getCurrentValue source))]))
     ([^ReduceContext source kf vf]
        (task-reducer (.nextKeyValue source) [(kf (.getCurrentKey source))
                                              (vf (.getCurrentValue source))])))
@@ -124,9 +119,6 @@
     ([^ReduceContext source]
        (task-reducer (.nextKey source) [(.getCurrentKey source)
                                         (.getValues source)]))
-    ([^ReduceContext source f]
-       (task-reducer (.nextKey source) [(f (.getCurrentKey source))
-                                        (r/map f (.getValues source))]))
     ([^ReduceContext source kf vf]
        (task-reducer (.nextKey source) [(kf (.getCurrentKey source))
                                         (r/map vf (.getValues source))])))
@@ -165,9 +157,10 @@
   {:tag `Job}
   ([] (make-job))
   ([conf]
-     (if (instance? Job conf)
-       (make-job (-> ^Job conf .getConfiguration Configuration.))
-       (make-job ^Configuration conf))))
+     (condp instance? conf
+       Job (make-job (-> ^Job conf .getConfiguration Configuration.))
+       JobConf (make-job (Configuration. ^JobConf conf))
+       #_else (make-job ^Configuration conf))))
 
 (defn mapper!
   [^Job job var & args]

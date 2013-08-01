@@ -3,51 +3,27 @@
             [clojure.core.protocols :as ccp]
             [parkour.util :refer [returning]]))
 
-(defn keyvalgroups
-  "For `reduce`-able `coll` of `[key value]` tuples, return
-`reduce`-able which groups keys for which the two-argument `pred`
-returns true, yielding the `[key values]` tuple for each sequence of
-adjacent identical keys."
-  [pred coll]
-  (reify ccp/CollReduce
-    (coll-reduce [this f1] (ccp/coll-reduce this f1 (f1)))
-    (coll-reduce [this f1 init]
-      (let [[s k vs] (r/reduce (fn [[s k vs] [k' v]]
-                                 (cond (nil? vs) [s k' [v]]
-                                       (pred k k') [s k (conj vs v)]
-                                       :else [(f1 s [k vs]) k' [v]]))
-                               [init nil nil]
-                               coll)]
-        (if (nil? vs) s (f1 s [k vs]))))))
+(defn reduce-by
+  ([keyfn f coll] (reduce-by keyfn f (f) coll))
+  ([keyfn f init coll]
+     (reify ccp/CollReduce
+       (coll-reduce [this f1] (ccp/coll-reduce this f1 (f1)))
+       (coll-reduce [_ f1 init1]
+         (let [[prev acc acc1]
+               , (r/reduce (fn [[prev acc acc1] x]
+                             (let [k (keyfn x)]
+                               (if (or (= k prev) (identical? prev ::init))
+                                 [k (f acc x) acc1]
+                                 [k (f init x) (f1 acc1 acc)])))
+                           [::init init init1]
+                           coll)]
+           (if (identical? ::init prev)
+             acc1
+             (f1 acc1 acc)))))))
 
-(defn keygroups
-  "For `reduce`-able `coll` of `[key value]` tuples, return
-`reduce`-able which groups keys for which the two-argument `pred`
-returns true, yielding the `key` for each sequence of adjacent
-identical keys."
-  [pred coll]
-  (r/reducer coll (fn [f]
-                    (let [k* (atom ::init)]
-                      (fn [ret [k' v]]
-                        (let [k @k*]
-                          (if (and (not (identical? k ::init)) (pred k k'))
-                            ret
-                            (returning (f ret k')
-                              (reset! k* k')))))))))
-
-(defn valgroups
-  "For `reduce`-able `coll` of `[key value]` tuples, return
-`reduce`-able which groups keys for which the two-argument `pred`
-returns true, yielding the `values` for each sequence of adjacent
-identical keys."
-  [pred coll]
-  (reify ccp/CollReduce
-    (coll-reduce [this f1] (ccp/coll-reduce this f1 (f1)))
-    (coll-reduce [this f1 init]
-      (let [[s k vs] (r/reduce (fn [[s k vs] [k' v]]
-                                 (cond (nil? vs) [s k' [v]]
-                                       (pred k k') [s k (conj vs v)]
-                                       :else [(f1 s vs) k' [v]]))
-                               [init nil nil]
-                               coll)]
-        (if (nil? vs) s (f1 s vs))))))
+(defn mjuxt
+  [& fs]
+  (fn
+    ([c1] (mapv #(%1 %2) fs c1))
+    ([c1 c2] (mapv #(%1 %2 %3) fs c1 c2))
+    ([c1 c2 & colls] (apply mapv #(apply %1 %&) fs c1 c2 colls))))
