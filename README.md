@@ -1,6 +1,6 @@
 # parkour
 
-A Clojure library designed to ... well, that part is up to you.
+Hadoop MapReduce in idiomatic Clojure.
 
 ## Rationale
 
