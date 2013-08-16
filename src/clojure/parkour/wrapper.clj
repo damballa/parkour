@@ -7,16 +7,21 @@
              DoubleWritable FloatWritable]))
 
 (defprotocol Wrapper
+  "Protocol for working with mutable wrapper objects, such as Hadoop
+Writables."
   (unwrap [wobj] "Unwrap `wobj` in a type-specific fashion.")
   (rewrap [wobj obj] "Mutate wapper `wobj` to wrap `obj`."))
 
 (defn ^:private getter?
+  "True iff method `m` a getter method."
   [m] (and (= 'get (:name m)) (->> m :parameter-types count zero?)))
 
 (defn ^:private setter?
+  "True iff method `m` a setter method."
   [m] (and (= 'set (:name m)) (->> m :parameter-types count (= 1))))
 
 (def ^:private prim->obj
+  "Map from primitive type symbols to reference type symbols."
   {'byte `Byte,
    'short `Short, 'char `Character,
    'int `Integer, 'float `Float,
@@ -28,6 +33,7 @@
     `[(instance? ~t') (.set ~s-wobj ~(vary-meta 'obj assoc :tag t))]))
 
 (defn ^:private auto-wrapper*
+  "Return forms for auto-generated `Wrapper` implementation for class `c`."
   [c]
   (let [^Class c (ns-resolve *ns* c), cname (symbol (.getName c))
         members (:members (reflect/reflect c))
@@ -47,6 +53,7 @@
               `(cond ~@(mapcat (partial test+setter s-wobj) setters))))))))
 
 (defmacro auto-wrapper
+  "Auto-generate `Wrapper` implementations for classes `cs`."
   [& cs] `(do ~@(map auto-wrapper* cs)))
 
 (extend-protocol Wrapper
@@ -73,15 +80,19 @@
   FloatWritable)
 
 (defn new-instance
+  "Return a new instance of the class of `c`, or of `c` itself if a class."
   [c]
   (when c
     (let [^Class c (if (class? c) c (class c))]
       (.newInstance c))))
 
 (defn clone
+  "Return a clone of wrapper object `wobj`."
   [wobj] (rewrap (new-instance wobj) (unwrap wobj)))
 
 (defn wrap-keyvals
+  "Return a function which wraps its key/value pair argument in
+instances of the wrapper type `t` or types `k` & `v`."
   ([t] (wrap-keyvals t t))
   ([k v]
      (let [[k v :as tuple] (mapv new-instance [k v])]
@@ -91,4 +102,6 @@
            (rewrap v v'))))))
 
 (defn wrap-vals
+  "Return a function which wraps its argument in an instance of the
+wrapper type `t`."
   [t] (partial rewrap (new-instance t)))

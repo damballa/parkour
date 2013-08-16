@@ -1,9 +1,9 @@
 (ns parkour.fs
   (:require [clojure.java.io :as io])
-  (:import [java.net URI]
+  (:import [java.net URI URL]
            [java.io File]
            [org.apache.hadoop.conf Configuration]
-           [org.apache.hadoop.fs FileSystem Path]))
+           [org.apache.hadoop.fs FileStatus FileSystem Path]))
 
 (defprotocol Coercions
   (^org.apache.hadoop.fs.Path
@@ -55,6 +55,22 @@
   (-path [x] (Path. x))
   (-uri [x] x)
 
+  URL
+  (-path [x] (Path. (.toURI x)))
+  (-uri [x] (.toURI x))
+
   File
   (-path [x] (Path. (str "file:" (.getAbsolutePath x))))
   (-uri [x] (.toURI x)))
+
+(extend-protocol io/Coercions
+  Path
+  (as-file [x] (io/as-file (uri x)))
+  (as-url [x] (.toURL (uri x))))
+
+(defn path-glob
+  "Expand path glob `p` to set of matching paths."
+  ([p] (path-glob (path-fs p) p))
+  ([fs p]
+     (->> (.globStatus ^FileSystem fs (path p))
+          (map #(.getPath ^FileStatus %)))))
