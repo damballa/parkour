@@ -21,9 +21,17 @@
              acc1
              (f1 acc1 acc)))))))
 
+(defn funcall
+  ([f] (f))
+  ([f x] (f x))
+  ([f x y] (f x y))
+  ([f x y z] (f x y z))
+  ([f x y z & more] (apply f x y z more)))
+
 (defn mjuxt
   [& fs]
   (fn
-    ([c1] (mapv #(%1 %2) fs c1))
-    ([c1 c2] (mapv #(%1 %2 %3) fs c1 c2))
-    ([c1 c2 & colls] (apply mapv #(apply %1 %&) fs c1 c2 colls))))
+    ([] (mapv funcall fs))
+    ([c1] (mapv funcall fs c1))
+    ([c1 c2] (mapv funcall fs c1 c2))
+    ([c1 c2 & colls] (apply mapv funcall fs c1 c2 colls))))

@@ -54,15 +54,17 @@
   (unwrap [wobj] nil)
   (rewrap [wobj obj] wobj)
 
+  nil
+  (unwrap [wobj] nil)
+  (rewrap [wobj obj] nil)
+
   Text
   (unwrap [wobj] (.toString wobj))
   (rewrap [wobj obj]
     (returning wobj (.set wobj ^String obj)))
 
   Object
-  (unwrap [wobj] wobj)
-  (rewrap [wobj obj]
-    (throw (ex-info "rewrap not implemented" {:wobj wobj, :obj obj}))))
+  (unwrap [wobj] wobj))
 
 (auto-wrapper
   IntWritable
@@ -70,10 +72,11 @@
   DoubleWritable
   FloatWritable)
 
-(defn ^:private new-instance
+(defn new-instance
   [c]
-  (let [^Class c (if (class? c) c (class c))]
-    (.newInstance c)))
+  (when c
+    (let [^Class c (if (class? c) c (class c))]
+      (.newInstance c))))
 
 (defn clone
   [wobj] (rewrap (new-instance wobj) (unwrap wobj)))

@@ -16,136 +16,131 @@
            [org.apache.hadoop.mapreduce
              Job MapContext ReduceContext TaskInputOutputContext]))
 
-(defprotocol MRSource
-  (-keyvals [source] [source kf vf] "")
-  (-keys [source] [source f] "")
-  (-vals [source] [source f] "")
-  (-keyvalgroups [source] [source kf vf] "")
-  (-keygroups [source] [source f] "")
-  (-valgroups [source] [source f] ""))
+(defprotocol TupleContext
+  (tc-key [this])
+  (tc-val [this])
+  (tc-vals [this])
+  (tc-next-keyval [this])
+  (tc-next-key [this]))
 
-(defn keyvals
-  ([source] (-keyvals source))
-  ([f source] (-keyvals source f f))
-  ([kf vf source] (-keyvals source kf vf)))
+(defn tc-keyval
+  [context] [(tc-key context) (tc-val context)])
 
-(defn keys
-  ([source] (-keys source))
-  ([f source] (-keys source f)))
+(defn tc-keyvals
+  [context] [(tc-key context) (tc-vals context)])
 
-(defn vals
-  ([source] (-vals source))
-  ([f source] (-vals source f)))
+(defn tc-reduce
+  ([context f init]
+     (tc-reduce tc-next-keyval tc-keyval f init))
+  ([nextf dataf context f init]
+     (loop [context context, state init]
+       (if-let [context (nextf context)]
+         (recur context (f state (dataf context)))
+         state))))
 
-(defn keyvalgroups
-  ([source] (-keyvalgroups source))
-  ([f source] (-keyvalgroups source f f))
-  ([kf vf source] (-keyvalgroups source kf vf)))
+(defn ^:private task-reducer
+  [nextf dataf context]
+  (reify ccp/CollReduce
+    (coll-reduce [this f]
+      (ccp/coll-reduce this f (f)))
+    (coll-reduce [this f init]
+      (tc-reduce nextf dataf context f init))))
 
-(defn keygroups
-  ([source] (-keygroups source))
-  ([f source] (-keygroups source f)))
+(extend-protocol TupleContext
+  MapContext
+  (tc-key [this] (.getCurrentKey this))
+  (tc-val [this] (.getCurrentValue this))
+  (tc-next-keyval [this] (when (.nextKeyValue this) this))
 
-(defn valgroups
-  ([source] (-valgroups source))
-  ([f source] (-valgroups source f)))
-
-(defprotocol MRSink
-  (emit-keyval [sink keyval] "")
-  (emit-key [sink key] "")
-  (emit-val [sink val] ""))
-
-(defmacro ^:private task-reducer
-  [nextf dataf]
-  `(reify ccp/CollReduce
-     (coll-reduce [this# f#] (ccp/coll-reduce this# f# (f#)))
-     (coll-reduce [this# f# init#]
-       (loop [state# init#]
-         (if-not ~nextf
-           state#
-           (recur (f# state# ~dataf)))))))
+  ReduceContext
+  (tc-key [this] (.getCurrentKey this))
+  (tc-val [this] (.getCurrentValue this))
+  (tc-vals [this] (.getValues this))
+  (tc-next-keyval [this] (when (.nextKeyValue this) this))
+  (tc-next-key [this] (when (.nextKey this) this)))
 
 (extend-protocol ccp/CollReduce
   TaskInputOutputContext
   (coll-reduce
     ([this f] (ccp/coll-reduce this f (f)))
-    ([this f init]
-       (loop [state init]
-         (if-not (.nextKeyValue this)
-           state
-           (let [k (.getCurrentKey this)
-                 v (.getCurrentValue this)]
-             (recur (f state [k v]))))))))
+    ([this f init] (tc-reduce this f init))))
 
-(extend-protocol MRSource
-  MapContext
-  (-keyvals
-    ([^MapContext source]
-       (task-reducer (.nextKeyValue source) [(.getCurrentKey source)
-                                             (.getCurrentValue source)]))
-    ([^MapContext source kf vf]
-       (task-reducer (.nextKeyValue source) [(kf (.getCurrentKey source))
-                                             (vf (.getCurrentValue source))])))
-  (-keys
-    ([^MapContext source]
-       (task-reducer (.nextKeyValue source) (.getCurrentKey source)))
-    ([^MapContext source f]
-       (task-reducer (.nextKeyValue source) (f (.getCurrentKey source)))))
-  (-vals
-    ([^MapContext source]
-       (task-reducer (.nextKeyValue source) (.getCurrentValue source)))
-    ([^MapContext source f]
-       (task-reducer (.nextKeyValue source) (f (.getCurrentValue source)))))
+(extend-protocol w/Wrapper
+  TaskInputOutputContext
+  (unwrap [wobj]
+    (reify
+      TupleContext
+      (tc-key [_] (w/unwrap (tc-key wobj)))
+      (tc-val [_] (w/unwrap (tc-val wobj)))
+      (tc-vals [_] (r/map w/unwrap (tc-vals wobj)))
+      (tc-next-keyval [this] (when (tc-next-keyval wobj) this))
+      (tc-next-key [this] (when (tc-next-key wobj) this))
 
-  ReduceContext
-  (-keyvals
-    ([^ReduceContext source]
-       (task-reducer (.nextKeyValue source) [(.getCurrentKey source)
-                                             (.getCurrentValue source)]))
-    ([^ReduceContext source kf vf]
-       (task-reducer (.nextKeyValue source) [(kf (.getCurrentKey source))
-                                             (vf (.getCurrentValue source))])))
-  (-keys
-    ([^ReduceContext source]
-       (task-reducer (.nextKeyValue source) (.getCurrentKey source)))
-    ([^ReduceContext source f]
-       (task-reducer (.nextKeyValue source) (f (.getCurrentKey source)))))
-  (-vals
-    ([^ReduceContext source]
-       (task-reducer (.nextKeyValue source) (.getCurrentValue source)))
-    ([^ReduceContext source f]
-       (task-reducer (.nextKeyValue source) (f (.getCurrentValue source)))))
-  (-keyvalgroups
-    ([^ReduceContext source]
-       (task-reducer (.nextKey source) [(.getCurrentKey source)
-                                        (.getValues source)]))
-    ([^ReduceContext source kf vf]
-       (task-reducer (.nextKey source) [(kf (.getCurrentKey source))
-                                        (r/map vf (.getValues source))])))
-  (-keygroups
-    ([^ReduceContext source]
-       (task-reducer (.nextKey source) (.getCurrentKey source)))
-    ([^ReduceContext source f]
-       (task-reducer (.nextKey source) (f (.getCurrentKey source)))))
-  (-valgroups
-    ([^ReduceContext source]
-       (task-reducer (.nextKey source) (.getValues source)))
-    ([^ReduceContext source f]
-       (task-reducer (.nextKey source) (r/map f (.getValues source))))))
+      ccp/CollReduce
+      (coll-reduce [this f] (tc-reduce this f (f)))
+      (coll-reduce [this f init] (tc-reduce this f init)))))
+
+(defn keys
+  [context] (task-reducer tc-next-keyval tc-key context))
+
+(defn vals
+  [context] (task-reducer tc-next-keyval tc-val context))
+
+(defn keyvals
+  [context] (task-reducer tc-next-keyval tc-keyval context))
+
+(defn keygroups
+  [context] (task-reducer tc-next-key tc-key context))
+
+(defn valgroups
+  [context] (task-reducer tc-next-key tc-vals context))
+
+(defn keyvalgroups
+  [context] (task-reducer tc-next-key tc-keyvals context))
+
+(defprotocol MRSink
+  (-emit-keyval [sink key val] ""))
 
 (extend-protocol MRSink
   TaskInputOutputContext
-  (emit-keyval [^TaskInputOutputContext sink [key val]]
-    (returning sink (.write sink key val)))
-  (emit-key [^TaskInputOutputContext sink key]
-    (returning sink (.write sink key (NullWritable/get))))
-  (emit-val [^TaskInputOutputContext sink val]
-    (returning sink (.write sink (NullWritable/get) val)))
+  (-emit-keyval [sink key val] (returning sink (.write sink key val)))
 
   IPersistentCollection
-  (emit-keyval [sink keyval] (conj sink (mapv w/clone keyval)))
-  (emit-key [sink key] (conj sink [(w/clone key) nil]))
-  (emit-val [sink val] (conj sink [nil (w/clone val)])))
+  (-emit-keyval [sink key val] (conj sink [(w/clone key) (w/clone val)])))
+
+(defn wrap-sink
+  [ckey cval sink]
+  (let [wkey (w/new-instance ckey)
+        wval (w/new-instance cval)]
+    (reify MRSink
+      (-emit-keyval [sink1 key val]
+        (returning sink1
+          (let [key (if (instance? ckey key) key (w/rewrap wkey key))
+                val (if (instance? cval val) val (w/rewrap wval val))]
+            (-emit-keyval sink key val)))))))
+
+(defn emit-keyval
+  [sink [key val]] (-emit-keyval sink key val))
+
+(defn emit-key
+  [sink key] (-emit-keyval sink key nil))
+
+(defn emit-val
+  [sink val] (-emit-keyval sink nil val))
+
+(def emit-fn*
+  {:keyvals emit-keyval,
+   :keys emit-key,
+   :vals emit-val})
+
+(defn sink-as
+  [kind sink] (vary-meta sink ::tuples-as kind))
+
+(defn emit-fn
+  [sink] (-> (meta sink) (get ::tuples-as :keyvals) emit-fn*))
+
+(defn sink
+  [sink coll] (r/reduce (emit-fn sink) sink coll))
 
 (def ^:private job-factory-method?
   (->> Job reflect/type-reflect :members (some #(= 'getInstance (:name %)))))

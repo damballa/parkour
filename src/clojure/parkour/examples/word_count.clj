@@ -30,25 +30,25 @@
   ([x y z & more] y))
 
 (defn avro-task
-  ([f] (avro-task mr/keyvals mr/emit-keyval f))
-  ([inputf f] (avro-task inputf mr/emit-keyval f))
-  ([inputf emitf f]
-     (fn [input output]
-       (->> input (inputf w/unwrap) f
-            (r/map (w/wrap-keyvals AvroKey AvroValue))
-            (r/reduce emitf output)))))
+  [f]
+  (fn [input output]
+    (let [output (mr/wrap-sink AvroKey AvroValue output)]
+      (->> input w/unwrap f (mr/sink output)))))
 
 (defn mapper
   [conf]
-  (->> (fn [input]
-         (->> (r/mapcat #(str/split % #"\s") input)
-              (r/map #(-> [% 1]))))
-       (avro-task mr/vals)))
+  (avro-task
+   (fn [input]
+     (->> (mr/vals input)
+          (r/mapcat #(str/split % #"\s"))
+          (r/map #(-> [% 1]))))))
 
 (defn reducer
   [conf]
-  (->> (partial r/map (pr/mjuxt identity (partial r/reduce +)))
-       (avro-task mr/keyvalgroups)))
+  (avro-task
+   (fn [input]
+     (->> (mr/keyvalgroups input)
+          (r/map (pr/mjuxt identity (partial r/reduce +)))))))
 
 (defn -main
   [& args]
@@ -73,23 +73,27 @@
   (defn complete-job
     [dseq]
     (mr/mapreduce
-     (avro-task mr/vals
-                (fn [input]
-                  (->> (r/mapcat #(str/split % #"\s") input)
-                       (r/map #(-> [% 1])))))
-     (avro-task mr/keyvalgroups
-                (partial r/map (fn [[word counts]]
-                                 [word (r/reduce + counts)])))
+     (fn [conf]
+       (avro-task
+        (fn [input]
+          (->> (mr/vals input)
+               (r/mapcat #(str/split % #"\s") input)
+               (r/map #(-> [% 1]))))))
+     (fn [conf]
+       (avro-task
+        (fn [input]
+          (->> (mr/keyvalgroups input)
+               (r/map (pr/mjuxt identity (partial r/reduce +)))))))
      dseq))
 
   (defn word-count-job
     [dseq]
-    (->> (r/map second dseq)
+    (->> (mr/vals input)
          (r/mapcat #(str/split % #"\n"))
          (r/map #(-> [% 1]))
          (mr/group)
-         (r/map (fn [[word counts]]
-                  [word (r/reduce + 0 counts)]))))
+         (mr/keyvalgroups)
+         (r/map (pr/mjuxt identity (partial r/reduce +)))))
 
   )
 
