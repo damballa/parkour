@@ -7,7 +7,7 @@
   :source-paths ["src/clojure"]
   :java-source-paths ["src/java"]
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [com.damballa/abracad "0.4.0"]
+                 [com.damballa/abracad "0.4.1"]
                  [org.apache.avro/avro-mapred "1.7.5"
                   :exclusions [org.apache.avro/avro-ipc]]]
   :profiles {:provided
