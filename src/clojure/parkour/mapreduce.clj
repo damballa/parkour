@@ -167,7 +167,7 @@ from the tuples in `context`."
 (defn sink-as
   "Return new tuple sink which sinks values as `kind`, which may be
 one of `:keys`, `:vals`, or `:keyvals`."
-  [kind sink] (vary-meta sink ::tuples-as kind))
+  [kind sink] (vary-meta sink assoc ::tuples-as kind))
 
 (defn ^:private emit-fn
   "Tuple-emitting function for `sink`."

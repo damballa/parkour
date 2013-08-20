@@ -8,12 +8,16 @@
              AvroJob AvroKeyOutputFormat AvroKeyValueOutputFormat]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapreduce Job]
+           [org.apache.hadoop.mapreduce.lib.output LazyOutputFormat]
            [abracad.avro ClojureData]))
 
 (extend-protocol w/Wrapper
   AvroWrapper
   (unwrap [w] (.datum w))
   (rewrap [w x] (returning w (.datum w x))))
+
+(defn wrap-sink
+  [output] (mr/wrap-sink AvroKey AvroValue output))
 
 (defn task
   "Returns a function which calls `f` with an `unwrap`ed tuple source
@@ -52,14 +56,14 @@ optional value schema `vs`.  Configures job output format to match
 when the output format has not been otherwise explicitly specified."
   ([^Job job ks]
      (when (nil? (get-output-format job))
-       (.setOutputFormatClass job AvroKeyOutputFormat))
+       (LazyOutputFormat/setOutputFormatClass job AvroKeyOutputFormat))
      (doto job
        (set-data-model)
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))
-       (.setOutputValueClass job NullWritable)))
+       (.setOutputValueClass NullWritable)))
   ([^Job job ks vs]
      (when (nil? (get-output-format job))
-       (.setOutputFormatClass job AvroKeyValueOutputFormat))
+       (LazyOutputFormat/setOutputFormatClass job AvroKeyValueOutputFormat))
      (doto job
        (set-data-model)
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))
