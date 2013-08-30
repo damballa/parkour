@@ -22,4 +22,7 @@ additional (command-line string) argument."
 
 (defn run
   "Run the Tool/function `t` with the arguments `args`."
-  [t args] (ToolRunner/run (coerce Tool tool t) (into-array String args)))
+  ([t args]
+     (ToolRunner/run (coerce Tool tool t) (into-array String args)))
+  ([^Configuration conf t args]
+     (ToolRunner/run conf (coerce Tool tool t) (into-array String args))))
