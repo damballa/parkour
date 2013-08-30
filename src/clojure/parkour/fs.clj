@@ -78,4 +78,6 @@
 (defn path-list
   "List the entries in the directory at path `p`."
   ([p] (path-list (path-fs p) p))
-  ([fs p] (map #(.getPath ^FileStatus %) (.listStatus fs (path p)))))
+  ([fs p]
+     (->> (.listStatus ^FileSystem fs (path p))
+          (map #(.getPath ^FileStatus %) ))))
