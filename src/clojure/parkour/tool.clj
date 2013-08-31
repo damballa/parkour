@@ -1,5 +1,6 @@
 (ns parkour.tool
-  (:require [parkour.util :refer [coerce]])
+  (:require [parkour.conf :as conf]
+            [parkour.util :refer [coerce]])
   (:import [org.apache.hadoop.conf Configuration Configurable]
            [org.apache.hadoop.util Tool ToolRunner]))
 
@@ -18,11 +19,17 @@
 `Configuration` as it's first argument, follow by any number of
 additional (command-line string) argument."
   {:tag `Tool}
-  [f] (ParkourTool. nil f))
+  ([f] (ParkourTool. nil f))
+  ([conf f] (ParkourTool. (conf/iguration conf) f)))
 
 (defn run
   "Run the Tool/function `t` with the arguments `args`."
   ([t args]
-     (ToolRunner/run (coerce Tool tool t) (into-array String args)))
-  ([^Configuration conf t args]
-     (ToolRunner/run conf (coerce Tool tool t) (into-array String args))))
+     (let [t (coerce Tool tool t)
+           args (into-array String args)]
+       (ToolRunner/run ^Tool t args)))
+  ([conf t args]
+     (let [conf (conf/iguration conf)
+           t (coerce Tool tool t)
+           args (into-array String args)]
+       (ToolRunner/run ^Configuration conf ^Tool t args))))
