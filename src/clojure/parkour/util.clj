@@ -1,5 +1,9 @@
 (ns parkour.util)
 
+(defmacro ignore-errors
+  "Returns the result of evaluating body, or nil if it throws an exception."
+  [& body] `(try ~@body (catch java.lang.Exception _# nil)))
+
 (defmacro returning
   "Evaluates the result of `expr`, then evaluates the forms in
 `body` (presumably for side-effects), then returns the result of
