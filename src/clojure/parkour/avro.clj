@@ -2,13 +2,12 @@
   (:require [abracad.avro :as avro]
             [parkour.wrapper :as w]
             [parkour.mapreduce :as mr]
-            [parkour.util :refer [returning]])
+            [parkour.util :refer [ignore-errors returning]])
   (:import [org.apache.avro.mapred AvroKey AvroValue AvroWrapper]
            [org.apache.avro.mapreduce
              AvroJob AvroKeyOutputFormat AvroKeyValueOutputFormat]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapreduce Job]
-           [org.apache.hadoop.mapreduce.lib.output LazyOutputFormat]
            [abracad.avro ClojureData]))
 
 (extend-protocol w/Wrapper
@@ -39,9 +38,10 @@ optional value schema `vs`."
      (doto job
        (set-data-model)
        (AvroJob/setMapOutputKeySchema (avro/parse-schema ks))
-       (.setMapOutputValueClass job NullWritable)))
+       (.setMapOutputValueClass NullWritable)))
   ([^Job job ks vs]
      (doto job
+       (set-data-model)
        (AvroJob/setMapOutputKeySchema (avro/parse-schema ks))
        (AvroJob/setMapOutputValueSchema (avro/parse-schema vs)))))
 
@@ -50,20 +50,31 @@ optional value schema `vs`."
 `nil` if none has yet been specified."
   [^Job job] (-> job .getConfiguration (.get "mapreduce.outputformat.class")))
 
+(let [cname 'org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat
+      exists? (-> cname str Class/forName ignore-errors boolean)]
+  (defmacro ^:private lazy-output-format*
+    [job klass]
+    (if exists?
+      `(. ~cname ~'setOutputFormatClass ~job ~klass)
+      `(.setOutputFormatClass ~job ~klass))))
+
+(defn ^:private lazy-output-format
+  [job klass] (lazy-output-format* ^Job job ^Class klass))
+
 (defn set-output
     "Configure `job` output to produce Avro with key schema `ks` and
 optional value schema `vs`.  Configures job output format to match
 when the output format has not been otherwise explicitly specified."
   ([^Job job ks]
      (when (nil? (get-output-format job))
-       (LazyOutputFormat/setOutputFormatClass job AvroKeyOutputFormat))
+       (lazy-output-format job AvroKeyOutputFormat))
      (doto job
        (set-data-model)
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))
        (.setOutputValueClass NullWritable)))
   ([^Job job ks vs]
      (when (nil? (get-output-format job))
-       (LazyOutputFormat/setOutputFormatClass job AvroKeyValueOutputFormat))
+       (lazy-output-format job AvroKeyValueOutputFormat))
      (doto job
        (set-data-model)
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))

@@ -56,7 +56,7 @@
   (-uri [x] x)
 
   URL
-  (-path [x] (Path. (.toURI x)))
+  (-path [x] (Path. (str (.toURI x))))
   (-uri [x] (.toURI x))
 
   File
