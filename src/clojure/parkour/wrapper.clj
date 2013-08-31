@@ -12,6 +12,10 @@ Writables."
   (unwrap [wobj] "Unwrap `wobj` in a type-specific fashion.")
   (rewrap [wobj obj] "Mutate wapper `wobj` to wrap `obj`."))
 
+(defn unwrap-all
+  "Unwrap all members of `coll` (usually key/value) to new vector."
+  [coll] (mapv unwrap coll))
+
 (defn ^:private getter?
   "True iff method `m` a getter method."
   [m] (and (= 'get (:name m)) (->> m :parameter-types count zero?)))

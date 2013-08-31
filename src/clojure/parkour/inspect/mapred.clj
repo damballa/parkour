@@ -1,8 +1,10 @@
 (ns parkour.inspect.mapred
+  {:private true}
   (:require [parkour (fs :as fs)]
             [parkour.util :refer [doto-let returning]])
   (:import [java.io Closeable]
            [clojure.lang Seqable]
+           [org.apache.hadoop.conf Configuration]
            [org.apache.hadoop.mapred
              FileInputFormat InputFormat JobConf RecordReader Reporter]
            [org.apache.hadoop.util ReflectionUtils]))
@@ -23,8 +25,8 @@
     (returning rr' (close-rr rr))))
 
 (defn records-seqable
-  [conf klass f & paths]
-  (let [conf (doto-let [conf (JobConf. conf)]
+  [conf f klass & paths]
+  (let [conf (doto-let [conf (JobConf. ^Configuration conf)]
                (doseq [path paths :let [path (fs/path path)]]
                  (FileInputFormat/addInputPath conf path)))
         ^InputFormat ifi (ReflectionUtils/newInstance klass conf)
