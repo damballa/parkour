@@ -22,6 +22,7 @@
                         [[org.codehaus.jsr166-mirror/jsr166y "1.7.0"]
                          [org.apache.hadoop/hadoop-core "1.2.1"]
                          [log4j "1.2.17"]]}
+             :test {:resource-paths ["test-resources"]}
              :hadoop-0-20-2 {:dependencies
                              [[org.apache.hadoop/hadoop-core "0.20.2"]]}
              :hadoop-0-20-205 {:dependencies
