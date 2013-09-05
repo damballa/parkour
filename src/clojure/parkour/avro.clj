@@ -16,16 +16,17 @@
   (rewrap [w x] (returning w (.datum w x))))
 
 (defn wrap-sink
-  [output] (mr/wrap-sink AvroKey AvroValue output))
+  "Wrap task context for sinking Avro output."
+  [context] (mr/wrap-sink AvroKey AvroValue context))
 
 (defn task
   "Returns a function which calls `f` with an `unwrap`ed tuple source
-then Avro-wraps and sinks all tuples from the resulting `reduce`able
-collection."
+and expects `f` to return a `reduce`able object.  Avro-wraps and sinks
+all tuples from the resulting `reduce`able."
   [f]
-  (fn [input output]
-    (let [output (mr/wrap-sink AvroKey AvroValue output)]
-      (->> input w/unwrap f (mr/sink output)))))
+  (fn [context]
+    (let [output (mr/wrap-sink AvroKey AvroValue context)]
+      (->> context w/unwrap f (mr/sink output)))))
 
 (defn ^:private set-data-model
   "Configure `job` to use the Abracad Clojure data model."

@@ -198,8 +198,12 @@ configuration `conf`."
        #_else (make-job ^Configuration conf))))
 
 (defn mapper!
-  "Allocate and return new parkour mapper class for `job` as calling
-`var` with `args`."
+  "Allocate and return a new parkour mapper class for `job` as
+invoking `var`.  The `var` will be called during task-setup with the
+job Configuration and any provided `args` (which must be
+EDN-serializable).  It should return a function of one argument, which
+will be invoked with the task context, and should perform the desired
+content of the map task."
   [^Job job var & args]
   (let [conf (.getConfiguration job)
         i (.getInt conf "parkour.mapper.next" 0)]
@@ -210,8 +214,12 @@ configuration `conf`."
     (Class/forName (format "parkour.hadoop.Mappers$_%d" i))))
 
 (defn reducer!
-  "Allocate and return new parkour reducer class for `job` as calling
-`var` with `args`."
+  "Allocate and return a new parkour reducer class for `job` as
+invoking `var`.  The `var` will be called during task-setup with the
+job Configuration and any provided `args` (which must be
+EDN-serializable).  It should return a function of one argument, which
+will be invoked with the task context, and should perform the desired
+content of the reduce task."
   [^Job job var & args]
   (let [conf (.getConfiguration job)
         i (.getInt conf "parkour.reducer.next" 0)]
@@ -223,8 +231,14 @@ configuration `conf`."
 
 (defn partitioner!
   [^Job job var & args]
-  "Allocate and return parkour partitioner class for `job` as calling
-`var` with `args`."
+  "Allocate and return a new parkour partitioner class for `job` as
+invoking `var`.  The `var` will be called during task-setup with the
+job Configuration and any provided `args` (which must be
+EDN-serializable).  It should return a function of three arguments: a
+map-output key, a map-output value, and an integral reduce-task count.
+That function will called for each map-output tuple, and should return
+an integral value mod the reduce-task count.  Should be
+primitive-hinted as OOLL."
   (let [conf (.getConfiguration job)]
     (doto conf
       (.set "parkour.partitioner.var" (pr-str var))
