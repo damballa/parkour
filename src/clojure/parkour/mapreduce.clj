@@ -124,22 +124,38 @@ from the tuples in `context`."
 (defprotocol ^:private TupleSink
   "Internal protocol for emitting tuples to a sink."
   (^:private -emit-keyval [sink key val]
-    "Emit the tuple pair of `key` and `value` to `sink`."))
+    "Emit the tuple pair of `key` and `value` to `sink`.")
+  (^:private -key-class [sink]
+    "Key class expected by `sink`.")
+  (^:private -val-class [sink]
+    "Value class expected by `sink`."))
+
+(defn ^:private key-class [sink] (-key-class sink))
+(defn ^:private val-class [sink] (-val-class sink))
 
 (extend-protocol TupleSink
-  TaskInputOutputContext
+  MapContext
+  (-key-class [sink] (.getMapOutputKeyClass sink))
+  (-val-class [sink] (.getMapOutputValueClass sink))
   (-emit-keyval [sink key val] (returning sink (.write sink key val)))
 
-  IPersistentCollection
-  (-emit-keyval [sink key val] (conj sink [(w/clone key) (w/clone val)])))
+  ReduceContext
+  (-key-class [sink] (.getOutputKeyClass sink))
+  (-val-class [sink] (.getOutputValueClass sink))
+  (-emit-keyval [sink key val] (returning sink (.write sink key val))))
+
+(defn ^:private wrapper-class
+  [c c'] (if (isa? c c') c c'))
 
 (defn wrap-sink
   "Return new tuple sink which wraps keys and values as the types
 `ckey` and `cval` respectively."
   [ckey cval sink]
-  (let [wkey (w/new-instance ckey)
-        wval (w/new-instance cval)]
+  (let [ckey (wrapper-class ckey (key-class sink)), wkey (w/new-instance ckey)
+        cval (wrapper-class cval (val-class sink)), wval (w/new-instance cval)]
     (reify TupleSink
+      (-key-class [_] ckey)
+      (-val-class [_] cval)
       (-emit-keyval [sink1 key val]
         (returning sink1
           (let [key (if (instance? ckey key) key (w/rewrap wkey key))
@@ -165,17 +181,17 @@ from the tuples in `context`."
    :vals emit-val})
 
 (defn sink-as
-  "Return new tuple sink which sinks values as `kind`, which may be
-one of `:keys`, `:vals`, or `:keyvals`."
+  "Return new tuple collection which has values sinked as `kind`,
+which may be one of `:keys`, `:vals`, or `:keyvals`."
   [kind sink] (vary-meta sink assoc ::tuples-as kind))
 
 (defn ^:private emit-fn
-  "Tuple-emitting function for `sink`."
-  [sink] (-> (meta sink) (get ::tuples-as :keyvals) emit-fn*))
+  "Tuple-emitting function for `coll`."
+  [coll] (-> (meta coll) (get ::tuples-as :keyvals) emit-fn*))
 
 (defn sink
   "Emit all tuples from `coll` to `sink`."
-  [sink coll] (r/reduce (emit-fn sink) sink coll))
+  [sink coll] (r/reduce (emit-fn coll) sink coll))
 
 (def ^:private job-factory-method?
   "True iff the `Job` class has a static factory method."

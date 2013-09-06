@@ -4,7 +4,8 @@
   (:import [clojure.lang IPersistentVector]
            [org.apache.hadoop.io
              NullWritable Text Writable IntWritable LongWritable
-             DoubleWritable FloatWritable]))
+             DoubleWritable FloatWritable]
+           [org.apache.hadoop.util ReflectionUtils]))
 
 (defprotocol Wrapper
   "Protocol for working with mutable wrapper objects, such as Hadoop
@@ -83,16 +84,37 @@ Writables."
   DoubleWritable
   FloatWritable)
 
+(defmulti new-instance*
+  (fn dispatch
+    ([klass] klass)
+    ([conf klass] klass)))
+
+(defn ^:private ->class
+  [x] (if (class? x) x (class x)))
+
 (defn new-instance
-  "Return a new instance of the class of `c`, or of `c` itself if a class."
-  [c]
-  (when c
-    (let [^Class c (if (class? c) c (class c))]
-      (.newInstance c))))
+  "Return a new instance of the class of `klass`, or of `klass` itself
+if a class.  If Hadoop `conf` is provided and `klass` is Configurable,
+configure the new instance with `conf`."
+  ([klass] (new-instance* (->class klass)))
+  ([conf klass] (new-instance* conf (->class klass))))
+
+(defmethod new-instance* nil
+  ([klass] nil)
+  ([conf klass] nil))
+
+(defmethod new-instance* :default
+  ([klass] (.newInstance ^Class klass))
+  ([conf klass] (ReflectionUtils/newInstance ^Class klass ^Configuration conf)))
+
+(defmethod new-instance* NullWritable
+  ([_] (NullWritable/get))
+  ([_ _] (NullWritable/get)))
 
 (defn clone
   "Return a clone of wrapper object `wobj`."
-  [wobj] (rewrap (new-instance wobj) (unwrap wobj)))
+  ([wobj] (rewrap (new-instance wobj) (unwrap wobj)))
+  ([conf wobj] (rewrap (new-instance conf wobj) (unwrap wobj))))
 
 (defn wrap-keyvals
   "Return a function which wraps its key/value pair argument in

@@ -13,7 +13,7 @@
              TextInputFormat FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]))
 
-(defn mapper
+(defn wc-mapper
   [conf]
   (mra/task
    (fn [input]
@@ -21,7 +21,7 @@
           (r/mapcat #(str/split % #"\s"))
           (r/map #(-> [% 1]))))))
 
-(defn reducer
+(defn wc-reducer
   [conf]
   (mra/task
    (fn [input]
@@ -32,9 +32,9 @@
   [inpath outpath]
   (let [job (mr/job)]
     (doto job
-      (.setMapperClass (mr/mapper! job #'mapper))
-      (.setCombinerClass (mr/reducer! job #'reducer))
-      (.setReducerClass (mr/reducer! job #'reducer))
+      (.setMapperClass (mr/mapper! job #'wc-mapper))
+      (.setCombinerClass (mr/reducer! job #'wc-reducer))
+      (.setReducerClass (mr/reducer! job #'wc-reducer))
       (.setInputFormatClass TextInputFormat)
       (mra/set-map-output :string :long)
       (mra/set-output :string :long)
@@ -52,3 +52,44 @@
            (with-open [adf (->> (fs/path outpath "part-*") (fs/path-glob outfs)
                                 first io/file avro/data-file-reader)]
              (->> adf seq (into {})))))))
+
+
+(defn wd-mapper
+  [conf]
+  (mra/task
+   (fn [input]
+     (->> (mr/vals input)
+          (r/mapcat #(str/split % #"\s"))
+          (mr/sink-as :keys)))))
+
+(defn wd-reducer
+  [conf]
+  (mra/task
+   (fn [input]
+     (->> (mr/keygroups input)
+          (mr/sink-as :keys)))))
+
+(defn run-word-distinct
+  [inpath outpath]
+  (let [job (mr/job)]
+    (doto job
+      (.setMapperClass (mr/mapper! job #'wd-mapper))
+      (.setCombinerClass (mr/reducer! job #'wd-reducer))
+      (.setReducerClass (mr/reducer! job #'wd-reducer))
+      (.setInputFormatClass TextInputFormat)
+      (mra/set-map-output :string)
+      (mra/set-output :string)
+      (FileInputFormat/addInputPath (fs/path inpath))
+      (FileOutputFormat/setOutputPath (fs/path outpath)))
+    (.waitForCompletion job true)))
+
+(deftest test-word-distinct
+  (let [inpath (io/resource "word-count-input.txt")
+        outpath (fs/path "tmp/word-distinct-output")
+        outfs (fs/path-fs outpath)
+        _ (.delete outfs outpath true)]
+    (is (= true (run-word-distinct inpath outpath)))
+    (is (= ["apple" "banana" "carrot"]
+           (with-open [adf (->> (fs/path outpath "part-*") (fs/path-glob outfs)
+                                first io/file avro/data-file-reader)]
+             (->> adf seq (into [])))))))
