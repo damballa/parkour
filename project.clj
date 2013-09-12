@@ -11,8 +11,8 @@
                  [org.apache.avro/avro "1.7.5"]
                  [org.apache.avro/avro-mapred "1.7.5"
                   :exclusions [org.apache.avro/avro-ipc]]]
-  :aliases {"test" ["with-profile" ~(str "default,hadoop-0-20-2:"
-                                         "default,hadoop-0-20-205:"
+  :aliases {"test" ["with-profile" ~(str ;;"default,hadoop-0-20-2:"
+                                         ;;"default,hadoop-0-20-205:"
                                          "default,hadoop-1-0-3:"
                                          "default,hadoop-1-2-1:"
                                          "default,hadoop-cdh3:"
