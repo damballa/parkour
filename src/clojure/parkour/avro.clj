@@ -5,10 +5,12 @@
             [parkour.util :refer [ignore-errors returning]])
   (:import [org.apache.avro.mapred AvroKey AvroValue AvroWrapper]
            [org.apache.avro.mapreduce
-             AvroJob AvroKeyOutputFormat AvroKeyValueOutputFormat]
+             AvroJob AvroKeyInputFormat AvroKeyValueInputFormat
+             AvroKeyOutputFormat AvroKeyValueOutputFormat]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapreduce Job]
-           [abracad.avro ClojureData]))
+           [abracad.avro ClojureData]
+           [parkour.hadoop AvroKeyGroupingComparator]))
 
 (extend-protocol w/Wrapper
   AvroWrapper
@@ -32,6 +34,25 @@ all tuples from the resulting `reduce`able."
   "Configure `job` to use the Abracad Clojure data model."
   [^Job job] (AvroJob/setDataModelClass job ClojureData))
 
+(defn set-input
+  "Configure `job` for Avro input with keys or keyvals using expected
+schemas `ks` and `vs`.  Schemas may be `:default` to just directly use
+input writer schema(s)."
+  ([^Job job ks]
+     (when-not (identical? :default ks)
+       (AvroJob/setInputKeySchema job (avro/parse-schema ks)))
+     (doto job
+       (set-data-model)
+       (.setInputFormatClass AvroKeyInputFormat)))
+  ([^Job job ks vs]
+     (when-not (identical? :default ks)
+       (AvroJob/setInputKeySchema job (avro/parse-schema ks)))
+     (when-not (identical? :default vs)
+       (AvroJob/setInputValueSchema job (avro/parse-schema vs)))
+     (doto job
+       (set-data-model)
+       (.setInputFormatClass AvroKeyValueInputFormat))))
+
 (defn set-map-output
   "Configure `job` map output to produce Avro with key schema `ks` and
 optional value schema `vs`."
@@ -45,6 +66,12 @@ optional value schema `vs`."
        (set-data-model)
        (AvroJob/setMapOutputKeySchema (avro/parse-schema ks))
        (AvroJob/setMapOutputValueSchema (avro/parse-schema vs)))))
+
+(defn set-grouping
+  "Configure `job` combine & reduce phases to group keys via schema `gs`,
+which should be encoding-compatible with the map-output key schema."
+  [^Job job gs]
+  (AvroKeyGroupingComparator/setGroupingSchema job (avro/parse-schema gs)))
 
 (defn ^:private get-output-format
   "Retrieve `job`'s configure output format class as a string, or
