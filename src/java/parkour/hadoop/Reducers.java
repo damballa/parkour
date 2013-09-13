@@ -10,6 +10,7 @@ public class Reducers {
   private static class Base extends Reducer {
     private static final String CONF_KEY_BASE = "parkour.reducer.";
 
+    private final String stepKey;
     private final String varKey;
     private final String argsKey;
     private final long id;
@@ -18,12 +19,14 @@ public class Reducers {
       super();
       this.id = Long.parseLong(getClass().getName().split("\\$_", 2)[1]);
       String confKey = CONF_KEY_BASE + Long.toString(this.id);
+      this.stepKey = confKey + ".step";
       this.varKey = confKey + ".var";
       this.argsKey = confKey + ".args";
     }
 
     public void run(Context context) {
       Configuration conf = context.getConfiguration();
+      conf.set("parkour.step", conf.get(this.stepKey));
       String[] fqname = conf.get(varKey).split("/", 2);
       if (fqname[0].startsWith("#'")) fqname[0] = fqname[0].substring(2);
       RT.var("clojure.core", "require").invoke(Symbol.intern(fqname[0]));

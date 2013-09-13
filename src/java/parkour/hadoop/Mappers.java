@@ -24,6 +24,7 @@ public class Mappers {
 
     public void run(Context context) {
       Configuration conf = context.getConfiguration();
+      conf.set("parkour.step", "map");
       String[] fqname = conf.get(varKey).split("/", 2);
       if (fqname[0].startsWith("#'")) fqname[0] = fqname[0].substring(2);
       RT.var("clojure.core", "require").invoke(Symbol.intern(fqname[0]));

@@ -8,6 +8,7 @@
             [parkour.fs :as fs]
             [parkour.avro :as mra]
             [parkour.reducers :as pr]
+            [parkour.conf :as conf]
             [parkour.util :refer [returning]])
   (:import [org.apache.hadoop.mapreduce.lib.input
              TextInputFormat FileInputFormat]
@@ -74,7 +75,7 @@
   (let [job (mr/job)]
     (doto job
       (.setMapperClass (mr/mapper! job #'wd-mapper))
-      (.setCombinerClass (mr/reducer! job #'wd-reducer))
+      (.setCombinerClass (mr/combiner! job #'wd-reducer))
       (.setReducerClass (mr/reducer! job #'wd-reducer))
       (.setInputFormatClass TextInputFormat)
       (mra/set-map-output :string)
