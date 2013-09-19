@@ -9,7 +9,7 @@
             [parkour.util :refer [returning]])
   (:import [java.util Comparator]
            [clojure.lang IPersistentCollection Indexed Seqable]
-           [org.apache.hadoop.conf Configuration]
+           [org.apache.hadoop.conf Configuration Configurable]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapred JobConf]
            [org.apache.hadoop.mapreduce
@@ -83,6 +83,9 @@ passed to `f`."
   TaskInputOutputContext
   (unwrap [wobj]
     (reify
+      Configurable
+      (getConf [_] (conf/ig wobj))
+
       TupleSource
       (ts-key [_] (w/unwrap (ts-key wobj)))
       (ts-val [_] (w/unwrap (ts-val wobj)))
@@ -157,9 +160,16 @@ from the tuples in `context`."
   "Return new tuple sink which wraps keys and values as the types
 `ckey` and `cval` respectively."
   [ckey cval sink]
-  (let [ckey (wrapper-class ckey (key-class sink)), wkey (w/new-instance ckey)
-        cval (wrapper-class cval (val-class sink)), wval (w/new-instance cval)]
-    (reify TupleSink
+  (let [conf (conf/ig sink)
+        ckey (wrapper-class ckey (key-class sink)),
+        wkey (w/new-instance conf ckey)
+        cval (wrapper-class cval (val-class sink)),
+        wval (w/new-instance conf cval)]
+    (reify
+      Configurable
+      (getConf [_] conf)
+
+      TupleSink
       (-key-class [_] ckey)
       (-val-class [_] cval)
       (-emit-keyval [sink1 key val]
@@ -213,11 +223,7 @@ appropriate mechanism."
 configuration `conf`."
   {:tag `Job}
   ([] (make-job))
-  ([conf]
-     (condp instance? conf
-       Job (make-job (-> ^Job conf .getConfiguration Configuration.))
-       JobConf (make-job (Configuration. ^JobConf conf))
-       #_else (make-job ^Configuration conf))))
+  ([conf] (make-job (conf/clone conf))))
 
 (defn mapper!
   "Allocate and return a new parkour mapper class for `job` as

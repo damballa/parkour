@@ -4,8 +4,8 @@
             [parkour.wrapper :as w]
             [parkour.util :refer [returning]])
   (:import [java.util List Map Set]
-           [org.apache.hadoop.conf Configuration]
-           [org.apache.hadoop.mapreduce Job]))
+           [org.apache.hadoop.conf Configuration Configurable]
+           [org.apache.hadoop.mapreduce Job JobContext]))
 
 (defmulti ^:private configuration*
   "Internal implementation multimethod for extracting a `Configuration`."
@@ -21,9 +21,9 @@ which may be set as Hadoop config value."
   type)
 
 (defn configuration
-  "Produce a Hadoop `Configuration`.  If provided a `conf` argument,
-coerce it to be a `Configuration` which if possible shares mutable
-state with that original argument."
+  "Extract or produce a Hadoop `Configuration`.  If provided a `conf`
+argument, coerce it to be a `Configuration` which if possible shares
+mutable state with that original argument."
   {:tag `Configuration}
   ([] (Configuration.))
   ([conf] (configuration* conf)))
@@ -81,8 +81,13 @@ state with that original argument."
   [conf] (Configuration. (configuration conf)))
 
 (defmethod configuration* Configuration [conf] conf)
-(defmethod configuration* Job [conf] (.getConfiguration ^Job conf))
-(defmethod configuration* Map [conf] (merge! (configuration) conf))
+(defmethod configuration* Configurable
+  [cable] (.getConf ^Configurable cable))
+(defmethod configuration* JobContext
+  [context] (.getConfiguration ^JobContext context))
+(defmethod configuration* Job [job] (.getConfiguration ^Job job))
+(defmethod configuration* Map [map] (merge! (configuration) map))
+(defmethod configuration* :default [_] nil)
 
 (defmacro ^:private def-conf-set*
   [[conf key val] & pairs]

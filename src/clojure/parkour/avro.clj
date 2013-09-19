@@ -1,7 +1,6 @@
 (ns parkour.avro
   (:require [abracad.avro :as avro]
-            [parkour.wrapper :as w]
-            [parkour.mapreduce :as mr]
+            [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)]
             [parkour.util :refer [ignore-errors returning]])
   (:import [org.apache.avro.mapred AvroKey AvroValue AvroWrapper]
            [org.apache.avro.mapreduce

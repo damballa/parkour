@@ -116,18 +116,22 @@ configure the new instance with `conf`."
   ([wobj] (rewrap (new-instance wobj) (unwrap wobj)))
   ([conf wobj] (rewrap (new-instance conf wobj) (unwrap wobj))))
 
+(defn ^:private wrap-keyvals*
+  [f k v]
+  (let [[k v :as tuple] (mapv f [k v])]
+    (fn [[k' v']]
+      (returning tuple
+        (rewrap k k')
+        (rewrap v v')))))
+
 (defn wrap-keyvals
   "Return a function which wraps its key/value pair argument in
 instances of the wrapper type `t` or types `k` & `v`."
-  ([t] (wrap-keyvals t t))
-  ([k v]
-     (let [[k v :as tuple] (mapv new-instance [k v])]
-       (fn [[k' v']]
-         (returning tuple
-           (rewrap k k')
-           (rewrap v v'))))))
+  ([k v] (wrap-keyvals* new-instance k v))
+  ([conf k v] (wrap-keyvals* (partial new-instance conf) k v)))
 
 (defn wrap-vals
   "Return a function which wraps its argument in an instance of the
 wrapper type `t`."
-  [t] (partial rewrap (new-instance t)))
+  ([t] (partial rewrap (new-instance t)))
+  ([conf t] (partial rewrap (new-instance conf t))))
