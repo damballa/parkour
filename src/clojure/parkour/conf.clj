@@ -58,10 +58,6 @@ state with that original argument."
   "Get float value of `conf` parameter `key`"
   ^Float [conf key default] (.getFloat (configuration conf) key default))
 
-(defn get-double
-  "Get double value of `conf` parameter `key`"
-  ^Double [conf key default] (.getDouble (configuration conf) key default))
-
 (defn set!
   "Set `conf` parameter `key` to `val`."
   [conf key val]
