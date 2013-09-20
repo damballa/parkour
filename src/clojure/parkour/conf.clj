@@ -7,6 +7,10 @@
            [org.apache.hadoop.conf Configuration Configurable]
            [org.apache.hadoop.mapreduce Job JobContext]))
 
+(def ^:dynamic ^:private *default*
+  "Base configuration, used as template for fresh configurations."
+  (Configuration.))
+
 (defmulti ^:private configuration*
   "Internal implementation multimethod for extracting a `Configuration`."
   type)
@@ -23,9 +27,10 @@ which may be set as Hadoop config value."
 (defn configuration
   "Extract or produce a Hadoop `Configuration`.  If provided a `conf`
 argument, coerce it to be a `Configuration` which if possible shares
-mutable state with that original argument."
+mutable state with that original argument.  If not, return a fresh
+configuration copied from the current default."
   {:tag `Configuration}
-  ([] (Configuration.))
+  ([] (Configuration. *default*))
   ([conf] (configuration* conf)))
 
 (def ^{:tag `Configuration} iguration
@@ -35,6 +40,17 @@ mutable state with that original argument."
 (def ^{:tag `Configuration} ig
   "Alias for `configuration`."
   configuration)
+
+(defn clone
+  "Return new Hadoop `Configuration`, cloning `conf`."
+  [conf] (Configuration. (configuration conf)))
+
+(defmacro with-default
+  "Set new default configuration `conf` within the dynamic scope of
+the `body` expressions."
+  [conf & body]
+  `(binding [*default* (clone ~conf)]
+     ~@body))
 
 (defn get
   "Get string value of `conf` parameter `key`"
@@ -75,10 +91,6 @@ mutable state with that original argument."
 (defn assoc!
   "Merge key-value pairs `kvs` into Hadoop configuration `conf`."
   [conf & kvs] (merge! conf (partition 2 kvs)))
-
-(defn clone
-  "Return new Hadoop `Configuration`, cloning `conf`."
-  [conf] (Configuration. (configuration conf)))
 
 (defmethod configuration* Configuration [conf] conf)
 (defmethod configuration* Configurable
