@@ -1,8 +1,8 @@
 (ns parkour.fs
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [parkour (conf :as conf)])
   (:import [java.net URI URL]
            [java.io File]
-           [org.apache.hadoop.conf Configuration]
            [org.apache.hadoop.fs FileStatus FileSystem Path]))
 
 (defprotocol Coercions
@@ -30,8 +30,8 @@
 (defn path-fs
   "Hadoop filesystem for the path `p`."
   {:tag `FileSystem}
-  ([p] (path-fs (Configuration.) p))
-  ([conf p] (.getFileSystem (path p) ^Configuration conf)))
+  ([p] (path-fs (conf/ig) p))
+  ([conf p] (.getFileSystem (path p) (conf/ig conf))))
 
 (extend-protocol Coercions
   String
