@@ -222,7 +222,7 @@ appropriate mechanism."
   "Return new Hadoop `Job` instance, optionally initialized with
 configuration `conf`."
   {:tag `Job}
-  ([] (make-job))
+  ([] (make-job (conf/ig)))
   ([conf] (make-job (conf/clone conf))))
 
 (defn mapper!

@@ -11,7 +11,8 @@
 
   Tool
   (run [_ args]
-    (let [rv (apply f conf (seq args))]
+    (let [rv (conf/with-default conf
+               (apply f conf (seq args)))]
       (cond (integer? rv) rv, rv 0, :else -1))))
 
 (defn tool

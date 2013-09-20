@@ -3,16 +3,22 @@ package parkour.hadoop;
 import clojure.lang.IFn;
 import clojure.lang.RT;
 import clojure.lang.Symbol;
+import clojure.lang.Var;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-
 
 public class Partitioner
   extends org.apache.hadoop.mapreduce.Partitioner
   implements Configurable {
 
-  private static final String VAR_KEY = "parkour.partitioner.var";
-  private static final String ARGS_KEY = "parkour.partitioner.args";
+  private static class Vars {
+    private static final String NS = "parkour.mapreduce.tasks";
+    private static final Var
+      partitionerSetConf = RT.var(NS, "partitioner-set-conf");
+    static {
+      RT.var("clojure.core", "require").invoke(Symbol.intern(NS));
+    }
+  }
 
   private Configuration conf = null;
   private IFn f = null;
@@ -23,14 +29,7 @@ public class Partitioner
 
   public void setConf(Configuration conf) {
     this.conf = conf;
-    String[] fqname = conf.get(VAR_KEY).split("/", 2);
-    if (fqname[0].startsWith("#'")) fqname[0] = fqname[0].substring(2);
-    RT.var("clojure.core", "require").invoke(Symbol.intern(fqname[0]));
-    IFn tvar = RT.var(fqname[0], fqname[1]);
-    String argsEDN = conf.get(ARGS_KEY);
-    this.f = (argsEDN == null)
-      ? (IFn) tvar.invoke(conf)
-      : (IFn) tvar.applyTo(RT.cons(conf, RT.readString(argsEDN)));
+    this.f = (IFn) Vars.partitionerSetConf.invoke(conf);
   }
 
   @Override
