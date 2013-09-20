@@ -18,6 +18,12 @@
   ([x y] (Path. (-path x) (str y)))
   ([x y & more] (apply path (path x y) more)))
 
+(defmethod print-method Path
+  ([^Path x ^java.io.Writer w]
+     (.write w "#hadoop.fs/path \"")
+     (.write w (str x))
+     (.write w "\"")))
+
 (defn uri
   "Coerce argument(s) to a URI, resolving successive arguments against base."
   {:tag `URI}
@@ -26,6 +32,12 @@
      (let [x (-uri x)]
        (-> x (.resolve (str (.getPath x) "/")) (.resolve (str y)))))
   ([x y & more] (apply uri (uri x y) more)))
+
+(defmethod print-method URI
+  ([^URI x ^java.io.Writer w]
+     (.write w "#java.net/uri \"")
+     (.write w (str x))
+     (.write w "\"")))
 
 (defn path-fs
   "Hadoop filesystem for the path `p`."
