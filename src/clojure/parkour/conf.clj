@@ -127,3 +127,14 @@ the `body` expressions."
 (defmethod conf-coerce Map [val]
   (let [kv-str (fn [[k v]] (str (conf-coerce k) "=" (conf-coerce v)))]
     (str/join "," (map kv-str val))))
+
+(defn diff
+  "Map of updates from `conf` to `conf'`."
+  [conf conf']
+  (let [conf (configuration conf), conf' (configuration conf')]
+    (reduce (fn [diff key]
+              (let [val (get conf key), val' (get conf' key)]
+                (if (= val val')
+                  diff
+                  (assoc diff key val'))))
+            {} (set (mapcat keys [conf conf'])))))
