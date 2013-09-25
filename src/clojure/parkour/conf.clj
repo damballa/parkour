@@ -7,7 +7,7 @@
            [org.apache.hadoop.conf Configuration Configurable]
            [org.apache.hadoop.mapreduce Job JobContext]))
 
-(def ^:dynamic ^:private *default*
+(def ^:dynamic ^:private ^Configuration *default*
   "Base configuration, used as template for fresh configurations."
   (Configuration.))
 
