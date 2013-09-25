@@ -24,6 +24,10 @@
      (.write w (str x))
      (.write w "\"")))
 
+(defn path?
+  "True iff `x` is a Path."
+  [x] (instance? Path x))
+
 (defn uri
   "Coerce argument(s) to a URI, resolving successive arguments against base."
   {:tag `URI}
@@ -38,6 +42,10 @@
      (.write w "#java.net/uri \"")
      (.write w (str x))
      (.write w "\"")))
+
+(defn uri?
+  "True iff `x` is a URI."
+  [x] (instance? URI x))
 
 (defn path-fs
   "Hadoop filesystem for the path `p`."
