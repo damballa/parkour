@@ -1,5 +1,6 @@
 (ns parkour.inspect
-  (:require [parkour (conf :as conf) (wrapper :as w)]
+  (:require [clojure.core.protocols :as ccp]
+            [parkour (conf :as conf) (wrapper :as w)]
             [parkour.inspect (mapred :as mr1) (mapreduce :as mr2)]))
 
 (defn records-seqable
@@ -9,9 +10,10 @@ contains the results of applying `f` to a vector of each key-value
 tuple as it is read, or `w/unwrap`-ing the key & value if not
 provided.  An explicit InputFormat `klass` and `paths` may be
 provided, which will be inferred from the `conf` if not."
+  {:tag 'java.io.Closeable}
   ([conf] (records-seqable conf w/unwrap-all))
   ([conf f]
-     (let [conf (conf/iguration conf)]
+     (let [conf (conf/ig conf)]
        (->> (or (.getClass conf "mapreduce.inputformat.class" nil)
                 (.getClass conf "mapred.input.format.class" nil))
             (records-seqable conf f))))
