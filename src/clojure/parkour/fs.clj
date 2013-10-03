@@ -1,9 +1,14 @@
 (ns parkour.fs
-  (:require [clojure.java.io :as io]
-            [parkour (conf :as conf)])
+  (:require [clojure.string :as str]
+            [clojure.java.io :as io]
+            [clojure.reflect :as reflect]
+            [clojure.core.reducers :as r]
+            [parkour (conf :as conf) (reducers :as pr)]
+            [parkour.util :refer [ignore-errors returning map-vals mpartial]])
   (:import [java.net URI URL]
-           [java.io File]
-           [org.apache.hadoop.fs FileStatus FileSystem Path]))
+           [java.io File IOException InputStream]
+           [org.apache.hadoop.fs FileStatus FileSystem Path]
+           [org.apache.hadoop.filecache DistributedCache]))
 
 (defprotocol Coercions
   (^org.apache.hadoop.fs.Path
@@ -101,3 +106,135 @@
   ([fs p]
      (->> (.listStatus ^FileSystem fs (path p))
           (map #(.getPath ^FileStatus %) ))))
+
+(defn path-map
+  "Return map of file basename to full path for all files in `dir`."
+  ([dir] (path-map (path-fs dir) dir))
+  ([fs dir]
+     (let [dir (path dir)]
+       (->> (.listStatus ^FileSystem fs dir)
+            (r/remove #(.isDir ^FileStatus %))
+            (r/map (comp (juxt #(.getName ^Path %) str)
+                         #(.getPath ^FileStatus %)))
+            (into {})))))
+
+(defn path-open
+  "Open an input stream on `p`."
+  ([p] (path-open (path-fs p) p))
+  ([fs p] (.open ^FileSystem fs (path p))))
+
+(defn input-stream
+  "Open an input stream on `p`, via a Hadoop filesystem when in a
+supported scheme and via `io/input-stream` when not."
+  {:tag `InputStream}
+  ([p] (input-stream (conf/ig) p))
+  ([conf p]
+     (if-let [fs (ignore-errors (path-fs conf p))]
+       (path-open fs p)
+       (io/input-stream p))))
+
+(def ^:dynamic *temp-dir*
+  "Default path to system temporary directory on the default
+filesystem.  May be overridden in configuration via the property
+`parkour.temp.dir`."
+  "/tmp")
+
+(defn ^:private run-id
+  "A likely-unique user and time-based string."
+  []
+  (let [user (System/getProperty "user.name")
+        time (System/currentTimeMillis)
+        rand (rand-int Integer/MAX_VALUE)]
+    (str user "-" time "-" rand)))
+
+(defn ^:private temp-root
+  [conf] (path (conf/get conf "parkour.temp.dir" *temp-dir*)))
+
+(defn ^:private new-temp-dir
+  "Return path for a new temporary directory."
+  [conf] (path (temp-root conf) (run-id)))
+
+(def ^:private cancel-doe-method?
+  "True iff the `Job` class has a static factory method."
+  (->> FileSystem reflect/type-reflect :members
+       (some #(= 'cancelDeleteOnExit (:name %)))))
+
+(defmacro ^:private cancel-doe
+  "Macro to cancel delete-on-exit when available."
+  [& args]
+  (if cancel-doe-method?
+    `(.cancelDeleteOnExit ~@args)))
+
+(defn with-temp-dir*
+  "Function version of `with-temp-dir`."
+  ([f] (with-temp-dir* nil f))
+  ([conf f]
+     (let [conf (or conf (conf/ig))
+           temp-dir (new-temp-dir conf)
+           fs (path-fs conf temp-dir)]
+       (.mkdirs fs temp-dir)
+       (.deleteOnExit fs temp-dir)
+       (try
+         (f temp-dir)
+         (finally
+           (.delete fs temp-dir true)
+           (cancel-doe fs temp-dir))))))
+
+(defmacro with-temp-dir
+  "Run the forms in `body` with `temp-dir` bound to a Hadoop filesystem
+temporary directory path, created via the optional `conf`."
+  [[temp-dir conf] & body]
+  `(with-temp-dir* ~conf (fn [~temp-dir] ~@body)))
+
+(defn ^:private split-fragment
+  [^URI uri]
+  (let [fragment (.getFragment uri), uri-s (str uri), n (count uri-s)
+        base (subs uri-s 0 (- n (count fragment) 1))]
+    [fragment (URI. base)]))
+
+(defn distcache-files
+  "Retrieve map of existing distcache entries from `conf`."
+  [conf]
+  (->> (DistributedCache/getCacheFiles (conf/ig conf))
+       (r/map split-fragment)
+       (into {})))
+
+(defn distcache!
+  "Update Hadoop `conf` to merge the `uri-map` of local file paths to
+URIs into the distributed cache configuration."
+  [conf uri-map]
+  (let [conf (doto (conf/ig conf)
+               (DistributedCache/createSymlink))]
+    (->> (into (distcache-files conf) uri-map)
+         (map (fn [[local remote]]
+                (.resolve (uri remote) (str "#" local))))
+         (str/join ",")
+         (conf/assoc! conf "mapred.cache.files"))))
+
+(defn distcacher
+  "Return a function for merging the `uri-map` of local paths to URIs
+into the distributed cache files of a Hadoop configuration."
+  [uri-map] (mpartial distcache! uri-map))
+
+(defn with-copies*
+  "Function form of `with-copies`."
+  [conf uri-map f]
+  (with-temp-dir [temp-dir conf]
+    (let [conf (or conf (conf/ig)), uri-map (map-vals uri uri-map)
+          temp-fs (path-fs conf temp-dir)
+          uri-map (reduce (fn [result [local remote]]
+                            (let [temp (path temp-dir local)]
+                              (returning (assoc result local (uri temp))
+                                (with-open [inf (input-stream conf remote),
+                                            outf (.create temp-fs temp)]
+                                  (io/copy inf outf)))))
+                          {} uri-map)]
+      (f uri-map))))
+
+(defmacro with-copies
+  "Copy the URI values of `uri-map` to a temporary directory on the
+default Hadoop filesystem, optionally specified by `conf`.  Evaluate
+`body` forms with `name` bound to the map of original `uri-map` keys
+to new temporary paths."
+  [[name uri-map conf] & body]
+  `(with-copies* ~conf ~uri-map (fn [~name] ~@body)))

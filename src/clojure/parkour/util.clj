@@ -26,3 +26,24 @@ Evaluates `expr`, then evaluates `body` with its result bound to the
   "Coerce `x` to be of class `c` by applying `f` to it iff `x` isn't
 already an instance of `c`."
   [c f x] (if (instance? c x) x (f x)))
+
+(defn map-vals
+  "Return a new map made by mapping `f` over the values of `m`."
+  [f m] (into {} (map (fn [[k v]] [k (f v)]) m)))
+
+(defn mpartial
+  "Return a function which applies `f` to its first argument,
+followed by `x`, `y`, etc., followed by any additional arguments."
+  ([f] f)
+  ([f x]
+     (fn
+       ([o] (f o x))
+       ([o & args] (apply f o args))))
+  ([f x y]
+     (fn
+       ([o] (f o x y))
+       ([o & args] (apply f o x y args))))
+  ([f x y & more]
+     (fn
+       ([o] (apply f o x y more))
+       ([o & args] (apply f o x y (concat more args))))))
