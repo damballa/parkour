@@ -251,23 +251,22 @@ content of the map task."
     (Class/forName (format "parkour.hadoop.Reducers$_%d" i))))
 
 (defn reducer!
-  [^Job job var & args]
   "Allocate and return a new parkour reducer class for `job` as
 invoking `var`.  The `var` will be called during task-setup with the
 job Configuration and any provided `args` (which must be
 EDN-serializable).  It should return a function of one argument, which
 will be invoked with the task context, and should perform the desired
 content of the reduce task."
+  [^Job job var & args]
   (apply reducer!* :reduce job var args))
 
 (defn combiner!
-  [^Job job var & args]
   "As per `reducer!`, but allocate and configure for the Hadoop
 combine step, which may impact e.g. output types."
+  [^Job job var & args]
   (apply reducer!* :combine job var args))
 
 (defn partitioner!
-  [^Job job var & args]
   "Allocate and return a new parkour partitioner class for `job` as
 invoking `var`.  The `var` will be called during task-setup with the
 job Configuration and any provided `args` (which must be
@@ -276,6 +275,7 @@ map-output key, a map-output value, and an integral reduce-task count.
 That function will called for each map-output tuple, and should return
 an integral value mod the reduce-task count.  Should be
 primitive-hinted as OOLL."
+  [^Job job var & args]
   (doto (conf/ig job)
     (conf/set! "parkour.partitioner.var" (pr-str var))
     (conf/set! "parkour.partitioner.args" (pr-str args)))
