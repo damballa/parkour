@@ -20,7 +20,7 @@
 (defn mapper-run
   [id context]
   (let [conf (doto (conf/ig context)
-               (conf/set! "parkour.step" "map"))
+               (conf/assoc! "parkour.step" "map"))
         [f args] (step-f-args conf "mapper" id)]
     (conf/with-default conf
       ((apply f conf args) context))))
@@ -29,7 +29,7 @@
   [id context]
   (let [conf (doto-let [conf (conf/ig context)]
                (->> (conf/get conf (str "parkour.reducer." id ".step"))
-                    (conf/set! conf "parkour.step")))
+                    (conf/assoc! conf "parkour.step")))
         [f args] (step-f-args conf "reducer" id)]
     (conf/with-default conf
       ((apply f conf args) context))))

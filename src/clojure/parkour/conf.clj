@@ -74,23 +74,25 @@ the `body` expressions."
   "Get float value of `conf` parameter `key`"
   ^Float [conf key default] (.getFloat (configuration conf) key default))
 
-(defn set!
+(defn assoc!
   "Set `conf` parameter `key` to `val`."
-  [conf key val]
-  (returning conf
-    (conf-set* (configuration conf) (name key) (conf-coerce val))))
+  ([conf key val]
+     (returning conf
+       (conf-set* (configuration conf) (name key) (conf-coerce val))))
+  ([conf key val & kvs]
+     (let [conf (assoc! conf key val)]
+       (if (empty? kvs)
+         conf
+         (recur conf (first kvs) (second kvs) (nnext kvs))))))
+
+(def set!
+  "Alias for `assoc!`."
+  assoc!)
 
 (defn merge!
   "Merge `coll` of key-value pairs into Hadoop configuration `conf`."
   [conf coll]
-  (returning conf
-    (doseq [:let [conf (configuration conf)]
-            [k v] coll]
-      (parkour.conf/set! conf k v))))
-
-(defn assoc!
-  "Merge key-value pairs `kvs` into Hadoop configuration `conf`."
-  [conf & kvs] (merge! conf (partition 2 kvs)))
+  (apply assoc! conf (apply concat coll)))
 
 (defmethod configuration* Configuration [conf] conf)
 (defmethod configuration* Configurable

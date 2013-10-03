@@ -233,21 +233,21 @@ EDN-serializable).  It should return a function of one argument, which
 will be invoked with the task context, and should perform the desired
 content of the map task."
   [^Job job var & args]
-  (let [conf (conf/ig job), i (conf/get-int conf "parkour.mapper.next" 0)]
-    (doto conf
-      (conf/set! "parkour.mapper.next" (inc i))
-      (conf/set! (format "parkour.mapper.%d.var" i) (pr-str var))
-      (conf/set! (format "parkour.mapper.%d.args" i) (pr-str args)))
+  (let [i (conf/get-int job "parkour.mapper.next" 0)]
+    (conf/assoc! job
+      "parkour.mapper.next" (inc i)
+      (format "parkour.mapper.%d.var" i) (pr-str var)
+      (format "parkour.mapper.%d.args" i) (pr-str args))
     (Class/forName (format "parkour.hadoop.Mappers$_%d" i))))
 
 (defn ^:private reducer!*
   [step ^Job job var & args]
-  (let [conf (conf/ig job), i (conf/get-int conf "parkour.reducer.next" 0)]
-    (doto conf
-      (conf/set! "parkour.reducer.next" (inc i))
-      (conf/set! (format "parkour.reducer.%d.step" i) (name step))
-      (conf/set! (format "parkour.reducer.%d.var" i) (pr-str var))
-      (conf/set! (format "parkour.reducer.%d.args" i) (pr-str args)))
+  (let [i (conf/get-int job "parkour.reducer.next" 0)]
+    (conf/assoc! job
+      "parkour.reducer.next" (inc i)
+      (format "parkour.reducer.%d.step" i) (name step)
+      (format "parkour.reducer.%d.var" i) (pr-str var)
+      (format "parkour.reducer.%d.args" i) (pr-str args))
     (Class/forName (format "parkour.hadoop.Reducers$_%d" i))))
 
 (defn reducer!
@@ -276,7 +276,7 @@ That function will called for each map-output tuple, and should return
 an integral value mod the reduce-task count.  Should be
 primitive-hinted as OOLL."
   [^Job job var & args]
-  (doto (conf/ig job)
-    (conf/set! "parkour.partitioner.var" (pr-str var))
-    (conf/set! "parkour.partitioner.args" (pr-str args)))
+  (conf/assoc! job
+    "parkour.partitioner.var" (pr-str var)
+    "parkour.partitioner.args" (pr-str args))
   parkour.hadoop.Partitioner)
