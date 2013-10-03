@@ -9,8 +9,8 @@
   ([conf key]
      (let [fqname (conf/get conf (str "parkour." key ".var"))
            [ns sym] (str/split fqname #"/" 2)
-           ns (if-not (.startsWith ^String ns "#'") ns (subs ns 2))
-           f (ns-resolve (symbol ns) (symbol sym))
+           ns (symbol (if-not (.startsWith ^String ns "#'") ns (subs ns 2)))
+           f (do (require ns) (ns-resolve ns (symbol sym)))
            args (some->> (conf/get conf (str "parkour." key ".args"))
                          (edn/read-string {:readers *data-readers*}))]
        [f args]))
