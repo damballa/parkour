@@ -158,7 +158,11 @@ from the tuples in `context`."
 
 (defn wrap-sink
   "Return new tuple sink which wraps keys and values as the types
-`ckey` and `cval` respectively."
+`ckey` and `cval` respectively, which should be compatible with the
+key and value type of `sink`.  Where they are not compatible, the type
+of the `sink` will be used instead.  Returns a new tuple sink which
+wraps any sunk keys and values which are not already of the correct
+type then sinks them to `sink`."
   [ckey cval sink]
   (let [conf (conf/ig sink)
         ckey (wrapper-class ckey (key-class sink)),
