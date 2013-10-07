@@ -47,3 +47,11 @@ followed by `x`, `y`, etc., followed by any additional arguments."
      (fn
        ([o] (apply f o x y more))
        ([o & args] (apply f o x y (concat more args))))))
+
+(defn var-str
+  "String fully-qualified name of a var."
+  [v] (subs (pr-str v) 2))
+
+(defn var-symbol
+  "Fully-qualified symbol for a var."
+  [v] (symbol (var-str v)))

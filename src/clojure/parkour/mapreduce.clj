@@ -154,7 +154,7 @@ from the tuples in `context`."
     (returning sink (.write sink key val))))
 
 (defn ^:private wrapper-class
-  [c c'] (if (isa? c c') c c'))
+  [c c'] (if (and c (isa? c c')) c c'))
 
 (defn wrap-sink
   "Return new tuple sink which wraps keys and values as the types
@@ -163,24 +163,25 @@ key and value type of `sink`.  Where they are not compatible, the type
 of the `sink` will be used instead.  Returns a new tuple sink which
 wraps any sunk keys and values which are not already of the correct
 type then sinks them to `sink`."
-  [ckey cval sink]
-  (let [conf (conf/ig sink)
-        ckey (wrapper-class ckey (key-class sink)),
-        wkey (w/new-instance conf ckey)
-        cval (wrapper-class cval (val-class sink)),
-        wval (w/new-instance conf cval)]
-    (reify
-      Configurable
-      (getConf [_] conf)
+  ([sink] (wrap-sink nil nil sink))
+  ([ckey cval sink]
+     (let [conf (conf/ig sink)
+           ckey (wrapper-class ckey (key-class sink))
+           wkey (w/new-instance conf ckey)
+           cval (wrapper-class cval (val-class sink))
+           wval (w/new-instance conf cval)]
+       (reify
+         Configurable
+         (getConf [_] conf)
 
-      TupleSink
-      (-key-class [_] ckey)
-      (-val-class [_] cval)
-      (-emit-keyval [sink1 key val]
-        (returning sink1
-          (let [key (if (instance? ckey key) key (w/rewrap wkey key))
-                val (if (instance? cval val) val (w/rewrap wval val))]
-            (-emit-keyval sink key val)))))))
+         TupleSink
+         (-key-class [_] ckey)
+         (-val-class [_] cval)
+         (-emit-keyval [sink1 key val]
+           (returning sink1
+             (let [key (if (instance? ckey key) key (w/rewrap wkey key))
+                   val (if (instance? cval val) val (w/rewrap wval val))]
+               (-emit-keyval sink key val))))))))
 
 (defn ^:private emit-keyval
   "Emit pair of `key` and `val` to `sink` as a complete tuple."
