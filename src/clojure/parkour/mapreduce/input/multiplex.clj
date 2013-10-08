@@ -18,7 +18,7 @@
 (defn add-subconf
   "Add multiplex input format sub-configuration."
   [^Job job subconf]
-  (let [diff (-> (conf/diff job subconf) (dissoc confs-key))
+  (let [diff (conf/diff job subconf)
         confs (some->> (conf/get job confs-key) (edn/read-string))]
     (doto job
       (.setInputFormatClass MultiplexInputFormat)

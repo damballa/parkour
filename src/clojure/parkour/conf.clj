@@ -1,6 +1,7 @@
 (ns parkour.conf
   (:refer-clojure :exclude [assoc! get])
   (:require [clojure.string :as str]
+            [clojure.reflect :as reflect]
             [parkour.util :refer [returning]])
   (:import [java.util List Map Set]
            [org.apache.hadoop.conf Configuration Configurable]
@@ -113,7 +114,15 @@ the `body` expressions."
                        ~form)))
                 (partition 2 pairs)))))
 
+(def ^:private unset-method?
+  (->> Configuration reflect/type-reflect :members
+       (some #(= 'unset (:name %)))))
+
+(defmacro ^:private conf-unset
+  [conf key] (if unset-method? `(. ~conf unset ~key)))
+
 (def-conf-set* [conf key val]
+  nil     (conf-unset conf key)
   String  (.set conf key val)
   Integer (.setInt conf key (int val))
   Long    (.setLong conf key (long val))

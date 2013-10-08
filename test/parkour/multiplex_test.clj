@@ -14,8 +14,25 @@
                          (doto job
                            (pmp/add-subconf (pg/configure! (mr/job) text))
                            (pmp/add-subconf (pg/configure! (mr/job) avro)))))]
-    (is (= {[:text "apple"] 3, [:text "banana"] 2, [:text "carrot"] 1,
-            [:avro "apple"] 3, [:avro "banana"] 2, [:avro "carrot"] 1}
+    (is (= {[:text "apple"]  3, [:text "banana"]  2, [:text "carrot"]  1,
+            [:avro "applez"] 3, [:avro "bananaz"] 2, [:avro "carrotz"] 1}
+           (->> (r/map w/unwrap-all multi)
+                (r/map (fn [[k v]] (if v [:text v] [:avro k])))
+                (into [])
+                (frequencies))))))
+
+(deftest test-malkovich-malkovich
+  (let [text (text/dseq "dev-resources/word-count-input.txt")
+        avro (mravro/dseq [:default] "dev-resources/words.avro")
+        multi (pg/dseq
+               (fn [job]
+                 (doseq [dseq [avro text]]
+                   (pmp/add-subconf
+                    job (doto (mr/job)
+                          (pmp/add-subconf
+                           (pg/configure! (mr/job) dseq)))))))]
+    (is (= {[:text "apple"]  3, [:text "banana"]  2, [:text "carrot"]  1,
+            [:avro "applez"] 3, [:avro "bananaz"] 2, [:avro "carrotz"] 1}
            (->> (r/map w/unwrap-all multi)
                 (r/map (fn [[k v]] (if v [:text v] [:avro k])))
                 (into [])
