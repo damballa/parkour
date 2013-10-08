@@ -1,4 +1,4 @@
-(ns parkour.avro
+(ns parkour.io.avro
   (:require [abracad.avro :as avro]
             [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)]
             [parkour.util :refer [ignore-errors returning]])

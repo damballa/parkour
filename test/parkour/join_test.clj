@@ -4,8 +4,8 @@
             [clojure.java.io :as io]
             [clojure.core.reducers :as r]
             [abracad.avro :as avro]
-            [parkour (mapreduce :as mr) (fs :as fs) (avro :as mra)
-                     (inspect :as pi)]
+            [parkour (mapreduce :as mr) (fs :as fs) (inspect :as pi)]
+            [parkour.io (avro :as mra)]
             [parkour.util :refer [returning]])
   (:import [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.input MultipleInputs]

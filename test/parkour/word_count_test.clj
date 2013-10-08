@@ -6,7 +6,7 @@
             [abracad.avro :as avro]
             [parkour.mapreduce :as mr]
             [parkour.fs :as fs]
-            [parkour.avro :as mra]
+            [parkour.io.avro :as mra]
             [parkour.reducers :as pr]
             [parkour.conf :as conf]
             [parkour.util :refer [returning]])
