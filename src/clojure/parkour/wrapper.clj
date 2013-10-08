@@ -1,5 +1,6 @@
 (ns parkour.wrapper
   (:require [clojure.reflect :as reflect]
+            [parkour (conf :as conf)]
             [parkour.util :refer [returning]])
   (:import [clojure.lang IPersistentVector]
            [org.apache.hadoop.io
@@ -97,7 +98,7 @@ Writables."
 if a class.  If Hadoop `conf` is provided and `klass` is Configurable,
 configure the new instance with `conf`."
   ([klass] (new-instance* (->class klass)))
-  ([conf klass] (new-instance* conf (->class klass))))
+  ([conf klass] (new-instance* (conf/ig conf) (->class klass))))
 
 (defmethod new-instance* nil
   ([klass] nil)

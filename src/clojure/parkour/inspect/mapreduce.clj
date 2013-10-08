@@ -9,13 +9,6 @@
            [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.util ReflectionUtils]))
 
-(let [cfn (fn [c] (Class/forName (str "org.apache.hadoop.mapreduce." c)))
-      klass (or (ignore-errors (cfn "task.TaskAttemptContextImpl"))
-                (ignore-errors (cfn "TaskAttemptContext")))
-      cname (-> ^Class klass .getName symbol)]
-  (defmacro ^:private new-tac
-    [& args] `(new ~cname ~@args)))
-
 (defn input-format?
   [klass] (isa? klass InputFormat))
 
@@ -59,7 +52,7 @@
                 (returning nil
                   (send closer close-rr))
                 (let [split (first splits), splits (rest splits),
-                      tac (new-tac conf (TaskAttemptID.)),
+                      tac (mr/tac conf (TaskAttemptID.)),
                       rr (doto (.createRecordReader ifi split tac)
                            (.initialize split tac))]
                   (returning (step rr splits)
@@ -80,7 +73,7 @@
                 (if (empty? splits)
                   acc
                   (let [split (first splits), splits (rest splits)
-                        tac (new-tac conf (TaskAttemptID.)),
+                        tac (mr/tac conf (TaskAttemptID.)),
                         rr (doto (.createRecordReader ifi split tac)
                              (.initialize split tac))]
                     (recur acc splits (swap! rra update-rr rr))))))

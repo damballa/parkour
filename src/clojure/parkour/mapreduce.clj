@@ -6,14 +6,15 @@
             [clojure.string :as str]
             [clojure.reflect :as reflect]
             [parkour (conf :as conf) (wrapper :as w) (reducers :as pr)]
-            [parkour.util :refer [returning]])
+            [parkour.util :refer [returning ignore-errors]])
   (:import [java.util Comparator]
            [clojure.lang IPersistentCollection Indexed Seqable]
            [org.apache.hadoop.conf Configuration Configurable]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapred JobConf]
            [org.apache.hadoop.mapreduce
-             Job MapContext ReduceContext TaskInputOutputContext]))
+             Job MapContext ReduceContext TaskAttemptContext
+             TaskInputOutputContext]))
 
 (defprotocol ^:private TupleSource
   "Internal protocol for iterating over key/value tuples from a source
@@ -285,3 +286,16 @@ primitive-hinted as OOLL."
     "parkour.partitioner.var" (pr-str var)
     "parkour.partitioner.args" (pr-str args))
   parkour.hadoop.Partitioner)
+
+(let [cfn (fn [c] (Class/forName (str "org.apache.hadoop.mapreduce." c)))
+      klass (or (ignore-errors (cfn "task.TaskAttemptContextImpl"))
+                (ignore-errors (cfn "TaskAttemptContext")))
+      cname (-> ^Class klass .getName symbol)]
+  (defmacro ^:private tac*
+    [& args] `(new ~cname ~@args)))
+
+(defn tac
+  "Return a new TaskAttemptContext instance using provided
+configuration `conf` and task attempt ID `taid`."
+  {:tag `TaskAttemptContext}
+  [conf taid] (tac* (conf/ig conf) taid))

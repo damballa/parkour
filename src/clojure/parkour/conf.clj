@@ -1,7 +1,6 @@
 (ns parkour.conf
   (:refer-clojure :exclude [assoc! get])
   (:require [clojure.string :as str]
-            [parkour.wrapper :as w]
             [parkour.util :refer [returning]])
   (:import [java.util List Map Set]
            [org.apache.hadoop.conf Configuration Configurable]
@@ -76,6 +75,7 @@ the `body` expressions."
 
 (defn assoc!
   "Set `conf` parameter `key` to `val`."
+  ([conf] conf)
   ([conf key val]
      (returning conf
        (conf-set* (configuration conf) (name key) (conf-coerce val))))
@@ -110,8 +110,7 @@ the `body` expressions."
     `(do ~@(map (fn [[type form]]
                   (let [val (vary-meta val assoc :tag type)]
                     `(defmethod conf-set* ~type ~[conf key val]
-                       (let [~conf (w/unwrap ~conf)]
-                         ~form))))
+                       ~form)))
                 (partition 2 pairs)))))
 
 (def-conf-set* [conf key val]

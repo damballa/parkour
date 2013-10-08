@@ -1,13 +1,18 @@
 (ns parkour.io.avro
+  (:refer-clojure :exclude [shuffle])
   (:require [abracad.avro :as avro]
-            [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)]
-            [parkour.util :refer [ignore-errors returning]])
-  (:import [org.apache.avro.mapred AvroKey AvroValue AvroWrapper]
+            [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
+                     (mapreduce :as mr) (graph :as pg)]
+            [parkour.util :refer [ignore-errors returning mpartial]])
+  (:import [org.apache.avro Schema]
+           [org.apache.avro.mapred AvroKey AvroValue AvroWrapper]
            [org.apache.avro.mapreduce
              AvroJob AvroKeyInputFormat AvroKeyValueInputFormat
              AvroKeyOutputFormat AvroKeyValueOutputFormat]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapreduce Job]
+           [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
+           [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]
            [abracad.avro ClojureData]
            [parkour.hadoop AvroKeyGroupingComparator]))
 
@@ -106,3 +111,30 @@ when the output format has not been otherwise explicitly specified."
        (set-data-model)
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))
        (AvroJob/setOutputValueSchema (avro/parse-schema vs)))))
+
+(defn ^:private schema?
+  [x] (or (instance? Schema x) (keyword? x)))
+
+(defn dseq
+  "Distributed sequence of Avro input."
+  [schemas & paths]
+  (pg/dseq
+   (fn [^Job job]
+     (apply set-input job schemas)
+     (doseq [path paths]
+       (FileInputFormat/addInputPath job (fs/path path))))))
+
+(defn shuffle
+  "Configuration step for Avro shuffle."
+  ([ks] (mpartial set-map-output ks))
+  ([ks vs] (mpartial set-map-output ks vs)))
+
+(defn dsink
+  "Distributed sink for Avro output."
+  [schemas path]
+  (pg/dsink
+   (let [defaults (-> schemas count (repeat :default))]
+     (dseq defaults path))
+   (fn [^Job job]
+     (apply set-output job schemas)
+     (FileOutputFormat/setOutputPath job (fs/path path)))))
