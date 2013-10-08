@@ -26,7 +26,7 @@ and expects `f` to return a `reduce`able object.  Avro-wraps and sinks
 all tuples from the resulting `reduce`able."
   [f]
   (fn [context]
-    (let [output (mr/wrap-sink AvroKey AvroValue context)]
+    (let [output (wrap-sink context)]
       (->> context w/unwrap f (mr/sink output)))))
 
 (defn ^:private set-data-model
