@@ -18,6 +18,11 @@ Use functions instead of keywords.  Function should inject the actual
 reduce, allowing wrapping the entire reduce in opening a multiple
 outputs object.
 
+*** Allow chaining of sourcing and sinking functions
+
+Task functions which call =sink-as= (or equivalent) should be able to
+feed directly into functions which call =keys= / =vals= / =keyvals=.
+
 ** Extend graph interface to support multisinking
 
 Sinking should immediately produce new =:source= nodes.  Multi-sinking
@@ -39,9 +44,29 @@ during remote execution:
 - OR – have a =parkour.remote.= hierarchy where remote code goes.
 - =.internal= or =.impl= – Internal implementation details.
 - =parkour.mapreduce.input.multiplex= -> ? Something more compact.
+  Also should change =multplex= to just =mux=; then multi-output can
+  be =demux=.
 
 ** Re-structure =parkour.inspect=
 
 This namespace is kind of an oddball.  It probably should be moved to
 =parkour.graph.dseq= and changed to be a =reducers=-only API, directly
 integrated with the `dseq` API.  Yeah, that should be perfect.
+
+* Local sinking support
+
+As per =parkour.inspect= / =parkour.graph.dseq=.
+
+* Integration for writing other Hadoop classes
+
+** Input formats
+** Output formats
+** (Raw)Comparators
+** Writables (?)
+** Other things?
+
+* Logging
+
+- Job launching & completion
+- Splits being processed by individual tasks
+- Probably other logging?
