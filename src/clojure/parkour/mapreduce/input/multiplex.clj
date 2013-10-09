@@ -7,7 +7,8 @@
            [org.apache.hadoop.conf Configuration]
            [org.apache.hadoop.io Text]
            [org.apache.hadoop.io.serializer SerializationFactory]
-           [org.apache.hadoop.mapreduce Job InputFormat InputSplit]
+           [org.apache.hadoop.mapreduce InputFormat InputSplit Job]
+           [org.apache.hadoop.mapreduce Mapper Mapper$Context]
            [parkour.hadoop.interfaces IInputFormat IInputSplit]
            [parkour.hadoop.input
               MultiplexInputFormat MultiplexInputSplit MultiplexRecordReader]))
@@ -89,3 +90,18 @@
             context (mr/tac job (.getTaskAttemptID context))]
         (MultiplexRecordReader.
          (.createRecordReader ^InputFormat inform split context))))))
+
+(defn mapper
+  [conf]
+  (fn [^Mapper$Context context]
+    (let [i (-> context .getInputSplit deref first)
+          subconf (-> context get-subconfs (get i))
+          rdiff (-> (doto (conf/clone context)
+                      (conf/merge! subconf))
+                    (conf/diff context))]
+      (try
+        (conf/merge! context subconf)
+        (let [mapper (->> context .getMapperClass (w/new-instance context))]
+          (.run ^Mapper mapper context))
+        (finally
+          (conf/merge! context rdiff))))))
