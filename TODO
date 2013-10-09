@@ -1,1 +1,47 @@
-* Write distributed sequence interface
+* Wire multiplex inputs to graph interface
+
+Multiple dseq’s should probably multiplex.  Vector of partition nodes
+should build job then multiplex.  Or maybe multiplex over building
+job?  Hmm.
+
+* Flatten muliplexed inputs
+
+Although we should be able to Malkovich Malkovich, it shouldn’t do so
+at run time.  Initial expansion of splits should have one layer of
+MultiplexInputSplits wrapping real splits.
+
+* Multiple job outputs
+
+** Redo sinking interface to support multisinking
+
+Use functions instead of keywords.  Function should inject the actual
+reduce, allowing wrapping the entire reduce in opening a multiple
+outputs object.
+
+** Extend graph interface to support multisinking
+
+Sinking should immediately produce new =:source= nodes.  Multi-sinking
+should produce a vector of source nodes.  Or a map?  Need to decide if
+multi-sinking should be through same existing =sink= function
+accepting either single sink or name-sink pairs, or have separate
+=sink-multi= function.
+
+* Re-organize namespaces
+
+Need to create a consistent structure with sub-namespaces,
+better-separating internal implementations detail vs public API and
+separating code which is needed for job configuration vs code needed
+during remote execution:
+
+- =.config= - ? Code which runs only during job configuration.
+- =.remote= – Code which runs remotely, and is actively needed for
+  remote tasks.
+- OR – have a =parkour.remote.= hierarchy where remote code goes.
+- =.internal= or =.impl= – Internal implementation details.
+- =parkour.mapreduce.input.multiplex= -> ? Something more compact.
+
+** Re-structure =parkour.inspect=
+
+This namespace is kind of an oddball.  It probably should be moved to
+=parkour.graph.dseq= and changed to be a =reducers=-only API, directly
+integrated with the `dseq` API.  Yeah, that should be perfect.
