@@ -7,11 +7,12 @@
            [org.apache.hadoop.conf Configuration]
            [org.apache.hadoop.io Text]
            [org.apache.hadoop.io.serializer SerializationFactory]
+           [org.apache.hadoop.io.serializer Deserializer Serializer]
            [org.apache.hadoop.mapreduce InputFormat InputSplit Job]
            [org.apache.hadoop.mapreduce Mapper Mapper$Context]
            [parkour.hadoop.interfaces IInputFormat IInputSplit]
            [parkour.hadoop.input
-              MultiplexInputFormat MultiplexInputSplit MultiplexRecordReader]))
+             MultiplexInputFormat MultiplexInputSplit MultiplexRecordReader]))
 
 (def ^:private ^:const confs-key
   "parkour.multiplex.confs")
@@ -29,6 +30,14 @@
 (defn ^:private get-subconfs
   [job] (edn/read-string (conf/get job confs-key)))
 
+(defn ^:private serializer
+  {:tag `Serializer}
+  [conf klass] (-> conf SerializationFactory. (.getSerializer klass)))
+
+(defn ^:private deserializer
+  {:tag `Deserializer}
+  [conf klass] (-> conf SerializationFactory. (.getDeserializer klass)))
+
 (defn ^:private input-split*
   ([] (input-split* nil nil nil))
   ([conf] (input-split* conf nil nil))
@@ -40,8 +49,7 @@
        (readSplit [_ in]
          (let [i (.readInt in)
                klass (->> in Text/readString (.getClassByName conf))
-               split (-> (doto (-> conf SerializationFactory.
-                                   (.getDeserializer klass))
+               split (-> (doto (deserializer conf klass)
                            (.open in))
                          (.deserialize (w/new-instance conf klass)))]
            (input-split* conf i split)))
@@ -49,7 +57,7 @@
          (let [klass (class split)]
            (.writeInt out i)
            (Text/writeString out (.getName klass))
-           (doto (-> conf SerializationFactory. (.getSerializer klass))
+           (doto (serializer conf klass)
              (.open out)
              (.serialize split))))
 
