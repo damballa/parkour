@@ -17,18 +17,19 @@
 (def ^:private ^:const confs-key
   "parkour.multiplex.confs")
 
+(defn ^:private get-subconfs
+  [job] (or (some->> (conf/get job confs-key) (edn/read-string)) []))
+
 (defn add-subconf
   "Add multiplex input format sub-configuration."
-  [^Job job subconf]
-  (let [diff (conf/diff job subconf)
-        confs (some->> (conf/get job confs-key) (edn/read-string))]
-    (doto job
-      (.setInputFormatClass MultiplexInputFormat)
-      (conf/assoc! #_job
-        confs-key (-> confs (or []) (conj diff) pr-str)))))
-
-(defn ^:private get-subconfs
-  [job] (edn/read-string (conf/get job confs-key)))
+  [^Job job ^Job subconf]
+  (if-not (identical? MultiplexInputFormat (.getInputFormatClass subconf))
+    (let [diff (conf/diff job subconf), diffs (get-subconfs job)]
+      (doto job
+        (.setInputFormatClass MultiplexInputFormat)
+        (conf/assoc! confs-key (-> diffs (conj diff) pr-str))))
+    (reduce #(add-subconf %1 (-> subconf mr/job (conf/merge! %2)))
+            job (get-subconfs subconf))))
 
 (defn ^:private serializer
   {:tag `Serializer}

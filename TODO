@@ -4,12 +4,6 @@ Multiple dseq’s should probably multiplex.  Vector of partition nodes
 should build job then multiplex.  Or maybe multiplex over building
 job?  Hmm.
 
-* Flatten muliplexed inputs
-
-Although we should be able to Malkovich Malkovich, it shouldn’t do so
-at run time.  Initial expansion of splits should have one layer of
-MultiplexInputSplits wrapping real splits.
-
 * Multiple job outputs
 
 ** Redo sinking interface to support multisinking
