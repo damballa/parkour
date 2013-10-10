@@ -1,9 +1,3 @@
-* Wire multiplex inputs to graph interface
-
-Multiple dseq’s should probably multiplex.  Vector of partition nodes
-should build job then multiplex.  Or maybe multiplex over building
-job?  Hmm.
-
 * Multiple job outputs
 
 ** Redo sinking interface to support multisinking

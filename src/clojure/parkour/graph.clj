@@ -1,11 +1,12 @@
-<(ns parkour.graph
+(ns parkour.graph
   (:refer-clojure :exclude [partition shuffle])
   (:require [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
                      (reducers :as pr) (inspect :as pi) (wrapper :as w)]
             [parkour.graph.tasks :as pgt]
-            [parkour.util :refer [ignore-errors returning var-str]])
+            [parkour.mapreduce.input.multiplex :as mux]
+            [parkour.util :refer [ignore-errors returning var-str mpartial]])
   (:import [java.io Writer]
            [java.util Map List]
            [clojure.lang ArityException IFn APersistentMap APersistentVector]
@@ -58,6 +59,7 @@
   ([step] (configure! (mr/job) step)))
 
 (extend-protocol ConfigStep
+  nil (-configure [_ job] #_pass)
   APersistentMap (-configure [m job] (conf/merge! job m))
   APersistentVector (-configure [v job] (reduce configure! job v))
   IFn (-configure [f job] (f job)))
@@ -119,6 +121,44 @@ zero-argument function."
   "True iff `x` is a distributed sink."
   [x] (instance? DSink x))
 
+(defn ^:private mux-step
+  [step] #(mux/add-subconf % (configure! (mr/job %) step)))
+
+(defn ^:private source-config
+  "Configure a job for a provided source vector."
+  [^Job job source]
+  (if (= 1 (count source))
+    (configure! job source)
+    (configure! job (mapv mux-step source))))
+
+(declare node-config)
+
+(defn ^:private subnode-config
+  [^Job job node [i subnode]]
+  (let [node (select-keys node [:uvar :rargs :jid])
+        subnode (merge node subnode)
+        subconf (doto (node-config (mr/job job) subnode)
+                  (conf/assoc! "parkour.subnode" i))]
+    (mux/add-subconf job subconf)))
+
+(defn ^:private subnodes-config
+  [^Job job node subnodes]
+  (reduce (mpartial subnode-config node)
+          job (map-indexed vector subnodes)))
+
+(defn ^:private node-config
+  "Configure a job according to the state of a job graph node."
+  [^Job job node]
+  (doto job
+    (source-config (:source node))
+    (subnodes-config node (:subnodes node))
+    (pgt/mapper! node)
+    (pgt/combiner! node)
+    (pgt/partitioner! node)
+    (pgt/reducer! node)
+    (configure! (:config node))
+    (configure! (:sink node))))
+
 (def ^:private stage
   "The stage of a job graph node."
   (comp :stage pr/arg0))
@@ -164,7 +204,7 @@ Configures shuffle via `classes`, which should either be a vector of
 the two map-output key & value classes, or a config step specifying
 the shuffle."
   {:arglists '([node classes] [node classes f])}
-  stage)
+  (comp type pr/arg0))
 
 (defn shuffle
   "Base shuffle configuration; sets map output key & value types to
@@ -180,7 +220,7 @@ the classes `ckey` and `cval` respectively."
        (= 2 (count classes))
        (every? class? classes)))
 
-(defmethod partition :map
+(defmethod partition Map
   ([node classes]
      (partition node classes HashPartitioner))
   ([node classes f]
@@ -190,6 +230,17 @@ the classes `ckey` and `cval` respectively."
          (config (if-not (shuffle-classes? classes)
                    classes
                    (apply shuffle classes))))))
+
+(defmethod partition List
+  ([nodes classes]
+     (partition nodes classes HashPartitioner))
+  ([nodes classes f]
+     (if (= 1 (count nodes))
+       (partition (first nodes) classes f)
+       (-> {:stage :map,
+            :subnodes nodes,
+            :mapper mux/mapper-class}
+           (partition classes f)))))
 
 (defmethod remote :partition
   [node f] (assoc node :stage :reduce, :reducer f))
@@ -224,13 +275,7 @@ and sinking to the provided `dsink`."
               (.setJobName jname)
               (conf/set! "mapreduce.task.classpath.user.precedence" true)
               (.setJarByClass parkour.hadoop.Mappers)
-              (configure! (:source node))
-              (pgt/mapper! node)
-              (pgt/combiner! node)
-              (pgt/partitioner! node)
-              (pgt/reducer! node)
-              (configure! (:config node))
-              (configure! (:sink node)))]
+              (node-config node))]
     (fn [& args]
       (try
         (returning ((:sink node))

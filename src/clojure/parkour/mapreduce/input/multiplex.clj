@@ -114,3 +114,6 @@
           (.run ^Mapper mapper context))
         (finally
           (conf/merge! context rdiff))))))
+
+(def mapper-class
+  parkour.hadoop.input.MultiplexMapper)

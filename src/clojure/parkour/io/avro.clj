@@ -127,7 +127,10 @@ when the output format has not been otherwise explicitly specified."
 (defn shuffle
   "Configuration step for Avro shuffle."
   ([ks] (mpartial set-map-output ks))
-  ([ks vs] (mpartial set-map-output ks vs)))
+  ([ks vs] (mpartial set-map-output ks vs))
+  ([ks vs gs]
+     [(mpartial set-map-output ks vs)
+      (mpartial set-grouping gs)]))
 
 (defn dsink
   "Distributed sink for Avro output."

@@ -47,7 +47,11 @@ all tuples from the resulting `reduce`able."
 (defn remote-task
   [conf fkey uvar rargs jid]
   (let [uvar (do (-> uvar namespace symbol require) (resolve uvar))
-        node (job-node uvar rargs jid), fmeta (-> node fkey meta)]
+        sni (conf/get-int conf "parkour.subnode" -1)
+        node (cond-> (job-node uvar rargs jid)
+                     (not (neg? sni))
+                     , (as-> node (merge node (-> node :subnodes (get sni)))))
+        fmeta (-> node fkey meta)]
     (as-> (fkey node) f
           (if-not (:hof fmeta) f (f conf))
           (if (:raw fmeta) f (task-fn f)))))

@@ -38,15 +38,18 @@ followed by `x`, `y`, etc., followed by any additional arguments."
   ([f x]
      (fn
        ([o] (f o x))
-       ([o & args] (apply f o args))))
+       ([o y] (f o x y))
+       ([o y & args] (apply f o x y args))))
   ([f x y]
      (fn
        ([o] (f o x y))
-       ([o & args] (apply f o x y args))))
+       ([o z] (f o x y z))
+       ([o z & args] (apply f o x y z args))))
   ([f x y & more]
      (fn
        ([o] (apply f o x y more))
-       ([o & args] (apply f o x y (concat more args))))))
+       ([o z] (apply f o x y z more))
+       ([o z & args] (apply f o x y z (concat more args))))))
 
 (defn var-str
   "String fully-qualified name of a var."
