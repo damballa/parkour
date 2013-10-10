@@ -44,7 +44,7 @@ vector of the results."
     ([c1 c2 & colls] (apply mapv funcall fs c1 c2 colls))))
 
 (defn arg0
-  "Accepts any number of argument and returns the first."
+  "Accepts any number of arguments and returns the first."
   ([x] x)
   ([x y] x)
   ([x y z] x)

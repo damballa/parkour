@@ -224,9 +224,7 @@ the classes `ckey` and `cval` respectively."
   ([node classes]
      (partition node classes HashPartitioner))
   ([node classes f]
-     (-> (assoc node
-           :stage :partition
-           :partitioner (if (class? f) f (vary-meta f assoc :raw true)))
+     (-> (assoc node :stage :partition, :partitioner f)
          (config (if-not (shuffle-classes? classes)
                    classes
                    (apply shuffle classes))))))

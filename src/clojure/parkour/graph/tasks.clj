@@ -3,7 +3,8 @@
   (:require [parkour (conf :as conf) (reducers :as pr) (mapreduce :as mr)
                      (wrapper :as w)]
             [parkour.util :refer [var-symbol]])
-  (:import [org.apache.hadoop.mapreduce Job Mapper Partitioner Reducer]))
+  (:import [clojure.lang IFn$OOLL]
+           [org.apache.hadoop.mapreduce Job Mapper Partitioner Reducer]))
 
 (defn ^:private job-graph*
   [uvar rargs largs]
@@ -35,11 +36,23 @@
   [uvar rargs jid]
   (-> (job-graph uvar rargs []) first (get jid)))
 
-(defn task-fn
-  "Returns a function which calls `f` with an `unwrap`ed tuple source
-and expects `f` to return a `reduce`able object.  Wraps and sinks
-all tuples from the resulting `reduce`able."
-  [f]
+(defmulti task-fn
+  "Returns a function which calls `f` with an `unwrap`ed arguments and
+properly `wrap`s the result."
+  pr/arg0)
+
+(defmethod task-fn :partitioner
+  [_ f]
+  (if (instance? IFn$OOLL f)
+    (fn ^long [key val ^long nparts]
+      (let [key (w/unwrap key), val (w/unwrap val)]
+        (.invokePrim ^IFn$OOLL f key val nparts)))
+    (fn ^long [key val ^long nparts]
+      (let [key (w/unwrap key), val (w/unwrap val)]
+        (f key val nparts)))))
+
+(defmethod task-fn :default
+  [_ f]
   (fn [context]
     (let [output (mr/wrap-sink context)]
       (->> context w/unwrap f (mr/sink output)))))
@@ -54,7 +67,7 @@ all tuples from the resulting `reduce`able."
         fmeta (-> node fkey meta)]
     (as-> (fkey node) f
           (if-not (:hof fmeta) f (f conf))
-          (if (:raw fmeta) f (task-fn f)))))
+          (if (:raw fmeta) f (task-fn fkey f)))))
 
 (defn task!
   [job node fkey klass alloc]

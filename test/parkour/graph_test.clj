@@ -45,8 +45,7 @@
   {:name "key", :type "record"
    :abracad.reader "vector"
    :fields [{:name "id", :type "long"}
-            {:name "tag", :type "long"
-             :order "ignore"}]})
+            {:name "tag", :type "long", :order "ignore"}]})
 
 (def output-schema
   {:name "output", :type "record",
@@ -66,8 +65,8 @@
          (-> (pg/source right) (pg/remote (partial map-fn 1)))]
         (pg/partition
          (mra/shuffle key-schema :string grouping-schema)
-         (fn ^long [key _ ^long nparts]
-           (-> key w/unwrap first hash (mod nparts))))
+         (fn ^long [[key] _ ^long nparts]
+           (-> key hash (mod nparts))))
         (pg/remote
          (fn [input]
            (->> input mr/keyvalgroups
