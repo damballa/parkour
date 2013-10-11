@@ -6,6 +6,7 @@
             [clojure.string :as str]
             [clojure.reflect :as reflect]
             [parkour (conf :as conf) (wrapper :as w) (reducers :as pr)]
+            [parkour.mapreduce (source :as src)]
             [parkour.util :refer [returning ignore-errors]])
   (:import [java.util Comparator]
            [clojure.lang IPersistentCollection Indexed Seqable]
@@ -13,116 +14,33 @@
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapred JobConf]
            [org.apache.hadoop.mapreduce
-             Job MapContext ReduceContext TaskAttemptContext
-             TaskInputOutputContext]))
-
-(defprotocol ^:private TupleSource
-  "Internal protocol for iterating over key/value tuples from a source
-of such tuples."
-  (^:private ts-key [this]
-    "Current tuple's key.")
-  (^:private ts-val [this]
-    "Current tuple's value.")
-  (^:private ts-vals [this]
-    "Current key's sequence of associated values.")
-  (^:private ts-next-keyval [this]
-    "Source updated to next key/value tuple.")
-  (^:private ts-next-key [this]
-    "Source updated to next distinct key."))
-
-(defn ^:private ts-keyval
-  "Pair of current tuple's key and value."
-  [context] [(ts-key context) (ts-val context)])
-
-(defn ^:private ts-keyvals
-  "Pair of current tuple's key and sequence of associated values."
-  [context] [(ts-key context) (ts-vals context)])
-
-(defn ^:private ts-reduce
-  "As per `reduce`, but in terms of `TupleSource` protocol.  When
-provided, applies `nextf` to `context` to retrieve the next tuple
-source for each iteration and `dataf` to retrieve the tuple values
-passed to `f`."
-  ([context f init]
-     (ts-reduce ts-next-keyval ts-keyval f init))
-  ([nextf dataf context f init]
-     (loop [context context, state init]
-       (if-let [context (nextf context)]
-         (recur context (f state (dataf context)))
-         state))))
-
-(defn ^:private task-reducer
-  "Make a tuple source `context` `reduce`able with particular
- iteration function `nextf` and extraction function `dataf`."
-  [nextf dataf context]
-  (reify ccp/CollReduce
-    (coll-reduce [this f]
-      (ccp/coll-reduce this f (f)))
-    (coll-reduce [this f init]
-      (ts-reduce nextf dataf context f init))))
-
-(extend-protocol TupleSource
-  MapContext
-  (ts-key [this] (.getCurrentKey this))
-  (ts-val [this] (.getCurrentValue this))
-  (ts-next-keyval [this] (when (.nextKeyValue this) this))
-
-  ReduceContext
-  (ts-key [this] (.getCurrentKey this))
-  (ts-val [this] (.getCurrentValue this))
-  (ts-vals [this] (.getValues this))
-  (ts-next-keyval [this] (when (.nextKeyValue this) this))
-  (ts-next-key [this] (when (.nextKey this) this)))
-
-(extend-protocol ccp/CollReduce
-  TaskInputOutputContext
-  (coll-reduce
-    ([this f] (ccp/coll-reduce this f (f)))
-    ([this f init] (ts-reduce this f init))))
-
-(extend-protocol w/Wrapper
-  TaskInputOutputContext
-  (unwrap [wobj]
-    (reify
-      Configurable
-      (getConf [_] (conf/ig wobj))
-
-      TupleSource
-      (ts-key [_] (w/unwrap (ts-key wobj)))
-      (ts-val [_] (w/unwrap (ts-val wobj)))
-      (ts-vals [_] (r/map w/unwrap (ts-vals wobj)))
-      (ts-next-keyval [this] (when (ts-next-keyval wobj) this))
-      (ts-next-key [this] (when (ts-next-key wobj) this))
-
-      ccp/CollReduce
-      (coll-reduce [this f] (ts-reduce this f (f)))
-      (coll-reduce [this f init] (ts-reduce this f init)))))
+             Job MapContext ReduceContext TaskAttemptContext]))
 
 (defn keys
   "Produce keys only from the tuples in `context`."
-  [context] (task-reducer ts-next-keyval ts-key context))
+  [context] (src/reducer src/next-keyval src/key context))
 
 (defn vals
   "Produce values only from the tuples in `context`."
-  [context] (task-reducer ts-next-keyval ts-val context))
+  [context] (src/reducer src/next-keyval src/val context))
 
 (defn keyvals
   "Produce pairs of keys and values from the tuples in `context`."
-  [context] (task-reducer ts-next-keyval ts-keyval context))
+  [context] (src/reducer src/next-keyval src/keyval context))
 
 (defn keygroups
   "Produce distinct keys from the tuples in `context`."
-  [context] (task-reducer ts-next-key ts-key context))
+  [context] (src/reducer src/next-key src/key context))
 
 (defn valgroups
   "Produce sequences of values associated with distinct keys from the
 tuples in `context`."
-  [context] (task-reducer ts-next-key ts-vals context))
+  [context] (src/reducer src/next-key src/vals context))
 
 (defn keyvalgroups
   "Produce pairs of distinct keys and associated sequences of values
 from the tuples in `context`."
-  [context] (task-reducer ts-next-key ts-keyvals context))
+  [context] (src/reducer src/next-key src/keyvals context))
 
 (defprotocol ^:private TupleSink
   "Internal protocol for emitting tuples to a sink."
