@@ -3,8 +3,8 @@
   (:require [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
-                     (reducers :as pr) (inspect :as pi) (wrapper :as w)]
-            [parkour.graph (tasks :as pgt) (common :as pgc)]
+                     (reducers :as pr) (wrapper :as w)]
+            [parkour.graph (tasks :as pgt) (common :as pgc) (conf :as pgconf)]
             [parkour.mapreduce.input.multiplex :as mux]
             [parkour.util :refer [ignore-errors returning var-str mpartial]])
   (:import [java.io Writer]
@@ -49,55 +49,17 @@
         [_ outputs] (run-parallel* graph {} ::output)]
     (deref outputs)))
 
-(defprotocol ConfigStep
-  "Protocol for objects which add a job configuration step."
-  (-configure [this job] "Mutate configuration of Hadoop Job `job`."))
-
-(defn configure!
+(def ^{:arglists '([job step] [step])}
+  configure!
   "Update Hadoop `job` with configuration `step`, returning the mutated job."
-  ([job step] (returning job (-configure step job)))
-  ([step] (configure! (mr/job) step)))
-
-(extend-protocol ConfigStep
-  nil (-configure [_ job] #_pass)
-  APersistentMap (-configure [m job] (conf/merge! job m))
-  APersistentVector (-configure [v job] (reduce configure! job v))
-  IFn (-configure [f job] (f job)))
-
-(defn ^:private diff
-  [step] (conf/diff (mr/job) (configure! step)))
-
-(deftype DSeq [step]
-  Object
-  (toString [this]
-    (str "#dseq " (pr-str (diff this))))
-
-  ConfigStep
-  (-configure [_ job] (configure! job step))
-
-  ccp/CollReduce
-  (coll-reduce [this f] (ccp/coll-reduce this f (f)))
-  (coll-reduce [this f init]
-    (r/reduce f init (pi/records-seqable (configure! this) identity))))
-
-(defn dseq
-  "Return the distributed sequence represented by job configuration
-step `step`.  Result is a config step and reducible."
-  [step] (DSeq. step))
-
-(defmethod print-method DSeq
-  [o ^Writer w] (.write w (str o)))
-
-(defn dseq?
-  "True iff `x` is a distributed sequence."
-  [x] (instance? DSeq true))
+  pgconf/configure!)
 
 (deftype DSink [dseq step]
   Object
   (toString [this]
-    (str "#dsink " (pr-str (diff this))))
+    (str "#dsink " (pr-str (pgconf/step-map this))))
 
-  ConfigStep
+  pgconf/ConfigStep
   (-configure [_ job] (configure! job step))
 
   IFn

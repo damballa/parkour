@@ -1,5 +1,6 @@
 (ns parkour.io.seqf
-  (:require [parkour (conf :as conf) (fs :as fs) (graph :as pg)])
+  (:require [parkour (conf :as conf) (fs :as fs) (graph :as pg)]
+            [parkour.graph.dseq :as dseq])
   (:import [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.input SequenceFileInputFormat]
@@ -8,7 +9,7 @@
 
 (defn dseq
   [& paths]
-  (pg/dseq
+  (dseq/dseq
    (fn [^Job job]
      (.setInputFormatClass job SequenceFileInputFormat)
      (doseq [path paths]

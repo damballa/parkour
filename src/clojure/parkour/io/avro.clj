@@ -3,6 +3,7 @@
   (:require [abracad.avro :as avro]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr) (graph :as pg)]
+            [parkour.graph.dseq :as dseq]
             [parkour.util :refer [ignore-errors returning mpartial]])
   (:import [org.apache.avro Schema]
            [org.apache.avro.mapred AvroKey AvroValue AvroWrapper]
@@ -118,7 +119,7 @@ when the output format has not been otherwise explicitly specified."
 (defn dseq
   "Distributed sequence of Avro input."
   [schemas & paths]
-  (pg/dseq
+  (dseq/dseq
    (fn [^Job job]
      (apply set-input job schemas)
      (doseq [path paths]

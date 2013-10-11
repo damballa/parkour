@@ -1,5 +1,6 @@
 (ns parkour.io.text
-  (:require [parkour (conf :as conf) (fs :as fs) (graph :as pg)])
+  (:require [parkour (conf :as conf) (fs :as fs) (graph :as pg)]
+            [parkour.graph.dseq :as dseq])
   (:import [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.input TextInputFormat]
@@ -10,7 +11,7 @@
   "Distributed sequence of input text file lines.  Tuples consist
 of (file offset, text line)."
   [& paths]
-  (pg/dseq
+  (dseq/dseq
    (fn [^Job job]
      (.setInputFormatClass job TextInputFormat)
      (doseq [path paths]

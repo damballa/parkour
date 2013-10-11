@@ -5,8 +5,8 @@
   (:import [clojure.lang IFn$OOLL]))
 
 (defmulti task-fn
-  "Returns a function which calls `f` with an `unwrap`ed arguments and
-properly `wrap`s the result."
+  "Returns a function which calls `f` with `unwrap`ed arguments and
+properly `wrap`s the result (if necessary)."
   pr/arg0)
 
 (defmethod task-fn :partitioner
@@ -26,11 +26,15 @@ properly `wrap`s the result."
       (->> context w/unwrap f (mr/sink output)))))
 
 (defn job-node
+  "Given provided graph-generation user var `uvar`, remote arguments
+`rargs`, job ID `jid`, and subnode ID `snid`, return job matching
+graph node."
   [uvar rargs jid snid]
   (-> (pgc/job-graph uvar rargs []) first (get jid)
       (cond-> snid (as-> node (merge node (-> node :subnodes (get snid)))))))
 
 (defn remote-task
+  "Remote task entry point for `parkour.graph` API tasks."
   [conf fkey uvar rargs jid snid]
   (let [uvar (do (-> uvar namespace symbol require) (resolve uvar))
         node (job-node uvar rargs jid snid)

@@ -59,20 +59,24 @@ the `body` expressions."
   ([conf key default] (.get (configuration conf) key default)))
 
 (defn get-boolean
-  "Get boolean value of `conf` parameter `key`"
+  "Get boolean value of `conf` parameter `key`."
   ^Boolean [conf key default] (.getBoolean (configuration conf) key default))
 
 (defn get-int
-  "Get int value of `conf` parameter `key`"
+  "Get int value of `conf` parameter `key`."
   ^Integer [conf key default] (.getInt (configuration conf) key default))
 
 (defn get-long
-  "Get long value of `conf` parameter `key`"
+  "Get long value of `conf` parameter `key`."
   ^Long [conf key default] (.getLong (configuration conf) key default))
 
 (defn get-float
-  "Get float value of `conf` parameter `key`"
+  "Get float value of `conf` parameter `key`."
   ^Float [conf key default] (.getFloat (configuration conf) key default))
+
+(defn get-class
+  "Get class value of `conf` parameter `key`."
+  ^Class [conf key default] (.getClass (configuration conf) key default))
 
 (defn assoc!
   "Set `conf` parameter `key` to `val`."

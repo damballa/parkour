@@ -4,8 +4,9 @@
             [clojure.java.io :as io]
             [clojure.core.reducers :as r]
             [abracad.avro :as avro]
-            [parkour (mapreduce :as mr) (fs :as fs) (inspect :as pi)]
+            [parkour (mapreduce :as mr) (fs :as fs) (wrapper :as w)]
             [parkour.io (avro :as mra)]
+            [parkour.graph.dseq :as dseq]
             [parkour.util :refer [returning]])
   (:import [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.input MultipleInputs]
@@ -76,8 +77,6 @@
             [1 "bar" "blue"]
             [2 "baz" "red"]
             [2 "baz" "green"]]
-           (with-open [recs (-> (doto (mr/job)
-                                  (mra/set-input :default)
-                                  (FileInputFormat/addInputPath outpath))
-                                pi/records-seqable)]
-             (into [] (r/map first recs)))))))
+           (->> (mra/dseq [:default] outpath)
+                (r/map (comp w/unwrap first))
+                (into []))))))
