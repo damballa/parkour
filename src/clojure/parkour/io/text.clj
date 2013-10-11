@@ -1,6 +1,6 @@
 (ns parkour.io.text
-  (:require [parkour (conf :as conf) (fs :as fs) (graph :as pg)]
-            [parkour.graph.dseq :as dseq])
+  (:require [parkour (conf :as conf) (fs :as fs)]
+            [parkour.graph (dseq :as dseq) (dsink :as dsink)])
   (:import [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.input TextInputFormat]
@@ -22,7 +22,7 @@ of (file offset, text line)."
 per tuple containing TAB-separated results of invoking `.toString`
 method of tuple members."
   [path]
-  (pg/dsink
+  (dsink/dsink
    (dseq path)
    (fn [^Job job]
      (doto job

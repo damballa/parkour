@@ -1,6 +1,6 @@
 (ns parkour.io.seqf
-  (:require [parkour (conf :as conf) (fs :as fs) (graph :as pg)]
-            [parkour.graph.dseq :as dseq])
+  (:require [parkour (conf :as conf) (fs :as fs)]
+            [parkour.graph (dseq :as dseq) (dsink :as dsink)])
   (:import [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.input SequenceFileInputFormat]
@@ -17,7 +17,7 @@
 
 (defn dsink
   [ckey cval path]
-  (pg/dsink
+  (dsink/dsink
    (dseq path)
    (fn [^Job job]
      (doto job

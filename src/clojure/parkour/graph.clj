@@ -54,35 +54,6 @@
   "Update Hadoop `job` with configuration `step`, returning the mutated job."
   pgconf/configure!)
 
-(deftype DSink [dseq step]
-  Object
-  (toString [this]
-    (str "#dsink " (pr-str (pgconf/step-map this))))
-
-  pgconf/ConfigStep
-  (-configure [_ job] (configure! job step))
-
-  IFn
-  (invoke [_] dseq)
-  (applyTo [this args]
-    (if-not (seq args)
-      dseq
-      (throw (ArityException. (count args) (str this))))))
-
-(defn dsink
-  "Return distributed sink represented by job configuration step
-`step` and producing the distributed sequence `dseq` once generated.
-Result is a config step which returns `dseq` when called as a
-zero-argument function."
-  [dseq step] (DSink. dseq step))
-
-(defmethod print-method DSink
-  [o ^Writer w] (.write w (str o)))
-
-(defn dsink?
-  "True iff `x` is a distributed sink."
-  [x] (instance? DSink x))
-
 (defn ^:private mux-step
   [step] #(mux/add-subconf % (configure! (mr/job %) step)))
 
@@ -225,7 +196,7 @@ and sinking to the provided `dsink`."
       (config map-only)))
 
 (defmethod remote :sink
-  [node f] {:stage :map, :requires [node], :source [((:sink node))], :map f})
+  [node f] {:stage :map, :requires [node], :source [@(:sink node)], :map f})
 
 (defn ^:private job-fn
   [conf node jname]
@@ -236,7 +207,7 @@ and sinking to the provided `dsink`."
               (node-config node))]
     (fn [& args]
       (try
-        (returning ((:sink node))
+        (returning @(:sink node)
           (when-not (.waitForCompletion job false)
             (throw (ex-info (str "Job " jname " failed.") {}))))
         (catch Throwable t
