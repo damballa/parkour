@@ -4,7 +4,7 @@
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
                      (reducers :as pr) (inspect :as pi) (wrapper :as w)]
-            [parkour.graph.tasks :as pgt]
+            [parkour.graph (tasks :as pgt) (common :as pgc)]
             [parkour.mapreduce.input.multiplex :as mux]
             [parkour.util :refer [ignore-errors returning var-str mpartial]])
   (:import [java.io Writer]
@@ -290,7 +290,7 @@ and sinking to the provided `dsink`."
   ([conf uvar rargs]
      (execute conf uvar rargs []))
   ([conf uvar rargs largs]
-     (let [[nodes tails] (pgt/job-graph uvar rargs largs)
+     (let [[nodes tails] (pgc/job-graph uvar rargs largs)
            job-name (partial job-name (var-str uvar) (count nodes))
            graph (->> nodes
                       (r/map (fn [{:keys [jid requires], :as node}]
