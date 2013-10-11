@@ -6,7 +6,7 @@
             [clojure.string :as str]
             [clojure.reflect :as reflect]
             [parkour (conf :as conf) (wrapper :as w) (reducers :as pr)]
-            [parkour.mapreduce (source :as src)]
+            [parkour.mapreduce (source :as src) (sink :as snk)]
             [parkour.util :refer [returning ignore-errors]])
   (:import [java.util Comparator]
            [clojure.lang IPersistentCollection Indexed Seqable]
@@ -42,39 +42,6 @@ tuples in `context`."
 from the tuples in `context`."
   [context] (src/reducer src/next-key src/keyvals context))
 
-(defprotocol ^:private TupleSink
-  "Internal protocol for emitting tuples to a sink."
-  (^:private -emit-keyval [sink key val]
-    "Emit the tuple pair of `key` and `value` to `sink`.")
-  (^:private -key-class [sink]
-    "Key class expected by `sink`.")
-  (^:private -val-class [sink]
-    "Value class expected by `sink`."))
-
-(defn ^:private key-class [sink] (-key-class sink))
-(defn ^:private val-class [sink] (-val-class sink))
-
-(extend-protocol TupleSink
-  MapContext
-  (-key-class [sink] (.getMapOutputKeyClass sink))
-  (-val-class [sink] (.getMapOutputValueClass sink))
-  (-emit-keyval [sink key val] (returning sink (.write sink key val)))
-
-  ReduceContext
-  (-key-class [sink]
-    (case (-> sink .getConfiguration (conf/get "parkour.step" "reduce"))
-      "combine" (.getMapOutputKeyClass sink)
-      "reduce" (.getOutputKeyClass sink)))
-  (-val-class [sink]
-    (case (-> sink .getConfiguration (conf/get "parkour.step" "reduce"))
-      "combine" (.getMapOutputValueClass sink)
-      "reduce" (.getOutputValueClass sink)))
-  (-emit-keyval [sink key val]
-    (returning sink (.write sink key val))))
-
-(defn ^:private wrapper-class
-  [c c'] (if (and c (isa? c c')) c c'))
-
 (defn wrap-sink
   "Return new tuple sink which wraps keys and values as the types
 `ckey` and `cval` respectively, which should be compatible with the
@@ -82,56 +49,17 @@ key and value type of `sink`.  Where they are not compatible, the type
 of the `sink` will be used instead.  Returns a new tuple sink which
 wraps any sunk keys and values which are not already of the correct
 type then sinks them to `sink`."
-  ([sink] (wrap-sink nil nil sink))
-  ([ckey cval sink]
-     (let [conf (conf/ig sink)
-           ckey (wrapper-class ckey (key-class sink))
-           wkey (w/new-instance conf ckey)
-           cval (wrapper-class cval (val-class sink))
-           wval (w/new-instance conf cval)]
-       (reify
-         Configurable
-         (getConf [_] conf)
-
-         TupleSink
-         (-key-class [_] ckey)
-         (-val-class [_] cval)
-         (-emit-keyval [sink1 key val]
-           (returning sink1
-             (let [key (if (instance? ckey key) key (w/rewrap wkey key))
-                   val (if (instance? cval val) val (w/rewrap wval val))]
-               (-emit-keyval sink key val))))))))
-
-(defn ^:private emit-keyval
-  "Emit pair of `key` and `val` to `sink` as a complete tuple."
-  [sink [key val]] (-emit-keyval sink key val))
-
-(defn ^:private emit-key
-  "Emit `key` to `sink` as the key of a key-only tuple."
-  [sink key] (-emit-keyval sink key nil))
-
-(defn ^:private emit-val
-  "Emit `val` to `sink` as the value of a value-only tuple."
-  [sink val] (-emit-keyval sink nil val))
-
-(def ^:private emit-fn*
-  "Map from sink-type keyword to tuple-emitting function."
-  {:keyvals emit-keyval,
-   :keys emit-key,
-   :vals emit-val})
+  ([sink] (snk/wrap-sink nil nil sink))
+  ([ckey cval sink] (snk/wrap-sink ckey cval sink)))
 
 (defn sink-as
   "Return new tuple collection which has values sinked as `kind`,
 which may be one of `:keys`, `:vals`, or `:keyvals`."
-  [kind sink] (vary-meta sink assoc ::tuples-as kind))
-
-(defn ^:private emit-fn
-  "Tuple-emitting function for `coll`."
-  [coll] (-> (meta coll) (get ::tuples-as :keyvals) emit-fn*))
+  [kind sink] (vary-meta sink assoc ::snk/tuples-as kind))
 
 (defn sink
   "Emit all tuples from `coll` to `sink`."
-  [sink coll] (r/reduce (emit-fn coll) sink coll))
+  [sink coll] (r/reduce (snk/emit-fn coll) sink coll))
 
 (def ^:private job-factory-method?
   "True iff the `Job` class has a static factory method."
