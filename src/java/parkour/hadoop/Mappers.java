@@ -9,7 +9,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 public class Mappers {
   private static class Base extends Mapper {
     private static class Vars {
-      private static final String NS = "parkour.mapreduce.tasks";
+      private static final String NS = "parkour.remote.basic";
       private static final Var mapperRun = RT.var(NS, "mapper-run");
       static {
         RT.var("clojure.core", "require").invoke(Symbol.intern(NS));

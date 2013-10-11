@@ -12,7 +12,7 @@ public class Partitioner
   implements Configurable {
 
   private static class Vars {
-    private static final String NS = "parkour.mapreduce.tasks";
+    private static final String NS = "parkour.remote.basic";
     private static final Var
       partitionerSetConf = RT.var(NS, "partitioner-set-conf");
     static {

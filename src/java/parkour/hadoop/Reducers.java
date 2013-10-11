@@ -9,7 +9,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 public class Reducers {
   private static class Base extends Reducer {
     private static class Vars {
-      private static final String NS = "parkour.mapreduce.tasks";
+      private static final String NS = "parkour.remote.basic";
       private static final Var reducerRun = RT.var(NS, "reducer-run");
       static {
         RT.var("clojure.core", "require").invoke(Symbol.intern(NS));

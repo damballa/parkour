@@ -1,4 +1,4 @@
-(ns parkour.mapreduce.tasks
+(ns parkour.remote.basic
   {:private true}
   (:require [clojure.string :as str]
             [clojure.edn :as edn]
