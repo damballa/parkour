@@ -26,9 +26,3 @@
                (assoc node :jid jid :requires requires)))
            (rseq jobs))
      (mapv (comp rjids :sink) tails)]))
-
-(defn job-node
-  [uvar rargs jid snid]
-  (-> (job-graph uvar rargs []) first (get jid)
-      (cond-> (not (neg? snid))
-              , (as-> node (merge node (-> node :subnodes (get snid)))))))

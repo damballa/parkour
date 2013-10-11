@@ -10,8 +10,8 @@
   (let [impl (fkey node)]
     (if (isa? impl klass)
       impl
-      (let [{:keys [uvar rargs jid]} node]
-        (alloc job #'prg/remote-task fkey (var-symbol uvar) rargs jid)))))
+      (let [{:keys [uvar rargs jid snid]} node]
+        (alloc job #'prg/remote-task fkey (var-symbol uvar) rargs jid snid)))))
 
 (defmacro deftask
   [fname fkey alloc klass method]

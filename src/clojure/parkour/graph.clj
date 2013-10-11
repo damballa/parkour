@@ -134,17 +134,15 @@ zero-argument function."
 (declare node-config)
 
 (defn ^:private subnode-config
-  [^Job job node [i subnode]]
+  [^Job job node subnode]
   (let [node (select-keys node [:uvar :rargs :jid])
         subnode (merge node subnode)
-        subconf (doto (node-config (mr/job job) subnode)
-                  (conf/assoc! "parkour.subnode" i))]
+        subconf (node-config (mr/job job) subnode)]
     (mux/add-subconf job subconf)))
 
 (defn ^:private subnodes-config
   [^Job job node subnodes]
-  (reduce (mpartial subnode-config node)
-          job (map-indexed vector subnodes)))
+  (reduce (mpartial subnode-config node) job subnodes))
 
 (defn ^:private node-config
   "Configure a job according to the state of a job graph node."
@@ -236,7 +234,7 @@ the classes `ckey` and `cval` respectively."
      (if (= 1 (count nodes))
        (partition (first nodes) classes f)
        (-> {:stage :map,
-            :subnodes nodes,
+            :subnodes (vec (map-indexed #(assoc %2 :snid %1) nodes)),
             :mapper mux/mapper-class}
            (partition classes f)))))
 

@@ -1,7 +1,6 @@
 (ns parkour.remote.graph
   {:private true}
-  (:require [parkour (conf :as conf) (reducers :as pr) (mapreduce :as mr)
-                     (wrapper :as w)]
+  (:require [parkour (reducers :as pr) (mapreduce :as mr) (wrapper :as w)]
             [parkour.graph.common :as pgc])
   (:import [clojure.lang IFn$OOLL]))
 
@@ -26,11 +25,15 @@ properly `wrap`s the result."
     (let [output (mr/wrap-sink context)]
       (->> context w/unwrap f (mr/sink output)))))
 
+(defn job-node
+  [uvar rargs jid snid]
+  (-> (pgc/job-graph uvar rargs []) first (get jid)
+      (cond-> snid (as-> node (merge node (-> node :subnodes (get snid)))))))
+
 (defn remote-task
-  [conf fkey uvar rargs jid]
+  [conf fkey uvar rargs jid snid]
   (let [uvar (do (-> uvar namespace symbol require) (resolve uvar))
-        snid (conf/get-int conf "parkour.subnode" -1)
-        node (pgc/job-node uvar rargs jid snid)
+        node (job-node uvar rargs jid snid)
         fmeta (-> node fkey meta)]
     (as-> (fkey node) f
           (if-not (:hof fmeta) f (f conf))
