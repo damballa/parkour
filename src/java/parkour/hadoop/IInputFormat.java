@@ -1,4 +1,4 @@
-package parkour.hadoop.interfaces;
+package parkour.hadoop;
 
 import java.util.List;
 

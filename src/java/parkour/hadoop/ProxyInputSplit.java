@@ -1,4 +1,4 @@
-package parkour.hadoop.input;
+package parkour.hadoop;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -9,8 +9,6 @@ import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
-
-import parkour.hadoop.interfaces.IInputSplit;
 
 public abstract class ProxyInputSplit
     extends InputSplit implements IDeref, Writable, Configurable {

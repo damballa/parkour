@@ -151,4 +151,8 @@ the `body` expressions."
                 (if (= val val')
                   diff
                   (assoc diff key val'))))
-            {} (set (mapcat keys [conf conf'])))))
+            {} (distinct (mapcat keys [conf conf'])))))
+
+(defn copy!
+  "Copy all configuration from `conf'` to `conf`."
+  [conf conf'] (merge! conf (diff conf conf')))

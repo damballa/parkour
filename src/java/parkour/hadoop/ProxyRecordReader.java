@@ -1,4 +1,4 @@
-package parkour.hadoop.input;
+package parkour.hadoop;
 
 import java.io.IOException;
 
@@ -10,10 +10,10 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-public class MultiplexRecordReader<K, V> extends RecordReader<K, V> {
-  private RecordReader<K, V> rr;
+public abstract class ProxyRecordReader<K, V> extends RecordReader<K, V> {
+  protected RecordReader<K, V> rr;
 
-  public MultiplexRecordReader(RecordReader<K, V> rr) {
+  public ProxyRecordReader(RecordReader<K, V> rr) {
     this.rr = rr;
   }
 
@@ -40,7 +40,6 @@ public class MultiplexRecordReader<K, V> extends RecordReader<K, V> {
   @Override
   public void initialize(InputSplit split, TaskAttemptContext context)
       throws IOException, InterruptedException {
-    split = (InputSplit) RT.nth(((IDeref) split).deref(), 1);
     rr.initialize(split, context);
   }
 
@@ -48,5 +47,4 @@ public class MultiplexRecordReader<K, V> extends RecordReader<K, V> {
   public boolean nextKeyValue() throws IOException, InterruptedException {
     return rr.nextKeyValue();
   }
-
 }

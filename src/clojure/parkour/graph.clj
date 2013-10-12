@@ -5,7 +5,7 @@
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
                      (reducers :as pr) (wrapper :as w)]
             [parkour.graph (tasks :as pgt) (common :as pgc) (conf :as pgconf)]
-            [parkour.mapreduce.input.multiplex :as mux]
+            [parkour.io.mux :as mux]
             [parkour.util :refer [ignore-errors returning var-str mpartial]])
   (:import [java.io Writer]
            [java.util Map List]
@@ -168,7 +168,7 @@ the classes `ckey` and `cval` respectively."
        (partition (first nodes) classes f)
        (-> {:stage :map,
             :subnodes (vec (map-indexed #(assoc %2 :snid %1) nodes)),
-            :mapper mux/mapper-class}
+            :mapper parkour.hadoop.Mux$Mapper}
            (partition classes f)))))
 
 (defmethod remote :partition

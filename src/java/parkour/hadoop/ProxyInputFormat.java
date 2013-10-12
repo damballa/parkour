@@ -1,4 +1,4 @@
-package parkour.hadoop.input;
+package parkour.hadoop;
 
 import java.util.List;
 
@@ -7,8 +7,6 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
-import parkour.hadoop.interfaces.IInputFormat;
 
 public abstract class ProxyInputFormat<K, V> extends InputFormat<K, V> {
   private final IInputFormat<K, V> iif;
