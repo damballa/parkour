@@ -17,7 +17,8 @@
 (def ^:private ^:const confs-key
   "parkour.multiplex.confs")
 
-(defn ^:private get-subconfs
+(defn get-subconfs
+  "Get sequence of `job` multiplex sub-configuration diffs."
   [job] (or (some->> (conf/get job confs-key) (edn/read-string)) []))
 
 (defn add-subconf
@@ -99,21 +100,6 @@
             context (mr/tac job (.getTaskAttemptID context))]
         (MultiplexRecordReader.
          (.createRecordReader ^InputFormat inform split context))))))
-
-(defn mapper
-  [conf]
-  (fn [^Mapper$Context context]
-    (let [i (-> context .getInputSplit deref first)
-          subconf (-> context get-subconfs (get i))
-          rdiff (-> (doto (conf/clone context)
-                      (conf/merge! subconf))
-                    (conf/diff context))]
-      (try
-        (conf/merge! context subconf)
-        (let [mapper (->> context .getMapperClass (w/new-instance context))]
-          (.run ^Mapper mapper context))
-        (finally
-          (conf/merge! context rdiff))))))
 
 (def mapper-class
   parkour.hadoop.input.MultiplexMapper)
