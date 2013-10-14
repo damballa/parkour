@@ -6,7 +6,7 @@
             [parkour (conf :as conf) (reducers :as pr)]
             [parkour.util :refer [ignore-errors returning map-vals mpartial]])
   (:import [java.net URI URL]
-           [java.io File IOException InputStream]
+           [java.io File IOException InputStream Writer]
            [org.apache.hadoop.fs FileStatus FileSystem Path]
            [org.apache.hadoop.filecache DistributedCache]))
 
@@ -16,6 +16,11 @@
   (^java.net.URI
     -uri [x] "Coerce argument to a URI; private implementation."))
 
+(defmacro ^:private write-all
+  [w & forms]
+  (let [w (vary-meta w assoc :tag `Writer)]
+    `(do ~@(map (fn [x] `(. ~w write ~(if (string? x) x `(str ~x)))) forms))))
+
 (defn path
   "Coerce argument(s) to a Path, resolving successive arguments against base."
   {:tag `Path}
@@ -23,11 +28,8 @@
   ([x y] (Path. (-path x) (str y)))
   ([x y & more] (apply path (path x y) more)))
 
-(defmethod print-method Path
-  ([^Path x ^java.io.Writer w]
-     (.write w "#hadoop.fs/path \"")
-     (.write w (str x))
-     (.write w "\"")))
+(defmethod print-method Path [x w] (write-all w "#hadoop.fs/path \"" x "\""))
+(defmethod print-dup Path [x w] (write-all w "#hadoop.fs/path \"" x "\""))
 
 (defn path?
   "True iff `x` is a Path."
@@ -42,11 +44,8 @@
        (-> x (.resolve (str (.getPath x) "/")) (.resolve (str y)))))
   ([x y & more] (apply uri (uri x y) more)))
 
-(defmethod print-method URI
-  ([^URI x ^java.io.Writer w]
-     (.write w "#java.net/uri \"")
-     (.write w (str x))
-     (.write w "\"")))
+(defmethod print-method URI [x w] (write-all w "#java.net/uri \"" x "\""))
+(defmethod print-dup URI [x w] (write-all w "#java.net/uri \"" x "\""))
 
 (defn uri?
   "True iff `x` is a URI."
