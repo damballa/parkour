@@ -3,7 +3,8 @@
             [clojure.core.reducers :as r]
             [parkour.conf :as conf]
             [parkour.graph.conf :as pgc]
-            [parkour.graph.dseq (mapred :as mr1) (mapreduce :as mr2)])
+            [parkour.graph.dseq (mapred :as mr1) (mapreduce :as mr2)]
+            [parkour.util :refer [ignore-errors]])
   (:import [java.io Writer]))
 
 (defprotocol DSeqable
@@ -23,7 +24,7 @@
 (deftype DSeq [step]
   Object
   (toString [this]
-    (str "#dseq " (pr-str (pgc/step-map this))))
+    (str "conf=" (-> step pgc/step-map pr-str ignore-errors (or "?"))))
 
   pgc/ConfigStep
   (-configure [_ job] (pgc/configure! job step))
@@ -40,14 +41,11 @@
   nil (-dseq [_] nil)
   Object (-dseq [step] (DSeq. step)))
 
+(defn dseq?
+  "True iff `x` is a distributed sequence."
+  [x] (instance? DSeq true))
+
 (defn dseq
   "Return the distributed sequence represented by dseq-able object or
 job configuration step `obj`.  Result is a config step and reducible."
   [obj] (-dseq obj))
-
-(defmethod print-method DSeq
-  [o ^Writer w] (.write w (str o)))
-
-(defn dseq?
-  "True iff `x` is a distributed sequence."
-  [x] (instance? DSeq true))
