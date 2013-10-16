@@ -94,15 +94,22 @@
   "The stage of a job graph node."
   (comp :stage pr/arg0))
 
+(let [id (atom 0)]
+  (defn ^:private gen-id
+    "Return application-unique source/sink ID."
+    [] (swap! id inc)))
+
 (defn source
   "Return a fresh `:source`-stage job graph node consuming from the
 provided `dseqs`."
-  [& dseqs] {:stage :source, :source (vec dseqs), :config []})
+  [& dseqs]
+  {:stage :source, :source-id (gen-id), :source (vec dseqs), :config []})
 
 (defn config
   "Add arbitrary configuration steps to current job graph `node`."
   [node & steps] (assoc node :config (into (:config node []) steps)))
 
+(def remote nil)
 (defmulti remote
   "Create a new remote-execution task chained following the provided
 job graph `node` and implemented by function `f`, which should accept
@@ -127,6 +134,7 @@ any existing job combiner function."
   ([node f] (assoc node :mapper (comp f (:mapper node))))
   ([node f g] (assoc (remote node f) :combiner g)))
 
+(def partition nil)
 (defmulti partition
   "Create new reduce-partition task chained following the provided job
 graph `node` and optionally implemented by function `f`, which should
@@ -177,11 +185,7 @@ the classes `ckey` and `cval` respectively."
 (defmethod remote :reduce
   [node f] (assoc node :reducer (comp f (:reducer node))))
 
-(let [id (atom 0)]
-  (defn ^:private sink-id
-    "Return application-unique sink ID."
-    [] (swap! id inc)))
-
+(def sink nil)
 (defmulti sink
   "Create a sink task chained following the provided job graph `node`
 and sinking to the provided `dsink`."
@@ -189,7 +193,9 @@ and sinking to the provided `dsink`."
   stage)
 
 (defmethod sink :reduce
-  [node dsink] (assoc node :stage :sink, :sink dsink, :sink-id (sink-id)))
+  [node dsink]
+  (let [node (assoc node :stage :sink, :sink dsink, :sink-id (gen-id))]
+    (assoc (source (if dsink @dsink)) :requires [node])))
 
 (defn ^:private map-only
   "Configuration step for map-only jobs."
@@ -197,14 +203,21 @@ and sinking to the provided `dsink`."
 
 (defmethod sink :map
   [node dsink]
-  (-> (assoc node :stage :sink, :sink dsink, :sink-id (sink-id))
-      (config map-only)))
+  (-> node (config map-only) (assoc :stage reduce) (sink dsink)))
 
-(defmethod remote :sink
-  [node f] {:stage :map, :requires [node], :source [@(:sink node)], :map f})
+(def ^:private job-fn nil)
+(defmulti ^:private job-fn
+  "Return job-execution function for provided `node`, with hadoop
+configuration `conf` and job name `jname`"
+  {:arglists '([node conf jname])}
+  stage)
 
-(defn ^:private job-fn
-  [conf node jname]
+(defmethod job-fn :source
+  [node conf jname]
+  (fn [& args] (-> node :source first)))
+
+(defmethod job-fn :default
+  [node conf jname]
   (let [job (doto (mr/job conf)
               (.setJobName jname)
               (conf/set! "mapreduce.task.classpath.user.precedence" true)
@@ -212,7 +225,7 @@ and sinking to the provided `dsink`."
               (node-config node))]
     (fn [& args]
       (try
-        (returning @(:sink node)
+        (returning true
           (when-not (.waitForCompletion job false)
             (throw (ex-info (str "Job " jname " failed.") {}))))
         (catch Throwable t
@@ -230,7 +243,7 @@ and sinking to the provided `dsink`."
            job-name (partial job-name (var-str uvar) (count nodes))
            graph (->> nodes
                       (r/map (fn [{:keys [jid requires], :as node}]
-                               (let [f (job-fn conf node (job-name jid))]
+                               (let [f (job-fn node conf (job-name jid))]
                                  [jid [requires f]])))
                       (into {}))]
        (run-parallel graph tails))))
