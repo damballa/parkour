@@ -6,6 +6,10 @@
             [parkour.graph.dseq (mapred :as mr1) (mapreduce :as mr2)])
   (:import [java.io Writer]))
 
+(defprotocol DSeqable
+  "Protocol for producing distribute sequence."
+  (-dseq [this] "Return distributed sequence for `this`."))
+
 (defn reducible
   ([job]
      (let [klass (or (conf/get-class job "mapreduce.inputformat.class" nil)
@@ -27,12 +31,19 @@
   ccp/CollReduce
   (coll-reduce [this f] (ccp/coll-reduce this f (f)))
   (coll-reduce [this f init]
-    (r/reduce f init (-> this pgc/configure! reducible))))
+    (r/reduce f init (-> this pgc/configure! reducible)))
+
+  DSeqable
+  (-dseq [this] this))
+
+(extend-protocol DSeqable
+  nil (-dseq [_] nil)
+  Object (-dseq [step] (DSeq. step)))
 
 (defn dseq
-  "Return the distributed sequence represented by job configuration
-step `step`.  Result is a config step and reducible."
-  [step] (DSeq. step))
+  "Return the distributed sequence represented by dseq-able object or
+job configuration step `obj`.  Result is a config step and reducible."
+  [obj] (-dseq obj))
 
 (defmethod print-method DSeq
   [o ^Writer w] (.write w (str o)))

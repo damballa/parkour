@@ -1,7 +1,6 @@
 (ns parkour.graph.dsink
-  (:require [parkour.graph.conf :as pgc])
-  (:import [java.io Writer]
-           [clojure.lang ArityException IDeref]))
+  (:require [parkour.graph (conf :as pgc) (dseq :as dseq)])
+  (:import [java.io Writer]))
 
 (deftype DSink [dseq step]
   Object
@@ -11,8 +10,8 @@
   pgc/ConfigStep
   (-configure [_ job] (pgc/configure! job step))
 
-  IDeref
-  (deref [_] dseq))
+  dseq/DSeqable
+  (-dseq [_] dseq))
 
 (defn dsink
   "Return distributed sink represented by job configuration step

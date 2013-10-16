@@ -4,7 +4,8 @@
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
                      (reducers :as pr) (wrapper :as w)]
-            [parkour.graph (tasks :as pgt) (common :as pgc) (conf :as pgconf)]
+            [parkour.graph (tasks :as pgt) (common :as pgc) (conf :as pgconf)
+                           (dseq :as dseq) (dsink :as dsink)]
             [parkour.io.mux :as mux]
             [parkour.util :refer [ignore-errors returning var-str mpartial]])
   (:import [java.io Writer]
@@ -195,7 +196,7 @@ and sinking to the provided `dsink`."
 (defmethod sink :reduce
   [node dsink]
   (let [node (assoc node :stage :sink, :sink dsink, :sink-id (gen-id))]
-    (assoc (source (if dsink @dsink)) :requires [node])))
+    (assoc (source (dseq/dseq dsink)) :requires [node])))
 
 (defn ^:private map-only
   "Configuration step for map-only jobs."
