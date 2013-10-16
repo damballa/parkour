@@ -7,7 +7,8 @@
             [parkour.graph (tasks :as pgt) (common :as pgc) (conf :as pgconf)
                            (dseq :as dseq) (dsink :as dsink)]
             [parkour.io.mux :as mux]
-            [parkour.util :refer [ignore-errors returning var-str mpartial]])
+            [parkour.util
+             :refer [ignore-errors returning var-str mpartial mcomp]])
   (:import [java.io Writer]
            [java.util Map List]
            [clojure.lang ArityException IFn APersistentMap APersistentVector]
@@ -90,6 +91,10 @@
     "Return application-unique source/sink ID."
     [] (swap! id inc)))
 
+(defn ^:private f-list
+  "If `f` is a class, return it.  Else return list containing `f`."
+  [f] (if (class? f) f (list f)))
+
 (defn source
   "Return a fresh `:source`-stage job graph node consuming from the
 provided `dseq`."
@@ -122,12 +127,12 @@ any existing job combiner function."
     (throw (ex-info msg {:node node, :f f}))))
 
 (defmethod remote :source
-  ([node f] (assoc node :stage :map, :mapper f))
-  ([node f g] (assoc (remote node f) :combiner g)))
+  ([node f] (assoc node :stage :map, :mapper (f-list f)))
+  ([node f g] (assoc (remote node f) :combiner (f-list g))))
 
 (defmethod remote :map
-  ([node f] (assoc node :mapper (comp f (:mapper node))))
-  ([node f g] (assoc (remote node f) :combiner g)))
+  ([node f] (assoc node :mapper (cons f (:mapper node))))
+  ([node f g] (assoc (remote node f) :combiner (f-list g))))
 
 (def partition nil)
 (defmulti partition
@@ -175,10 +180,10 @@ the classes `ckey` and `cval` respectively."
            (partition classes f)))))
 
 (defmethod remote :partition
-  [node f] (assoc node :stage :reduce, :reducer f))
+  [node f] (assoc node :stage :reduce, :reducer (f-list f)))
 
 (defmethod remote :reduce
-  [node f] (assoc node :reducer (comp f (:reducer node))))
+  [node f] (assoc node :reducer (cons f (:reducer node))))
 
 (def sink nil)
 (defmulti sink
