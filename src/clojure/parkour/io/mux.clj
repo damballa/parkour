@@ -1,5 +1,4 @@
 (ns parkour.io.mux
-  {:private true}
   (:require [clojure.edn :as edn]
             [parkour (conf :as conf) (mapreduce :as mr)]
             [parkour.graph (conf :as pgc) (dseq :as dseq)]
