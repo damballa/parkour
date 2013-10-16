@@ -208,7 +208,7 @@ and sinking to the provided `dsink`."
 
 (def ^:private job-fn nil)
 (defmulti ^:private job-fn
-  "Return job-execution function for provided `node`, with hadoop
+  "Return job-execution function for provided `node`, with Hadoop
 configuration `conf` and job name `jname`"
   {:arglists '([node conf jname])}
   stage)
