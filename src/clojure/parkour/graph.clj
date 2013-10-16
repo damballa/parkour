@@ -177,6 +177,11 @@ the classes `ckey` and `cval` respectively."
 (defmethod remote :reduce
   [node f] (assoc node :reducer (comp f (:reducer node))))
 
+(let [id (atom 0)]
+  (defn ^:private sink-id
+    "Return application-unique sink ID."
+    [] (swap! id inc)))
+
 (defmulti sink
   "Create a sink task chained following the provided job graph `node`
 and sinking to the provided `dsink`."
@@ -184,7 +189,7 @@ and sinking to the provided `dsink`."
   stage)
 
 (defmethod sink :reduce
-  [node dsink] (assoc node :stage :sink, :sink dsink))
+  [node dsink] (assoc node :stage :sink, :sink dsink, :sink-id (sink-id)))
 
 (defn ^:private map-only
   "Configuration step for map-only jobs."
@@ -192,7 +197,7 @@ and sinking to the provided `dsink`."
 
 (defmethod sink :map
   [node dsink]
-  (-> (assoc node :stage :sink, :sink dsink)
+  (-> (assoc node :stage :sink, :sink dsink, :sink-id (sink-id))
       (config map-only)))
 
 (defmethod remote :sink
