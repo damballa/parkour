@@ -55,16 +55,6 @@
   "Update Hadoop `job` with configuration `step`, returning the mutated job."
   pgconf/configure!)
 
-(defn ^:private mux-step
-  [step] #(mux/add-subconf % (configure! (mr/job %) step)))
-
-(defn ^:private source-config
-  "Configure a job for a provided source vector."
-  [^Job job source]
-  (if (= 1 (count source))
-    (configure! job source)
-    (configure! job (mapv mux-step source))))
-
 (declare node-config)
 
 (defn ^:private subnode-config
@@ -82,7 +72,7 @@
   "Configure a job according to the state of a job graph node."
   [^Job job node]
   (doto job
-    (source-config (:source node))
+    (configure! (:source node))
     (subnodes-config node (:subnodes node))
     (pgt/mapper! node)
     (pgt/combiner! node)
@@ -102,9 +92,13 @@
 
 (defn source
   "Return a fresh `:source`-stage job graph node consuming from the
-provided `dseqs`."
-  [& dseqs]
-  {:stage :source, :source-id (gen-id), :source (vec dseqs), :config []})
+provided `dseq`."
+  [dseq]
+  {:stage :source,
+   :source-id (gen-id),
+   :source (dseq/dseq dseq),
+   :config [],
+   })
 
 (defn config
   "Add arbitrary configuration steps to current job graph `node`."
@@ -215,7 +209,7 @@ configuration `conf` and job name `jname`"
 
 (defmethod job-fn :source
   [node conf jname]
-  (fn [& args] (-> node :source first)))
+  (constantly (:source node)))
 
 (defmethod job-fn :default
   [node conf jname]
