@@ -189,8 +189,9 @@ and sinking to the provided `dsink`."
 
 (defmethod sink :reduce
   [node dsink]
-  (let [node (assoc node :stage :sink, :sink dsink, :sink-id (gen-id))]
-    (assoc (source (dseq/dseq dsink)) :requires [node])))
+  (let [dsink (dsink/dsink dsink), dseq (dseq/dseq dsink),
+        node (assoc node :stage :sink, :sink dsink, :sink-id (gen-id))]
+    (assoc (source dseq) :requires [node])))
 
 (defn ^:private map-only
   "Configuration step for map-only jobs."
