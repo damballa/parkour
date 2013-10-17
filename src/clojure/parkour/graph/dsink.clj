@@ -1,15 +1,15 @@
 (ns parkour.graph.dsink
-  (:require [parkour.graph (conf :as pgc) (dseq :as dseq)]
+  (:require [parkour.graph (cstep :as cstep) (dseq :as dseq)]
             [parkour.util :refer [ignore-errors]])
   (:import [java.io Writer]))
 
 (deftype DSink [dseq step]
   Object
   (toString [this]
-    (str "conf=" (-> step pgc/step-map pr-str ignore-errors (or "?"))))
+    (str "conf=" (-> step cstep/step-map pr-str ignore-errors (or "?"))))
 
-  pgc/ConfigStep
-  (-configure [_ job] (pgc/configure! job step))
+  cstep/ConfigStep
+  (-apply! [_ job] (cstep/apply! job step))
 
   dseq/DSeqable
   (-dseq [_] dseq))

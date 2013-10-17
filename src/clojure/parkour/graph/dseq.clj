@@ -2,7 +2,7 @@
   (:require [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
             [parkour.conf :as conf]
-            [parkour.graph.conf :as pgc]
+            [parkour.graph.cstep :as cstep]
             [parkour.graph.dseq (mapred :as mr1) (mapreduce :as mr2)]
             [parkour.util :refer [ignore-errors]])
   (:import [java.io Writer]))
@@ -24,15 +24,15 @@
 (deftype DSeq [step]
   Object
   (toString [this]
-    (str "conf=" (-> step pgc/step-map pr-str ignore-errors (or "?"))))
+    (str "conf=" (-> step cstep/step-map pr-str ignore-errors (or "?"))))
 
-  pgc/ConfigStep
-  (-configure [_ job] (pgc/configure! job step))
+  cstep/ConfigStep
+  (-apply! [_ job] (cstep/apply! job step))
 
   ccp/CollReduce
   (coll-reduce [this f] (ccp/coll-reduce this f (f)))
   (coll-reduce [this f init]
-    (r/reduce f init (-> this pgc/configure! reducible)))
+    (r/reduce f init (-> this cstep/apply! reducible)))
 
   DSeqable
   (-dseq [this] this))

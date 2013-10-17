@@ -4,7 +4,7 @@
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
                      (reducers :as pr) (wrapper :as w)]
-            [parkour.graph (tasks :as pgt) (common :as pgc) (conf :as pgconf)
+            [parkour.graph (tasks :as pgt) (common :as pgc) (cstep :as cstep)
                            (dseq :as dseq) (dsink :as dsink)]
             [parkour.io.mux :as mux]
             [parkour.util
@@ -48,11 +48,6 @@
         [_ outputs] (run-parallel* graph {} ::output)]
     (deref outputs)))
 
-(def ^{:arglists '([job step] [step])}
-  configure!
-  "Update Hadoop `job` with configuration `step`, returning the mutated job."
-  pgconf/configure!)
-
 (declare node-config)
 
 (defn ^:private subnode-config
@@ -70,14 +65,14 @@
   "Configure a job according to the state of a job graph node."
   [^Job job node]
   (doto job
-    (configure! (:source node))
+    (cstep/apply! (:source node))
     (subnodes-config node (:subnodes node))
     (pgt/mapper! node)
     (pgt/combiner! node)
     (pgt/partitioner! node)
     (pgt/reducer! node)
-    (configure! (:config node))
-    (configure! (:sink node))))
+    (cstep/apply! (:config node))
+    (cstep/apply! (:sink node))))
 
 (def ^:private stage
   "The stage of a job graph node."

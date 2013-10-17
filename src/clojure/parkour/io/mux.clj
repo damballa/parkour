@@ -1,7 +1,7 @@
 (ns parkour.io.mux
   (:require [clojure.edn :as edn]
             [parkour (conf :as conf) (mapreduce :as mr)]
-            [parkour.graph (conf :as pgc) (dseq :as dseq)]
+            [parkour.graph (cstep :as cstep) (dseq :as dseq)]
             [parkour.util :refer [returning]])
   (:import [org.apache.hadoop.mapreduce Job]
            [parkour.hadoop Mux$InputFormat Mux$RecordReader]))
@@ -41,7 +41,7 @@
   "Add configuration changes produced by `step` as a multiplex
 sub-configuration of `job`."
   [^Job job step]
-  (add-subconf job (-> job mux-empty (pgc/configure! step))))
+  (add-subconf job (-> job mux-empty (cstep/apply! step))))
 
 (defn dseq
   "Multiplex distributed sequence, consisting of any number of other
