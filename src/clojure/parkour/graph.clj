@@ -9,10 +9,7 @@
             [parkour.io.mux :as mux]
             [parkour.util
              :refer [ignore-errors returning var-str mpartial mcomp]])
-  (:import [java.io Writer]
-           [java.util Map List]
-           [clojure.lang ArityException IFn APersistentMap APersistentVector]
-           [org.apache.hadoop.mapreduce Job]
+  (:import [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.partition HashPartitioner]))
 
 (comment
@@ -84,7 +81,11 @@
 
 (def ^:private stage
   "The stage of a job graph node."
-  (comp :stage pr/arg0))
+  (fn [node & args]
+    (cond
+     (vector? node) ::vector
+     (map? node) (:stage node)
+     :else (throw (ex-info "Invalid `node`" {:node node})))))
 
 (let [id (atom 0)]
   (defn ^:private gen-id
@@ -111,20 +112,25 @@ provided `dseq`."
 
 (def remote nil)
 (defmulti remote
-  "Create a new remote-execution task chained following the provided
-job graph `node` and implemented by function `f`, which should accept
-and return reducible collections of task tuples.  When producing a
-`:map`-stage node, may provide a combiner function `g`, will replace
-any existing job combiner function."
+  "Create a new remote-execution task chained following the provided job graph
+`node` and implemented by function `f`, which should accept and return reducible
+collections of task tuples.  When producing a `:map`-stage node, may provide a
+combiner function `g`, which will replace any existing job combiner function."
   {:arglists '([node f] [node f g])}
   stage)
 
 (defmethod remote :default
-  [node f]
+  [node & fs]
   (let [stage (:stage node)
-        msg (str "Cannot change remote-execution task from node of stage `"
-                 stage "`.")]
-    (throw (ex-info msg {:node node, :f f}))))
+        msg (str "Cannot chain remote-execution from stage `" stage "`.")]
+    (throw (ex-info msg {:node node}))))
+
+(defmethod remote ::vector
+  [nodes & fs]
+  (if-not (every? (comp #{:source} stage) nodes)
+    (throw (ex-info "Cannot merge non-`:source` nodes." {:nodes nodes}))
+    (assoc (source (mapv :source nodes))
+      :requires (into [] (mapcat :requires nodes)))))
 
 (defmethod remote :source
   ([node f] (assoc node :stage :map, :mapper (f-list f)))
@@ -134,16 +140,19 @@ any existing job combiner function."
   ([node f] (assoc node :mapper (cons f (:mapper node))))
   ([node f g] (assoc (remote node f) :combiner (f-list g))))
 
-(def partition nil)
-(defmulti partition
-  "Create new reduce-partition task chained following the provided job
-graph `node` and optionally implemented by function `f`, which should
-follow the interface described in `parkour.mapreduce/partition!`.
-Configures shuffle via `classes`, which should either be a vector of
-the two map-output key & value classes, or a config step specifying
-the shuffle."
-  {:arglists '([node classes] [node classes f])}
-  (comp type pr/arg0))
+(def ^:private partition* nil)
+(defmulti ^:private partition*
+  {:arglists '([node classes f])}
+  stage)
+
+(defn partition
+  "Create new reduce-partition task chained following the provided job graph
+`node` and optionally implemented by function `f`, which should follow the
+interface described in `parkour.mapreduce/partition!`.  Configures shuffle via
+`step`, which should either be a vector of the two map-output key & value
+classes, or a config step specifying the shuffle."
+  ([node step] (partition node step HashPartitioner))
+  ([node step f] (partition* node step f)))
 
 (defn shuffle
   "Base shuffle configuration; sets map output key & value types to
@@ -159,25 +168,21 @@ the classes `ckey` and `cval` respectively."
        (= 2 (count classes))
        (every? class? classes)))
 
-(defmethod partition Map
-  ([node classes]
-     (partition node classes HashPartitioner))
-  ([node classes f]
-     (-> (assoc node :stage :partition, :partitioner f)
-         (config (if-not (shuffle-classes? classes)
-                   classes
-                   (apply shuffle classes))))))
+(defmethod partition* ::vector
+  [nodes classes f]
+  (if (= 1 (count nodes))
+    (partition (first nodes) classes f)
+    (-> {:stage :map,
+         :subnodes (vec (map-indexed #(assoc %2 :snid %1) nodes)),
+         :mapper parkour.hadoop.Mux$Mapper}
+        (partition classes f))))
 
-(defmethod partition List
-  ([nodes classes]
-     (partition nodes classes HashPartitioner))
-  ([nodes classes f]
-     (if (= 1 (count nodes))
-       (partition (first nodes) classes f)
-       (-> {:stage :map,
-            :subnodes (vec (map-indexed #(assoc %2 :snid %1) nodes)),
-            :mapper parkour.hadoop.Mux$Mapper}
-           (partition classes f)))))
+(defmethod partition* :map
+  [node classes f]
+  (-> (assoc node :stage :partition, :partitioner f)
+      (config (if-not (shuffle-classes? classes)
+                classes
+                (apply shuffle classes)))))
 
 (defmethod remote :partition
   [node f] (assoc node :stage :reduce, :reducer (f-list f)))
