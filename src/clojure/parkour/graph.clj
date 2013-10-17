@@ -82,6 +82,22 @@
      (map? node) (:stage node)
      :else (throw (ex-info "Invalid `node`" {:node node})))))
 
+(defn ^:private apply-meta
+  "Parse `coll` as sequences of keyword-value pairs interspersed with individual
+values.  Apply keyword-value pairs as metadata to their subsequent individual
+values.  Return sequence of values."
+  [coll]
+  (first
+   (reduce (fn [[values md kw] x]
+             (cond
+              kw
+              , [values (assoc md kw x) nil]
+              (keyword? x)
+              , [values md x]
+              :else
+              , [(conj values (vary-meta x merge md)) {} nil]))
+           [[] {} nil] coll)))
+
 (let [id (atom 0)]
   (defn ^:private gen-id
     "Return application-unique source/sink ID."
@@ -105,33 +121,38 @@ provided `dseq`."
   "Add arbitrary configuration steps to current job graph `node`."
   [node & steps] (assoc node :config (into (:config node []) steps)))
 
-(def remote nil)
-(defmulti remote
-  "Create a new remote-execution task chained following the provided job graph
-`node` and implemented by function `f`, which should accept and return reducible
-collections of task tuples.  When producing a `:map`-stage node, may provide a
-combiner function `g`, which will replace any existing job combiner function."
+(def ^:private remote* nil)
+(defmulti ^:private remote*
   {:arglists '([node f] [node f g])}
   stage)
 
-(defmethod remote :default
+(defn remote
+  "Create a new remote-execution task chained following the provided job graph
+`node` and implemented by function `f`.  When producing a `:map`-stage node, may
+provide a combiner function `g`, which will replace any existing job combiner
+function.  Functions may be preceded any number of `option` keyword-value pairs,
+which will be applied as metadata to the following function."
+  {:arglists '([node option* f] [node option* f option* g])}
+  [node & args] (apply remote* node (apply-meta args)))
+
+(defmethod remote* :default
   [node & fs]
   (let [stage (:stage node)
         msg (str "Cannot chain remote-execution from stage `" stage "`.")]
     (throw (ex-info msg {:node node}))))
 
-(defmethod remote ::vector
+(defmethod remote* ::vector
   [nodes & fs]
   (if-not (every? (comp #{:source} stage) nodes)
     (throw (ex-info "Cannot merge non-`:source` nodes." {:nodes nodes}))
     (assoc (source (mapv :source nodes))
       :requires (into [] (mapcat :requires nodes)))))
 
-(defmethod remote :source
+(defmethod remote* :source
   ([node f] (assoc node :stage :map, :mapper (f-list f)))
   ([node f g] (assoc (remote node f) :combiner (f-list g))))
 
-(defmethod remote :map
+(defmethod remote* :map
   ([node f] (assoc node :mapper (cons f (:mapper node))))
   ([node f g] (assoc (remote node f) :combiner (f-list g))))
 
@@ -142,12 +163,14 @@ combiner function `g`, which will replace any existing job combiner function."
 
 (defn partition
   "Create new reduce-partition task chained following the provided job graph
-`node` and optionally implemented by function `f`, which should follow the
-interface described in `parkour.mapreduce/partition!`.  Configures shuffle via
+`node` and optionally implemented by function `f`.  Configures shuffle via
 `step`, which should either be a vector of the two map-output key & value
-classes, or a config step specifying the shuffle."
-  ([node step] (partition node step HashPartitioner))
-  ([node step f] (partition* node step f)))
+classes, or a config step specifying the shuffle.  If `f` is provided, it may be
+preceded any number of `option` keyword-value pairs, which will be applied to it
+as metadata."
+  {:arglists '([node step] [node step option* f])}
+  ([node step] (partition* node step HashPartitioner))
+  ([node step & args] (apply partition* node step (apply-meta args))))
 
 (defn shuffle
   "Base shuffle configuration; sets map output key & value types to
@@ -179,10 +202,10 @@ the classes `ckey` and `cval` respectively."
                 classes
                 (apply shuffle classes)))))
 
-(defmethod remote :partition
+(defmethod remote* :partition
   [node f] (assoc node :stage :reduce, :reducer (f-list f)))
 
-(defmethod remote :reduce
+(defmethod remote* :reduce
   [node f] (assoc node :reducer (cons f (:reducer node))))
 
 (def sink nil)

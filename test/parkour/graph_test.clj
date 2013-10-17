@@ -68,13 +68,16 @@
          (fn ^long [[key] _ ^long nparts]
            (-> key hash (mod nparts))))
         (pg/remote
-         (fn [input]
-           (->> input mr/keyvalgroups
-                (r/mapcat (fn [[[id] vals]]
-                            (let [vals (into [] vals)
-                                  left (first vals)]
-                              (r/map #(-> [id left %]) (rest vals)))))
-                (mr/sink-as :keys))))
+         :hof true
+         :context true
+         (fn [conf]
+           (fn [context input]
+             (->> input mr/keyvalgroups
+                  (r/mapcat (fn [[[id] vals]]
+                              (let [vals (into [] vals)
+                                    left (first vals)]
+                                (r/map #(-> [id left %]) (rest vals)))))
+                  (mr/sink-as :keys)))))
         (pg/sink dsink))))
 
 (deftest test-trivial-join
