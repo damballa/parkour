@@ -5,13 +5,13 @@
             [clojure.core.reducers :as r]
             [abracad.avro :as avro]
             [parkour (mapreduce :as mr) (fs :as fs) (wrapper :as w)]
-            [parkour.io (avro :as mra)]
+            [parkour.io (avro :as mra) (mux :as mux)]
             [parkour.graph.dseq :as dseq]
             [parkour.util :refer [returning]])
   (:import [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
-           [org.apache.hadoop.mapreduce.lib.input MultipleInputs]
            [org.apache.hadoop.mapreduce.lib.input TextInputFormat]
-           [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]))
+           [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]
+           [parkour.hadoop Mux$Mapper]))
 
 (defn mapper
   [conf tag]
@@ -42,10 +42,19 @@
   [leftpath rightpath outpath]
   (let [job (mr/job)]
     (doto job
-      (MultipleInputs/addInputPath
-       (fs/path leftpath) TextInputFormat (mr/mapper! job #'mapper 0))
-      (MultipleInputs/addInputPath
-       (fs/path rightpath) TextInputFormat (mr/mapper! job #'mapper 1))
+      (mux/add-subconf
+       (as-> (mr/job job) job
+             (doto job
+               (.setInputFormatClass TextInputFormat)
+               (FileInputFormat/addInputPath (fs/path leftpath))
+               (.setMapperClass (mr/mapper! job #'mapper 0)))))
+      (mux/add-subconf
+       (as-> (mr/job job) job
+             (doto job
+               (.setInputFormatClass TextInputFormat)
+               (FileInputFormat/addInputPath (fs/path rightpath))
+               (.setMapperClass (mr/mapper! job #'mapper 1)))))
+      (.setMapperClass Mux$Mapper)
       (mra/set-map-output {:name "key", :type "record"
                            :abracad.reader "vector"
                            :fields [{:name "id", :type "long"}
