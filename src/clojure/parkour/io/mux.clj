@@ -4,7 +4,7 @@
             [parkour.graph (cstep :as cstep) (dseq :as dseq)]
             [parkour.util :refer [returning]])
   (:import [org.apache.hadoop.mapreduce Job]
-           [parkour.hadoop Mux$InputFormat Mux$RecordReader]))
+           [parkour.hadoop Mux$InputFormat]))
 
 (def ^:private ^:const confs-key
   "parkour.mux.confs")

@@ -5,7 +5,8 @@
             [clojure.core.reducers :as r]
             [parkour (graph :as pg) (mapreduce :as mr) (reducers :as pr)
                      (conf :as conf) (fs :as fs) (wrapper :as w)]
-            [parkour.io (text :as text) (seqf :as seqf) (avro :as mra)]
+            [parkour.io (text :as text) (seqf :as seqf) (avro :as mra)
+                        (dux :as dux)]
             [parkour.util :refer [ignore-errors]])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
@@ -96,3 +97,44 @@
             [2 "baz" "red"]
             [2 "baz" "green"]]
            (into [] (r/map (comp w/unwrap first) result))))))
+
+(defn multiple-outputs
+  [[] [dseq even odd]]
+  (-> (pg/source dseq)
+      (pg/remote
+       (fn [input]
+         (->> input mr/vals
+              (r/mapcat #(str/split % #"[ \t]+"))
+              (r/map #(-> [% 1])))))
+      (pg/partition [Text LongWritable])
+      (pg/remote
+       :raw true
+       (fn [context]
+         (->> context mr/keyvalgroups
+              (r/map (fn [[word counts]]
+                       [word (->> counts
+                                  (r/map w/unwrap)
+                                  (r/reduce + 0)
+                                  (LongWritable.))]))
+              (r/reduce (fn [_ [word total]]
+                          (if (even? (w/unwrap total))
+                            (dux/write context :even word total)
+                            (dux/write context :odd word total)))
+                        nil))))
+      (pg/sink-multi
+       :even even
+       :odd odd)))
+
+(deftest test-multiple-outputs
+  (let [inpath (io/resource "word-count-input.txt")
+        outpath (fs/path "tmp/word-count-output")
+        evenpath (fs/path outpath "even")
+        oddpath (fs/path outpath "odd")
+        outfs (fs/path-fs outpath)
+        _ (.delete outfs outpath true)
+        largs [(text/dseq inpath)
+               (seqf/dsink Text LongWritable evenpath)
+               (seqf/dsink Text LongWritable oddpath)]
+        [even odd] (pg/execute (conf/ig) #'multiple-outputs [] largs)]
+    (is (= {"banana" 2} (into {} (r/map w/unwrap-all even))))
+    (is (= {"apple" 3, "carrot" 1} (into {} (r/map w/unwrap-all odd))))))

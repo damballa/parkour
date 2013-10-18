@@ -77,3 +77,28 @@ composed function as the first argument of each composing function."
   "Returns the first item in `coll` for which `(pred item)` is true."
   ([coll] (ffilter identity coll))
   ([pred coll] (reduce (fn [_ x] (if (pred x) (reduced x))) nil coll)))
+
+(defmacro ^:private prev-swap!*
+  [atom apply-f & args]
+  `(let [atom# ~atom]
+     (loop []
+       (let [oldval# @atom#, newval# (~@apply-f oldval# ~@args)]
+         (if (compare-and-set! atom# oldval# newval#)
+           oldval#
+           (recur))))))
+
+(defn prev-swap!
+  "Like `swap!`, but return the previous value of `atom`."
+  ([atom f] (prev-swap!* atom (f)))
+  ([atom f x] (prev-swap!* atom (f) x))
+  ([atom f x y] (prev-swap!* atom (f) x y))
+  ([atom f x y & args] (prev-swap!* atom (apply f) x y args)))
+
+(defn prev-reset!
+  "Like `reset!`, but return the previous value of `atom`."
+  [atom newval]
+  (loop []
+    (let [oldval @atom]
+      (if (compare-and-set! atom oldval newval)
+        oldval
+        (recur)))))

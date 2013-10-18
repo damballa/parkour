@@ -1,12 +1,13 @@
 (ns parkour.graph
   (:refer-clojure :exclude [partition shuffle])
-  (:require [clojure.core.protocols :as ccp]
+  (:require [clojure.core :as cc]
+            [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
                      (reducers :as pr) (wrapper :as w)]
             [parkour.graph (tasks :as pgt) (common :as pgc) (cstep :as cstep)
                            (dseq :as dseq) (dsink :as dsink)]
-            [parkour.io.mux :as mux]
+            [parkour.io (mux :as mux) (dux :as dux)]
             [parkour.util
              :refer [ignore-errors returning var-str mpartial mcomp]])
   (:import [org.apache.hadoop.mapreduce Job]
@@ -208,18 +209,16 @@ the classes `ckey` and `cval` respectively."
 (defmethod remote* :reduce
   [node f] (assoc node :reducer (cons f (:reducer node))))
 
+(defn ^:private sink*
+  [node dsink] (assoc node :stage :sink, :sink dsink, :sink-id (gen-id)))
+
 (def sink nil)
 (defmulti sink
   "Create a sink task chained following the provided job graph `node`
-and sinking to the provided `dsink`."
+and sinking to the provided `dsink`.  Yields a new `:source`-stage
+node reading from the sunk output."
   {:arglists '([node dsink])}
   stage)
-
-(defmethod sink :reduce
-  [node dsink]
-  (let [dsink (dsink/dsink dsink), dseq (dseq/dseq dsink),
-        node (assoc node :stage :sink, :sink dsink, :sink-id (gen-id))]
-    (assoc (source dseq) :requires [node])))
 
 (defn ^:private map-only
   "Configuration step for map-only jobs."
@@ -228,6 +227,33 @@ and sinking to the provided `dsink`."
 (defmethod sink :map
   [node dsink]
   (-> node (config map-only) (assoc :stage reduce) (sink dsink)))
+
+(defmethod sink :reduce
+  [node dsink]
+  (let [dsink (dsink/dsink dsink), dseq (dseq/dseq dsink),
+        node (sink* node dsink)]
+    (assoc (source dseq) :requires [node])))
+
+(def sink-multi nil)
+(defmulti sink-multi
+  "Create a sink task chained following the provided job graph `node` and
+sinking to the provided `named-dsinks`, which should consist of alternating
+name/dsink pairs.  Yields a vector of new `:source`-stage nodes reading from
+each of the sunk outputs."
+  {:arglists '([node & named-dsinks])}
+  stage)
+
+(defmethod sink-multi :map
+  [node & named-dsinks]
+  (apply sink-multi (-> node (config map-only) (assoc :stage reduce))
+         ,          named-dsinks))
+
+(defmethod sink-multi :reduce
+  [node & named-dsinks]
+  (let [dsink (apply dux/dsink named-dsinks)
+        dseqs (map (comp dseq/dseq second) (cc/partition 2 named-dsinks))
+        node (sink* node dsink)]
+    (mapv #(assoc (source %) :requires [node]) dseqs)))
 
 (def ^:private job-fn nil)
 (defmulti ^:private job-fn

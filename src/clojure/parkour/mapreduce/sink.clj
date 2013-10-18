@@ -17,7 +17,8 @@
 
 (defn emit-keyval
   "Emit pair of `key` and `val` to `sink` as a complete tuple."
-  [sink [key val]] (returning sink (-emit-keyval sink key val)))
+  ([sink [key val]] (returning sink (-emit-keyval sink key val)))
+  ([sink key val] (returning sink (-emit-keyval sink key val))))
 
 (defn emit-key
   "Emit `key` to `sink` as the key of a key-only tuple."
