@@ -60,6 +60,7 @@ sinks' sequences."
        (reduce (partial apply add-substep) job dsinks)))))
 
 (defn ^:private dux-state
+  "Extract demultiplexing output state from `context`."
   [^TaskInputOutputContext context]
   @(.getOutputCommitter context))
 
@@ -74,6 +75,8 @@ sinks' sequences."
   (.getCounter context "Demultiplexing Output" (name oname)))
 
 (defn ^:private new-rw
+  "Return new demultiplexing output sink for output `oname` and file output
+basename `base`."
   [context oname base]
   (let [[jobs ofs rws] (dux-state context)
         of (get ofs oname), ^Job job (get jobs oname)

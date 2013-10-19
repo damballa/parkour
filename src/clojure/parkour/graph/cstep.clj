@@ -25,6 +25,15 @@ parameters and values; a vector of other steps; or anything implementing the
   APersistentVector (-apply! [v job] (reduce apply! job v))
   IFn (-apply! [f job] (f job)))
 
+(defn base
+  "Base configuration step for job named `jname`."
+  [jname]
+  (fn [^Job job]
+    (doto job
+      (.setJobName jname)
+      (conf/set! "mapreduce.task.classpath.user.precedence" true)
+      (.setJarByClass parkour.hadoop.Mappers))))
+
 (defn step-map
   "Map of job configuration keys and values implemented by `step`."
   [step]

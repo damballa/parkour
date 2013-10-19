@@ -13,12 +13,9 @@
   (:import [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.partition HashPartitioner]))
 
-(comment
-  ;; Example graph
-  {:output [[:input] (fn [input])]}
-  )
-
 (defn ^:private graph-future
+  "Return future result of applying function `f` to the values held by futures
+`inputs`.  Attempts to cancel all inputs upon any failures."
   [f inputs]
   (future
     (try
@@ -29,6 +26,9 @@
         (throw t)))))
 
 (defn ^:private run-parallel*
+  "Build a graph of futures for the data-flow described by the map `graph`.
+The `results` map holds calculated result futures, and `output` is the key of
+the desired result.  Returns a tuple of updated `(results, result)`."
   [graph results output]
   (if-let [result (results output)]
     [results result]
@@ -44,6 +44,11 @@
         [results result]))))
 
 (defn run-parallel
+  "Execute in parallel the data-flow graph described by `graph`.  Each key in
+`graph` identifies a particular entry.  Each value is a tuple of `(inputs, f)`,
+where `inputs` is a sequence of other `graph` keys and `f` is a function
+calculating that entry's result given `inputs`.  Returns a vector of the result
+entries for the keys in the collection `outputs`."
   [graph outputs]
   (let [graph (assoc graph ::output [outputs vector])
         [_ outputs] (run-parallel* graph {} ::output)]
@@ -52,6 +57,7 @@
 (declare node-config)
 
 (defn ^:private subnode-config
+  "Configure `job` for `subnode` of `node`."
   [^Job job node subnode]
   (let [node (select-keys node [:uvar :rargs :jid])
         subnode (merge node subnode)
@@ -59,11 +65,12 @@
     (mux/add-subconf job subconf)))
 
 (defn ^:private subnodes-config
+  "Configure `job` for all `subnodes` of `node`."
   [^Job job node subnodes]
   (reduce (mpartial subnode-config node) job subnodes))
 
 (defn ^:private node-config
-  "Configure a job according to the state of a job graph node."
+  "Configure `job` according to the state of a job graph node `node`."
   [^Job job node]
   (doto job
     (cstep/apply! (:source node))
@@ -76,7 +83,7 @@
     (cstep/apply! (:sink node))))
 
 (def ^:private stage
-  "The stage of a job graph node."
+  "The job stage of job graph node `node`."
   (fn [node & args]
     (cond
      (vector? node) ::vector
@@ -119,11 +126,12 @@ provided `dseq`."
    })
 
 (defn config
-  "Add arbitrary configuration steps to current job graph `node`."
+  "Add arbitrary configuration steps to job graph node `node`."
   [node & steps] (assoc node :config (into (:config node []) steps)))
 
 (def ^:private remote* nil)
 (defmulti ^:private remote*
+  "Internal dispatch multimethod for `remote` implementations."
   {:arglists '([node f] [node f g])}
   stage)
 
@@ -138,8 +146,7 @@ which will be applied as metadata to the following function."
 
 (defmethod remote* :default
   [node & fs]
-  (let [stage (:stage node)
-        msg (str "Cannot chain remote-execution from stage `" stage "`.")]
+  (let [msg (str "Cannot chain `remote` from stage `" (stage node) "`.")]
     (throw (ex-info msg {:node node}))))
 
 (defmethod remote* ::vector
@@ -159,16 +166,18 @@ which will be applied as metadata to the following function."
 
 (def ^:private partition* nil)
 (defmulti ^:private partition*
+  "Internal dispatch multimethod for `partition` implementations."
   {:arglists '([node classes f])}
   stage)
 
 (defn partition
-  "Create new reduce-partition task chained following the provided job graph
-`node` and optionally implemented by function `f`.  Configures shuffle via
-`step`, which should either be a vector of the two map-output key & value
-classes, or a config step specifying the shuffle.  If `f` is provided, it may be
-preceded any number of `option` keyword-value pairs, which will be applied to it
-as metadata."
+  "Create new partition task chained following the provided job graph `node`, as
+configured by `step` and optionally implemented by `f`.  The `node` may be
+either a single job graph node or a vector of job graph nodes to co-group.  The
+`step` may be either a configuration step or a vector of the two map-output key
+& value classes.  The `f` partitioner may be a function or a `Partitioner`
+class.  If a function `f` is provided, it may be preceded by any number of
+`option` keyword-value pairs, which will be applied to it as metadata."
   {:arglists '([node step] [node step option* f])}
   ([node step] (partition* node step HashPartitioner))
   ([node step & args] (apply partition* node step (apply-meta args))))
@@ -182,6 +191,7 @@ the classes `ckey` and `cval` respectively."
     (.setMapOutputValueClass job cval)))
 
 (defn ^:private shuffle-classes?
+  "True iff `classes` is a vector of two classes."
   [classes]
   (and (vector? classes)
        (= 2 (count classes))
@@ -210,13 +220,13 @@ the classes `ckey` and `cval` respectively."
   [node f] (assoc node :reducer (cons f (:reducer node))))
 
 (defn ^:private sink*
+  "Chain sink task following job graph node `node`."
   [node dsink] (assoc node :stage :sink, :sink dsink, :sink-id (gen-id)))
 
 (def sink nil)
 (defmulti sink
-  "Create a sink task chained following the provided job graph `node`
-and sinking to the provided `dsink`.  Yields a new `:source`-stage
-node reading from the sunk output."
+  "Create a sink task chained following the job graph node `node` and sinking to
+`dsink`.  Yields a new `:source`-stage node reading from the sunk output."
   {:arglists '([node dsink])}
   stage)
 
@@ -236,10 +246,10 @@ node reading from the sunk output."
 
 (def sink-multi nil)
 (defmulti sink-multi
-  "Create a sink task chained following the provided job graph `node` and
-sinking to the provided `named-dsinks`, which should consist of alternating
-name/dsink pairs.  Yields a vector of new `:source`-stage nodes reading from
-each of the sunk outputs."
+  "Create a sink task chained following the job graph node `node` and sinking to
+the provided `named-dsinks`, which should consist of alternating name/dsink
+pairs.  Yields a vector of new `:source`-stage nodes reading from each of the
+sunk outputs."
   {:arglists '([node & named-dsinks])}
   stage)
 
@@ -257,7 +267,7 @@ each of the sunk outputs."
 
 (def ^:private job-fn nil)
 (defmulti ^:private job-fn
-  "Return job-execution function for provided `node`, with Hadoop
+  "Return job-execution function for provided `node`, with base Hadoop
 configuration `conf` and job name `jname`"
   {:arglists '([node conf jname])}
   stage)
@@ -268,24 +278,29 @@ configuration `conf` and job name `jname`"
 
 (defmethod job-fn :default
   [node conf jname]
-  (let [job (doto (mr/job conf)
-              (.setJobName jname)
-              (conf/set! "mapreduce.task.classpath.user.precedence" true)
-              (.setJarByClass parkour.hadoop.Mappers)
-              (node-config node))]
-    (fn [& args]
+  (fn [& args]
+    (let [job (doto (mr/job conf)
+                (cstep/apply! (cstep/base jname))
+                (node-config node))]
       (try
         (returning true
           (when-not (.waitForCompletion job false)
-            (throw (ex-info (str "Job " jname " failed.") {}))))
+            (throw (ex-info (str "Job " jname " failed.")
+                            {:jname jname, :job job}))))
         (catch Throwable t
           (ignore-errors (.killJob job))
           (throw t))))))
 
 (defn ^:private job-name
-  [base n i] (format "%s[%d/%d]" base n (inc i)))
+  "Job name for `i`th job of `n` produced from var-name `base`."
+  [base n i] (format "%s[%d/%d]" base (inc i) n))
 
 (defn execute
+  "Execute Hadoop jobs for the job graph produced by invoking the var `uvar`.
+Invokes `uvar` with the `rargs` vector of remote & local arguments and the
+`lvar` vector of local-only arguments (or the empty vector, if not provided).
+Jobs are configured starting with base configuration `conf`.  Returns a vector
+of the distributed sequences produced by the job graph leaves."
   ([conf uvar rargs]
      (execute conf uvar rargs []))
   ([conf uvar rargs largs]
