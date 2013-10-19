@@ -3,7 +3,8 @@
   (:require [clojure.core :as cc]
             [parkour (conf :as conf) (wrapper :as w)]
             [parkour.util :refer [returning]])
-  (:import [org.apache.hadoop.conf Configurable]
+  (:import [clojure.lang IFn]
+           [org.apache.hadoop.conf Configurable]
            [org.apache.hadoop.mapreduce MapContext ReduceContext]))
 
 (defprotocol TupleSink
@@ -66,15 +67,27 @@
         cval (wrapper-class cval (val-class sink))
         wval (w/new-instance conf cval)]
     (reify
-      Configurable (getConf [_] conf)
-      w/Wrapper (unwrap [_] (w/unwrap sink))
+      Configurable
+      (getConf [_] conf)
+
+      w/Wrapper
+      (unwrap [_] (w/unwrap sink))
+
       TupleSink
       (-key-class [_] ckey)
       (-val-class [_] cval)
       (-emit-keyval [_ key val]
         (let [key (if (instance? ckey key) key (w/rewrap wkey key))
               val (if (instance? cval val) val (w/rewrap wval val))]
-          (-emit-keyval sink key val))))))
+          (-emit-keyval sink key val)))
+
+      IFn
+      (invoke [sink keyval] (emit-keyval sink keyval))
+      (invoke [sink key val] (emit-keyval sink key val))
+      (applyTo [sink args]
+        (case (count args)
+          1 (let [[keyval] args] (emit-keyval sink keyval))
+          2 (let [[key val] args] (emit-keyval sink key val)))))))
 
 (def emit-fn*
   "Map from sink-type keyword to tuple-emitting function."

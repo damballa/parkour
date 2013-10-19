@@ -1,11 +1,12 @@
 (ns parkour.io.dux
   (:require [clojure.edn :as edn]
             [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)]
-            [parkour.mapreduce (sink :as sink)]
+            [parkour.mapreduce (sink :as snk)]
             [parkour.graph (cstep :as cstep) (dseq :as dseq) (dsink :as dsink)]
             [parkour.io (mux :as mux)]
             [parkour.util :refer [returning]])
-  (:import [org.apache.hadoop.conf Configurable]
+  (:import [clojure.lang IFn]
+           [org.apache.hadoop.conf Configurable]
            [org.apache.hadoop.mapreduce Job TaskInputOutputContext]
            [org.apache.hadoop.mapreduce OutputFormat RecordWriter Counter]
            [parkour.hadoop Dux$OutputFormat]))
@@ -81,14 +82,26 @@ sinks' sequences."
         ckey (.getOutputKeyClass job), cval (.getOutputValueClass job)
         rw (.getRecordWriter ^OutputFormat of tac)]
     (reify
-      Configurable (getConf [_] conf)
-      w/Wrapper (unwrap [_] rw)
-      sink/TupleSink
+      Configurable
+      (getConf [_] conf)
+
+      w/Wrapper
+      (unwrap [_] rw)
+
+      snk/TupleSink
       (-key-class [_] ckey)
       (-val-class [_] ckey)
       (-emit-keyval [_ key val]
         (.write rw key val)
-        (.increment c 1)))))
+        (.increment c 1))
+
+      IFn
+      (invoke [sink keyval] (snk/emit-keyval sink keyval))
+      (invoke [sink key val] (snk/emit-keyval sink key val))
+      (applyTo [sink args]
+        (case (count args)
+          1 (let [[keyval] args] (snk/emit-keyval sink keyval))
+          2 (let [[key val] args] (snk/emit-keyval sink key val)))))))
 
 (defn get-sink
   "Get sink for named output `oname` and optional (file output format only) file
@@ -110,4 +123,4 @@ basename `base`."
 format only) file basename `base`."
   ([context oname key val] (write context oname nil key val))
   ([context oname base key val]
-     (-> context (get-sink oname base) (sink/emit-keyval key val))))
+     (-> context (get-sink oname base) (snk/emit-keyval key val))))
