@@ -13,8 +13,8 @@
            [org.apache.hadoop.conf Configuration Configurable]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapred JobConf]
-           [org.apache.hadoop.mapreduce
-             Job MapContext ReduceContext TaskAttemptContext]))
+           [org.apache.hadoop.mapreduce Job MapContext ReduceContext]
+           [org.apache.hadoop.mapreduce TaskAttemptContext TaskAttemptID]))
 
 (defn keys
   "Produce keys only from the tuples in `context`."
@@ -140,8 +140,16 @@ primitive-hinted as OOLL."
   (defmacro ^:private tac*
     [& args] `(new ~cname ~@args)))
 
+(defprotocol GetTaskAttemptID
+  "Protocol for extracting a task attempt ID."
+  (taid [x] "Task attempt ID for `x`."))
+
+(extend-protocol GetTaskAttemptID
+  TaskAttemptContext (taid [tac] (.getTaskAttemptID tac))
+  TaskAttemptID (taid [taid] taid))
+
 (defn tac
   "Return a new TaskAttemptContext instance using provided
 configuration `conf` and task attempt ID `taid`."
   {:tag `TaskAttemptContext}
-  [conf taid] (tac* (conf/ig conf) taid))
+  [conf id] (tac* (conf/ig conf) (taid id)))

@@ -58,6 +58,10 @@ sinks' sequences."
      (fn [^Job job]
        (reduce (partial apply add-substep) job dsinks)))))
 
+(defn ^:private dux-state
+  [^TaskInputOutputContext context]
+  @(.getOutputCommitter context))
+
 (defn ^:private set-output-name
   "Re-implementation of `FileOutputFormat/setOutputName`."
   [job base] (conf/assoc! job "mapreduce.output.basename" base))
@@ -68,52 +72,42 @@ sinks' sequences."
   [^TaskInputOutputContext context oname]
   (.getCounter context "Demultiplexing Output" (name oname)))
 
-(defn ^:private rw-sink
-  [conf ckey cval ^Counter c ^RecordWriter rw]
-  (reify
-    Configurable
-    (getConf [_] conf)
-
-    w/Wrapper
-    (unwrap [_] rw)
-
-    sink/TupleSink
-    (-key-class [_] ckey)
-    (-val-class [_] ckey)
-    (-emit-keyval [_ key val]
-      (.write rw key val)
-      (.increment c 1))))
+(defn ^:private new-rw
+  [context oname base]
+  (let [[jobs ofs rws] (dux-state context)
+        of (get ofs oname), ^Job job (get jobs oname)
+        conf (-> job conf/clone (cond-> base (set-output-name base)))
+        tac (mr/tac conf context), c (get-counter context oname)
+        ckey (.getOutputKeyClass job), cval (.getOutputValueClass job)
+        rw (.getRecordWriter ^OutputFormat of tac)]
+    (reify
+      Configurable (getConf [_] conf)
+      w/Wrapper (unwrap [_] rw)
+      sink/TupleSink
+      (-key-class [_] ckey)
+      (-val-class [_] ckey)
+      (-emit-keyval [_ key val]
+        (.write rw key val)
+        (.increment c 1)))))
 
 (defn get-sink
-  "Get sink for named output `name` and optional (file output format only) file
+  "Get sink for named output `oname` and optional (file output format only) file
 basename `base`."
-  ([context name] (get-sink context name nil))
-  ([^TaskInputOutputContext context name base]
-     (let [[jobs ofs rws] @(.getOutputCommitter context)
-           rwkey [name base]]
+  ([context oname] (get-sink context oname nil))
+  ([context oname base]
+     (let [[jobs ofs rws] (dux-state context), rwkey [oname base]]
        @(or (get-in @rws rwkey)
-            (let [new-rw (delay
-                          (let [taid (.getTaskAttemptID context)
-                                of (get ofs name), ^Job job (get jobs name)
-                                tac (-> job conf/clone
-                                        (cond-> base (set-output-name base))
-                                        (mr/tac taid))]
-                            (rw-sink
-                             (conf/ig job)
-                             (.getOutputKeyClass job)
-                             (.getOutputValueClass job)
-                             (get-counter context name)
-                             (.getRecordWriter ^OutputFormat of tac))))
+            (let [new-rw (partial new-rw context oname base)
                   add-rw (fn [rws]
                            (if rws
                              (if-let [rw (get-in rws rwkey)]
                                rw
-                               (assoc-in rws rwkey new-rw))))]
+                               (assoc-in rws rwkey (delay (new-rw))))))]
               (-> rws (swap! add-rw) (get-in rwkey)))))))
 
 (defn write
-  "Write `key` and `val` to named output `name` and optional (file output format
-only) file basename `base`."
-  ([context name key val] (write context name nil key val))
-  ([context name base key val]
-     (-> context (get-sink name base) (sink/emit-keyval key val))))
+  "Write `key` and `val` to named output `oname` and optional (file output
+format only) file basename `base`."
+  ([context oname key val] (write context oname nil key val))
+  ([context oname base key val]
+     (-> context (get-sink oname base) (sink/emit-keyval key val))))

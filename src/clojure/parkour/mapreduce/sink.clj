@@ -66,13 +66,12 @@
         cval (wrapper-class cval (val-class sink))
         wval (w/new-instance conf cval)]
     (reify
-      Configurable
-      (getConf [_] conf)
-
+      Configurable (getConf [_] conf)
+      w/Wrapper (unwrap [_] (w/unwrap sink))
       TupleSink
       (-key-class [_] ckey)
       (-val-class [_] cval)
-      (-emit-keyval [sink1 key val]
+      (-emit-keyval [_ key val]
         (let [key (if (instance? ckey key) key (w/rewrap wkey key))
               val (if (instance? cval val) val (w/rewrap wval val))]
           (-emit-keyval sink key val))))))
