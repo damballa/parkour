@@ -33,13 +33,13 @@
   [context] (src/reducer src/next-key src/key context))
 
 (defn valgroups
-  "Produce sequences of values associated with distinct keys from the
+  "Produce sequences of values associated with distinct grouping keys from the
 tuples in `context`."
   [context] (src/reducer src/next-key src/vals context))
 
 (defn keyvalgroups
-  "Produce pairs of distinct keys and associated sequences of values
-from the tuples in `context`."
+  "Produce pairs of distinct group keys and associated sequences of values from
+the tuples in `context`."
   [context] (src/reducer src/next-key src/keyvals context))
 
 (defn wrap-sink

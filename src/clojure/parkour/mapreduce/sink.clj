@@ -55,7 +55,10 @@
   (-emit-keyval [sink key val]
     (.write sink key val)))
 
-(defn wrapper-class
+(defn ^:private wrapper-class
+  "Sink key/value class, for provided class `c` and original sink class `c'`.
+Return provided class if it is compatible with original class; otherwise, return
+the original class."
   [c c'] (if (and c (isa? c c')) c c'))
 
 (defn wrap-sink

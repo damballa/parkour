@@ -31,10 +31,9 @@ of such tuples."
   [context] [(key context) (vals context)])
 
 (defn reduce
-  "As per `cc/reduce`, but in terms of `TupleSource` protocol.  When
-provided, applies `nextf` to `context` to retrieve the next tuple
-source for each iteration and `dataf` to retrieve the tuple values
-passed to `f`."
+  "As per `cc/reduce`, but in terms of the `TupleSource` protocol.  When
+provided, applies `nextf` to `context` to retrieve the next tuple source for
+each iteration and `dataf` to retrieve the tuple values passed to `f`."
   ([context f init]
      (reduce next-keyval keyval f init))
   ([nextf dataf context f init]
