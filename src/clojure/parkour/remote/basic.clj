@@ -2,7 +2,7 @@
   {:private true}
   (:require [clojure.string :as str]
             [clojure.edn :as edn]
-            [parkour (conf :as conf)]
+            [parkour (conf :as conf) (fs :as fs)]
             [parkour.util :refer [doto-let]]))
 
 (defn ^:private step-f-args
