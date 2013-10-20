@@ -3,6 +3,7 @@
   (:require [clojure.core :as cc]
             [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
+            [clojure.tools.logging :as log]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
                      (reducers :as pr) (wrapper :as w)]
             [parkour.graph (tasks :as pgt) (common :as pgc) (cstep :as cstep)
@@ -284,9 +285,11 @@ configuration `conf` and job name `jname`"
                 (node-config node))]
       (try
         (returning true
+          (log/info "Launching job" jname)
           (when-not (.waitForCompletion job false)
             (throw (ex-info (str "Job " jname " failed.")
-                            {:jname jname, :job job}))))
+                            {:jname jname, :job job, :node node})))
+          (log/info "Job" jname "completed successfully"))
         (catch Throwable t
           (ignore-errors (.killJob job))
           (throw t))))))
