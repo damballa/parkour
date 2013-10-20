@@ -24,6 +24,17 @@ each partition with `f` and optional initial value `init` as per
              acc1
              (f1 acc1 acc)))))))
 
+(defn group-by+
+  "Return a map of the values of applying `f` to each item in `coll` to vectors
+of the associated results of applying `g` to each item in coll."
+  [f g coll]
+  (persistent!
+   (reduce (fn [m x]
+             (let [k (f x), v (g x)]
+               (assoc! m k (-> m (get k []) (conj v)))))
+           (transient {})
+           coll)))
+
 (defn funcall
   "Call function `f` with additional arguments."
   ([f] (f))

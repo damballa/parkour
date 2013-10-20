@@ -4,7 +4,8 @@
             [clojure.java.io :as io]
             [clojure.core.reducers :as r]
             [abracad.avro :as avro]
-            [parkour (mapreduce :as mr) (fs :as fs) (wrapper :as w)]
+            [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
+                     (mapreduce :as mr) (reducers :as pr)]
             [parkour.io (avro :as mra) (mux :as mux)]
             [parkour.graph.dseq :as dseq]
             [parkour.util :refer [returning]])
@@ -31,11 +32,13 @@
   [conf]
   (mra/task
    (fn [input]
-     (->> (mr/keyvalgroups input)
-          (r/mapcat (fn [[[id] vals]]
-                      (let [vals (into [] vals)
-                            left (first vals)]
-                        (r/map #(-> [id left %]) (rest vals)))))
+     (->> (mr/keykeyvalgroups input)
+          (r/mapcat (fn [[[id] keyvals]]
+                      (let [kv-tag (comp second first), kv-val second
+                            vals (pr/group-by+ kv-tag kv-val keyvals)
+                            left (get vals 0), right (get vals 1)]
+                        (for [left left, right right]
+                          [id left right]))))
           (mr/sink-as :keys)))))
 
 (defn run-join
