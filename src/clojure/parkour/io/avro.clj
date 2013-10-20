@@ -99,17 +99,15 @@ which should be encoding-compatible with the map-output key schema."
 optional value schema `vs`.  Configures job output format to match
 when the output format has not been otherwise explicitly specified."
   ([^Job job ks]
-     (when (nil? (get-output-format job))
-       (lazy-output-format job AvroKeyOutputFormat))
      (doto job
        (set-data-model)
+       (.setOutputFormatClass AvroKeyOutputFormat)
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))
        (.setOutputValueClass NullWritable)))
   ([^Job job ks vs]
-     (when (nil? (get-output-format job))
-       (lazy-output-format job AvroKeyValueOutputFormat))
      (doto job
        (set-data-model)
+       (.setOutputFormatClass AvroKeyValueOutputFormat)
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))
        (AvroJob/setOutputValueSchema (avro/parse-schema vs)))))
 
