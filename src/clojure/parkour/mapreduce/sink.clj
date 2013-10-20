@@ -61,7 +61,7 @@
 (defn wrap-sink
   "Backing implementation for `mr/wrap-sink`."
   [ckey cval sink]
-  (let [conf (conf/ig sink)
+  (let [conf (conf/ig sink), unwrapped (w/unwrap sink)
         ckey (wrapper-class ckey (key-class sink))
         wkey (w/new-instance conf ckey)
         cval (wrapper-class cval (val-class sink))
@@ -71,7 +71,7 @@
       (getConf [_] conf)
 
       w/Wrapper
-      (unwrap [_] (w/unwrap sink))
+      (unwrap [_] unwrapped)
 
       TupleSink
       (-key-class [_] ckey)
