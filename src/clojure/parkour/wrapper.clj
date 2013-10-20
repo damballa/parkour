@@ -63,21 +63,22 @@ Writables."
   [& cs] `(do ~@(map auto-wrapper* cs)))
 
 (extend-protocol Wrapper
-  NullWritable
-  (unwrap [wobj] nil)
-  (rewrap [wobj obj] wobj)
-
   nil
   (unwrap [wobj] nil)
   (rewrap [wobj obj] nil)
 
+  Object
+  (unwrap [wobj] wobj)
+  (rewrap [wobj obj] obj)
+
+  NullWritable
+  (unwrap [wobj] nil)
+  (rewrap [wobj obj] wobj)
+
   Text
   (unwrap [wobj] (.toString wobj))
   (rewrap [wobj obj]
-    (returning wobj (.set wobj ^String obj)))
-
-  Object
-  (unwrap [wobj] wobj))
+    (returning wobj (.set wobj ^String obj))))
 
 (auto-wrapper
   IntWritable
