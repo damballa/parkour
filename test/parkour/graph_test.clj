@@ -108,19 +108,14 @@
               (r/map #(-> [% 1])))))
       (pg/partition [Text LongWritable])
       (pg/remote
-       :raw true
-       (fn [context]
-         (->> context mr/keyvalgroups
+       (fn [input]
+         (->> input mr/keyvalgroups
               (r/map (fn [[word counts]]
-                       [word (->> counts
-                                  (r/map w/unwrap)
-                                  (r/reduce + 0)
-                                  (LongWritable.))]))
-              (r/reduce (fn [_ [word total]]
-                          (if (even? (w/unwrap total))
-                            (dux/write context :even word total)
-                            (dux/write context :odd word total)))
-                        nil))))
+                       [word (r/reduce + 0 counts)]))
+              (r/map (fn [[word count]]
+                       (let [oname (if (even? count) :even :odd)]
+                         [oname word count])))
+              (mr/sink-as dux/named-keyvals))))
       (pg/sink-multi
        :even even
        :odd odd)))

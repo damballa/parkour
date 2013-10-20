@@ -93,7 +93,7 @@ basename `base`."
 
       snk/TupleSink
       (-key-class [_] ckey)
-      (-val-class [_] ckey)
+      (-val-class [_] cval)
       (-emit-keyval [_ key val]
         (.write rw key val)
         (.increment c 1))
@@ -114,6 +114,7 @@ basename `base`."
      (let [[jobs ofs rws] (dux-state context), rwkey [oname base]]
        @(or (get-in @rws rwkey)
             (let [new-rw (partial new-rw context oname base)
+                  new-rw (comp snk/wrap-sink new-rw)
                   add-rw (fn [rws]
                            (if rws
                              (if-let [rw (get-in rws rwkey)]
@@ -127,3 +128,69 @@ format only) file basename `base`."
   ([context oname key val] (write context oname nil key val))
   ([context oname base key val]
      (-> context (get-sink oname base) (snk/emit-keyval key val))))
+
+(defn named-keyvals
+  "Sink as key-val pairs to named output, with name provided as `oname` or as
+first element of three-element tuples."
+  ([oname]
+     (fn [context coll]
+       (reduce (fn [_ [key val]]
+                 (write context oname key val))
+               nil coll)))
+  ([context coll]
+     (reduce (fn [_ [oname key val]]
+               (write context oname key val))
+             nil coll)))
+
+(defn named-keys
+  "Sink as keys to named output, with name provided as `oname` or as first
+element of two-element tuples."
+  ([oname]
+     (fn [context coll]
+       (reduce (fn [_ key]
+                 (write context oname key nil))
+               nil coll)))
+  ([context coll]
+     (reduce (fn [_ [oname key]]
+               (write context oname key nil))
+             nil coll)))
+
+(defn named-vals
+  "Sink as values to named output, with name provided as `oname` or as first
+element of two-element tuples."
+  ([oname]
+     (fn [context coll]
+       (reduce (fn [_ val]
+                 (write context oname nil val))
+               nil coll)))
+  ([context coll]
+     (reduce (fn [_ [oname val]]
+               (write context oname nil val))
+             nil coll)))
+
+(defn prefix-keyvals
+  "Sink as key-val pairs to named output `oname`, with file prefix as first
+element of three-element tuples."
+  [oname]
+  (fn [context coll]
+    (reduce (fn [_ [base key val]]
+              (write context oname base key val))
+            nil coll)))
+
+(defn prefix-keys
+  "Sink as keys to named output `oname`, with file prefix as first element of
+two-element tuples."
+  [oname]
+  (fn [context coll]
+    (reduce (fn [_ [base key]]
+              (write context oname base key nil))
+            nil coll)))
+
+(defn prefix-vals
+  "Sink as values to named output `oname`, with file prefix as first element of
+two-element tuples."
+  [oname]
+  (fn [context coll]
+    (reduce (fn [_ [base val]]
+              (write context oname base nil val))
+            nil coll)))

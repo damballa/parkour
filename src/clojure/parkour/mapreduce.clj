@@ -57,9 +57,11 @@ are not already of the correct type then sinks them to `sink`."
   ([ckey cval sink] (snk/wrap-sink ckey cval sink)))
 
 (defn sink-as
-  "Return new tuple collection which has values sinked as `kind`, which may be
-one of `:keys`, `:vals`, or `:keyvals`."
-  [kind sink] (vary-meta sink assoc ::snk/sink-as kind))
+  "Annotate `coll` as containing values to sink as `kind`.  The `kind` may
+either be a sinking function of two arguments (a sink and a collection) or a
+keyword indicating a built-in sinking function.  Supported keywords are `:none`,
+`:keys`, `:vals`, and `:keyvals`."
+  [kind coll] (vary-meta coll assoc ::snk/sink-as kind))
 
 (defn sink
   "Emit all tuples from `coll` to `sink`."
