@@ -154,8 +154,9 @@ which will be applied as metadata to the following function."
   [nodes & fs]
   (if-not (every? (comp #{:source} stage) nodes)
     (throw (ex-info "Cannot merge non-`:source` nodes." {:nodes nodes}))
-    (assoc (source (mapv :source nodes))
-      :requires (into [] (mapcat :requires nodes)))))
+    (let [node (assoc (source (apply mux/dseq (map :source nodes)))
+                 :requires (into [] (mapcat :requires nodes)))]
+      (apply remote node fs))))
 
 (defmethod remote* :source
   ([node f] (assoc node :stage :map, :mapper (f-list f)))
