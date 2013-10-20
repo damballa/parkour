@@ -143,9 +143,9 @@ primitive-hinted as OOLL."
   (defmacro ^:private tac*
     [& args] `(new ~cname ~@args)))
 
-(defprotocol GetTaskAttemptID
+(defprotocol ^:private GetTaskAttemptID
   "Protocol for extracting a task attempt ID."
-  (taid [x] "Task attempt ID for `x`."))
+  (^:private taid [x] "Task attempt ID for `x`."))
 
 (extend-protocol GetTaskAttemptID
   TaskAttemptContext (taid [tac] (.getTaskAttemptID tac))
