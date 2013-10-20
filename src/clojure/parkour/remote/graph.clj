@@ -42,8 +42,7 @@ configuration `conf`."
 (defn task-remote
   [f]
   (fn [context]
-    (let [output (mr/wrap-sink context)]
-      (->> context w/unwrap (f context) (mr/sink output)))))
+    (->> context w/unwrap (f context) (mr/sink context))))
 
 (defmethod task-fn :default
   [conf fkey fs]

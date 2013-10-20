@@ -53,17 +53,17 @@ keys and values from the tuples in `context`."
 `sink`.  Where they are not compatible, the type of the `sink` will be used
 instead.  Returns a new tuple sink which wraps any sunk keys and values which
 are not already of the correct type then sinks them to `sink`."
-  ([sink] (snk/wrap-sink nil nil sink))
+  ([sink] (snk/wrap-sink sink))
   ([ckey cval sink] (snk/wrap-sink ckey cval sink)))
 
 (defn sink-as
   "Return new tuple collection which has values sinked as `kind`, which may be
 one of `:keys`, `:vals`, or `:keyvals`."
-  [kind sink] (vary-meta sink assoc ::snk/tuples-as kind))
+  [kind sink] (vary-meta sink assoc ::snk/sink-as kind))
 
 (defn sink
   "Emit all tuples from `coll` to `sink`."
-  [sink coll] (r/reduce (snk/emit-fn coll) sink coll))
+  [sink coll] ((snk/sink-fn coll) sink coll))
 
 (def ^:private job-factory-method?
   "True iff the `Job` class has a static factory method."

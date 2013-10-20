@@ -63,41 +63,64 @@ the original class."
 
 (defn wrap-sink
   "Backing implementation for `mr/wrap-sink`."
-  [ckey cval sink]
-  (let [conf (conf/ig sink), unwrapped (w/unwrap sink)
-        ckey (wrapper-class ckey (key-class sink))
-        wkey (w/new-instance conf ckey)
-        cval (wrapper-class cval (val-class sink))
-        wval (w/new-instance conf cval)]
-    (reify
-      Configurable
-      (getConf [_] conf)
+  ([sink] (wrap-sink nil nil sink))
+  ([ckey cval sink]
+     (let [conf (conf/ig sink), unwrapped (w/unwrap sink)
+           ckey (wrapper-class ckey (key-class sink))
+           wkey (w/new-instance conf ckey)
+           cval (wrapper-class cval (val-class sink))
+           wval (w/new-instance conf cval)]
+       (reify
+         Configurable
+         (getConf [_] conf)
 
-      w/Wrapper
-      (unwrap [_] unwrapped)
+         w/Wrapper
+         (unwrap [_] unwrapped)
 
-      TupleSink
-      (-key-class [_] ckey)
-      (-val-class [_] cval)
-      (-emit-keyval [_ key val]
-        (let [key (if (instance? ckey key) key (w/rewrap wkey key))
-              val (if (instance? cval val) val (w/rewrap wval val))]
-          (-emit-keyval sink key val)))
+         TupleSink
+         (-key-class [_] ckey)
+         (-val-class [_] cval)
+         (-emit-keyval [_ key val]
+           (let [key (if (instance? ckey key) key (w/rewrap wkey key))
+                 val (if (instance? cval val) val (w/rewrap wval val))]
+             (-emit-keyval sink key val)))
 
-      IFn
-      (invoke [sink keyval] (emit-keyval sink keyval))
-      (invoke [sink key val] (emit-keyval sink key val))
-      (applyTo [sink args]
-        (case (count args)
-          1 (let [[keyval] args] (emit-keyval sink keyval))
-          2 (let [[key val] args] (emit-keyval sink key val)))))))
+         IFn
+         (invoke [sink keyval] (emit-keyval sink keyval))
+         (invoke [sink key val] (emit-keyval sink key val))
+         (applyTo [sink args]
+           (case (count args)
+             1 (let [[keyval] args] (emit-keyval sink keyval))
+             2 (let [[key val] args] (emit-keyval sink key val))))))))
 
-(def emit-fn*
-  "Map from sink-type keyword to tuple-emitting function."
-  {:keyvals emit-keyval,
-   :keys emit-key,
-   :vals emit-val})
+(defn ^:private sink-none
+  "Sinking function for emitting no results."
+  [sink coll] (cc/reduce (fn [_ _]) nil coll))
 
-(defn emit-fn
+(defn ^:private sink-emit-raw
+  "Sinking function for basic tuple-emitting function `emit`."
+  [emit] (fn [sink coll] (cc/reduce emit sink coll)))
+
+(defn ^:private sink-emit-wrapped
+  "Sinking function for wrapping a sink then emitting via function `emit`."
+  [emit] (fn [sink coll] (cc/reduce emit (wrap-sink sink) coll)))
+
+(def ^:private sink-fn*
+  "Map from sink-type keyword to sinking function."
+  {:none sink-none
+   :keyvals (sink-emit-wrapped emit-keyval),
+   :keys (sink-emit-wrapped emit-key),
+   :vals (sink-emit-wrapped emit-val),
+   :keyvals-raw (sink-emit-raw emit-keyval),
+   :keys-raw (sink-emit-raw emit-key),
+   :vals-raw (sink-emit-raw emit-val),
+   })
+
+(defn sink-fn
   "Tuple-emitting function for `coll`."
-  [coll] (-> (meta coll) (get ::tuples-as :keyvals) emit-fn*))
+  [coll]
+  (let [f (-> coll meta (get ::sink-as :keyvals))
+        f (get sink-fn* f f)]
+    (returning f
+      (when (keyword? f)
+        (throw (ex-info (str "Unknown built-in sink `:" f "`") {:f f}))))))
