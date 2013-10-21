@@ -2,8 +2,12 @@
   {:private true}
   (:require [clojure.string :as str]
             [clojure.edn :as edn]
-            [parkour (conf :as conf) (fs :as fs)]
+            [parkour (conf :as conf)]
             [parkour.util :refer [doto-let]]))
+
+(defn ^:private require-readers
+  "Require the namespaces of all `*data-readers*` vars."
+  [] (doseq [[_ v] *data-readers*] (-> v .-ns ns-name require)))
 
 (defn ^:private step-f-args
   ([conf key]
@@ -11,8 +15,9 @@
            [ns sym] (str/split fqname #"/" 2)
            ns (symbol (if-not (.startsWith ^String ns "#'") ns (subs ns 2)))
            f (do (require ns) (ns-resolve ns (symbol sym)))
-           args (some->> (conf/get conf (str "parkour." key ".args"))
-                         (edn/read-string {:readers *data-readers*}))]
+           args (do (require-readers)
+                    (some->> (conf/get conf (str "parkour." key ".args"))
+                             (edn/read-string {:readers *data-readers*})))]
        [f args]))
   ([conf kind id]
      (step-f-args conf (str kind "." id))))
