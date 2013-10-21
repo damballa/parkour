@@ -1,24 +1,3 @@
-* Multiple job outputs
-
-** Redo sinking interface to support multisinking
-
-Use functions instead of keywords.  Function should inject the actual
-reduce, allowing wrapping the entire reduce in opening a multiple
-outputs object.
-
-*** Allow chaining of sourcing and sinking functions
-
-Task functions which call =sink-as= (or equivalent) should be able to
-feed directly into functions which call =keys= / =vals= / =keyvals=.
-
-** Extend graph interface to support multisinking
-
-Sinking should immediately produce new =:source= nodes.  Multi-sinking
-should produce a vector of source nodes.  Or a map?  Need to decide if
-multi-sinking should be through same existing =sink= function
-accepting either single sink or name-sink pairs, or have separate
-=sink-multi= function.
-
 * Local sinking support
 
 As per =parkour.inspect= / =parkour.graph.dseq=.
@@ -33,6 +12,5 @@ As per =parkour.inspect= / =parkour.graph.dseq=.
 
 * Logging
 
-- Job launching & completion
 - Splits being processed by individual tasks
 - Probably other logging?
