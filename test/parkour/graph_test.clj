@@ -91,12 +91,15 @@
                (mra/dsink [output-schema] outpath)]
         [result] (pg/execute (conf/ig) #'trivial-join [] largs)]
     (is (= [[0 "foo" "blue"]
-            [0 "foo" "red"]
             [0 "foo" "green"]
+            [0 "foo" "red"]
             [1 "bar" "blue"]
-            [2 "baz" "red"]
-            [2 "baz" "green"]]
-           (into [] (r/map (comp w/unwrap first) result))))))
+            [2 "baz" "green"]
+            [2 "baz" "red"]]
+           (->> result
+                (r/map (comp w/unwrap first))
+                (into [])
+                sort)))))
 
 (defn multiple-outputs
   [[] [dseq even odd]]

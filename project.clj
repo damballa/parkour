@@ -17,7 +17,8 @@
                                          "default,hadoop-1-0-3:"
                                          "default,hadoop-1-2-1:"
                                          "default,hadoop-cdh3:"
-                                         "default,hadoop-cdh4")
+                                         "default,hadoop-cdh4:"
+                                         "default,hadoop-2-2-0")
                     ,              "test"]}
   :profiles {:provided {:dependencies
                         [[org.codehaus.jsr166-mirror/jsr166y "1.7.0"]
@@ -48,4 +49,10 @@
                             [org.apache.hadoop/hadoop-common "2.0.0-cdh4.1.2"]
                             [org.apache.avro/avro-mapred "1.7.5"
                              :classifier "hadoop1-cdh4"
-                             :exclusions [org.apache.avro/avro-ipc]]]}})
+                             :exclusions [org.apache.avro/avro-ipc]]]}
+             :hadoop-2-2-0 {:dependencies
+                            [[org.apache.hadoop/hadoop-client "2.2.0"]
+                             [org.apache.hadoop/hadoop-common "2.2.0"]
+                             [org.apache.avro/avro-mapred "1.7.5"
+                              :classifier "hadoop2"
+                              :exclusions [org.apache.avro/avro-ipc]]]}})

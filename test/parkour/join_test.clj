@@ -84,11 +84,12 @@
       (.delete outfs outpath true))
     (is (= true (run-join leftpath rightpath outpath)))
     (is (= [[0 "foo" "blue"]
-            [0 "foo" "red"]
             [0 "foo" "green"]
+            [0 "foo" "red"]
             [1 "bar" "blue"]
-            [2 "baz" "red"]
-            [2 "baz" "green"]]
+            [2 "baz" "green"]
+            [2 "baz" "red"]]
            (->> (mra/dseq [:default] outpath)
                 (r/map (comp w/unwrap first))
-                (into []))))))
+                (into [])
+                sort)))))
