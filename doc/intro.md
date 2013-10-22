@@ -112,3 +112,96 @@ builds the job graph.  Although this does require the graph-builder be a pure
 function, it also allows job task functions to be any Clojure function, without
 needing to create special “serializable functions” or tie all individual
 operations to vars.
+
+## Example
+
+Here’s the complete classic “word count” example written using Parkour:
+
+```clj
+(ns parkour.examples.word-count
+  (:require [clojure.string :as str]
+            [clojure.core.reducers :as r]
+            [parkour (conf :as conf) (mapreduce :as mr) (graph :as pg)]
+            [parkour.io (text :as text)])
+  (:import [org.apache.hadoop.io Text LongWritable]))
+
+(defn word-count
+  [[] [dseq dsink]]
+  (-> (pg/source dseq)
+      (pg/remote
+       (fn [input]
+         (->> input mr/vals
+              (r/mapcat #(str/split % #"\s+"))
+              (r/map #(-> [% 1])))))
+      (pg/partition [Text LongWritable])
+      (pg/remote
+       (fn [input]
+         (->> input mr/keyvalgroups
+              (r/map (fn [[word counts]]
+                       [word (r/reduce + 0 counts)])))))
+      (pg/sink dsink)))
+
+(defn -main
+  [& args]
+  (let [[inpath outpath] args
+        input (text/dseq inpath)
+        output (text/dsink outpath)]
+    (pg/execute (conf/ig) #'word-count [] [input output])))
+```
+
+Let’s walk through some important features of this example.
+
+### Task functions
+
+The remote task functions (the arguments to the `remote` calls) have complete
+control over execution of their associated tasks.  In the default Hadoop Java
+interface, Hadoop calls a user-supplied method for each input tuple.  Parkour by
+default instead calls the user-supplied task function with the entire set of
+input tuples as a single reducible collection, and expects a reducible
+collection as the result.
+
+The input collections are directly reducible as vectors of key/value pairs, but
+the `parkour.mapreduce` namespace contains functions to efficiently reshape the
+task-inputs, including `vals` to access just the input values and (reduce-side
+only) `keyvalgroups` to access grouping keys and grouped sub-collections of
+values.
+
+Parkour also defaults to emitting the result collection as key/value pairs, but
+`pakour.mapreduce` contains a `sink-as` function for specifying alternative
+shapes for task output.
+
+### Automatic wrapping & unwrapping
+
+Hadoop jobs generally do not act directly on values, instead using instances of
+wrapper types — such as `Writable`s – which implement their own serialization
+and/or are tied to a serialization method registered with the Hadoop
+serialization framework.  Parkour by default automatically handles unwrapping
+any input objects and re-wrapping any output objects which are not compatible
+with the configured task output type.  The example job use the `Writable` `Text`
+and `LongWritable` types, but the task code deals entirely with native string
+and integers.
+
+### Remote and local-only arguments
+
+Not everything is serializable, and it is frequently useful to use
+non-serializable values (such as configuration steps) when constructing the job
+graph.  The `parkour.graph` API supports this by accepting two separate argument
+vectors in the `execute` function, and passing them as separate vectors to the
+user-provided graph-building var.
+
+Parkour EDN-serializes the first vector into the job configuration, and passes
+those same arguments to each remote invocation of the graph-building function.
+This gives task functions easy access to job parameters etc.  Parkour only
+passes the second vector when it calls the graph-builder locally to assemble the
+set of jobs to execute.  Remote tasks will receive `nils`.
+
+This remote/local separation makes graph-building more flexible, but you must be
+careful to ensure that local-only arguments do not affect the shape of the
+constructed graph or the execution of task functions.  If the local and remote
+job graphs will not match, task execution will not work correctly.
+
+### Results
+
+Although not shown in this example, the return value of the `execute` function
+is a vector of dseqs for the graph tail node results.  These dseqs may be
+consumed locally, or passed as inputs to additional job graphs.
