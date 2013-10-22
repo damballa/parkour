@@ -252,7 +252,7 @@ the classes `ckey` and `cval` respectively."
   [node dsink]
   (-> node (config map-only) (assoc :stage reduce) (sink dsink)))
 
-(defmethod sink :reduce
+(defmethod sink :default
   [node dsink]
   (let [dsink (dsink/dsink dsink), dseq (dseq/dseq dsink),
         node (sink* node dsink)]
@@ -272,7 +272,7 @@ sunk outputs."
   (apply sink-multi (-> node (config map-only) (assoc :stage reduce))
          ,          named-dsinks))
 
-(defmethod sink-multi :reduce
+(defmethod sink-multi :default
   [node & named-dsinks]
   (let [dsink (apply dux/dsink named-dsinks)
         dseqs (map (comp dseq/dseq second) (cc/partition 2 named-dsinks))
