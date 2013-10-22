@@ -31,8 +31,10 @@ parameters and values; a vector of other steps; or anything implementing the
   (fn [^Job job]
     (doto job
       (.setJobName jname)
-      (conf/set! "mapreduce.task.classpath.user.precedence" true)
-      (.setJarByClass parkour.hadoop.Mappers))))
+      (.setJarByClass parkour.hadoop.Mappers)
+      (conf/assoc! #_job
+        "mapreduce.task.classpath.user.precedence" true
+        "avro.serialization.data.model" "abracad.avro.ClojureData"))))
 
 (defn step-map
   "Map of job configuration keys and values implemented by `step`."
