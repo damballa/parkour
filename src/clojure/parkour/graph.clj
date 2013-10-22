@@ -319,7 +319,8 @@ of the distributed sequences produced by the job graph leaves."
      (execute conf uvar rargs []))
   ([conf uvar rargs largs]
      (let [[nodes tails] (pgc/job-graph uvar rargs largs)
-           job-name (partial job-name (var-str uvar) (count nodes))
+           njobs (- (count nodes) (count tails))
+           job-name (partial job-name (var-str uvar) njobs)
            graph (->> nodes
                       (r/map (fn [{:keys [jid requires], :as node}]
                                (let [f (job-fn node conf (job-name jid))]
