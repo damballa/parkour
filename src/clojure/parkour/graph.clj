@@ -113,8 +113,10 @@ values.  Return sequence of values."
               , [values (assoc md kw x) nil]
               (keyword? x)
               , [values md x]
+              (seq md)
+              , [(conj values (vary-meta x merge md)) {} nil]
               :else
-              , [(conj values (vary-meta x merge md)) {} nil]))
+              , [(conj values x) {} nil]))
            [[] {} nil] coll)))
 
 (let [id (atom 0)]
