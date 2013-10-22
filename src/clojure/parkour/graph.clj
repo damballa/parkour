@@ -11,7 +11,8 @@
             [parkour.io (mux :as mux) (dux :as dux)]
             [parkour.util
              :refer [ignore-errors returning var-str mpartial mcomp]])
-  (:import [org.apache.hadoop.mapreduce Job]
+  (:import [java.util.concurrent ExecutionException]
+           [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.partition HashPartitioner]))
 
 (defn ^:private graph-future
@@ -53,7 +54,16 @@ entries for the keys in the collection `outputs`."
   [graph outputs]
   (let [graph (assoc graph ::output [outputs vector])
         [_ outputs] (run-parallel* graph {} ::output)]
-    (deref outputs)))
+    (try
+      (deref outputs)
+      (catch ExecutionException e
+        (throw
+         (loop [^Throwable e e]
+           (let [e' (.getCause e)]
+             (cond
+              (nil? e') e
+              (not (instance? ExecutionException e')) e'
+              :else (recur e')))))))))
 
 (declare node-config)
 
