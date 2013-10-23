@@ -3,7 +3,8 @@
   (:require [clojure.string :as str]
             [clojure.reflect :as reflect]
             [parkour.util :refer [returning]])
-  (:import [java.util List Map Set]
+  (:import [java.io Writer]
+           [java.util List Map Set]
            [org.apache.hadoop.conf Configuration Configurable]
            [org.apache.hadoop.mapreduce Job JobContext]))
 
@@ -144,15 +145,21 @@ the `body` expressions."
 
 (defn diff
   "Map of updates from `conf` to `conf'`."
-  [conf conf']
-  (let [conf (configuration conf), conf' (configuration conf')]
-    (reduce (fn [diff key]
-              (let [val (get conf key), val' (get conf' key)]
-                (if (= val val')
-                  diff
-                  (assoc diff key val'))))
-            {} (distinct (mapcat keys [conf conf'])))))
+  ([conf'] (diff *default* conf'))
+  ([conf conf']
+     (let [conf (configuration conf), conf' (configuration conf')]
+       (reduce (fn [diff key]
+                 (let [val (get conf key), val' (get conf' key)]
+                   (if (= val val')
+                     diff
+                     (assoc diff key val'))))
+               {} (distinct (mapcat keys [conf conf']))))))
 
 (defn copy!
   "Copy all configuration from `conf'` to `conf`."
   [conf conf'] (merge! conf (diff conf conf')))
+
+(defmethod print-method Configuration
+  [conf ^Writer w]
+  (.write w "#hadoop.conf/configuration ")
+  (print-method (diff conf) w))

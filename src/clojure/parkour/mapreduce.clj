@@ -8,12 +8,8 @@
             [parkour (conf :as conf) (wrapper :as w) (reducers :as pr)]
             [parkour.mapreduce (source :as src) (sink :as snk)]
             [parkour.util :refer [returning ignore-errors]])
-  (:import [java.util Comparator]
-           [clojure.lang IPersistentCollection Indexed Seqable]
-           [org.apache.hadoop.conf Configuration Configurable]
-           [org.apache.hadoop.io NullWritable]
-           [org.apache.hadoop.mapred JobConf]
-           [org.apache.hadoop.mapreduce Job MapContext ReduceContext]
+  (:import [java.io Writer]
+           [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce TaskAttemptContext TaskAttemptID]))
 
 (defn keys
@@ -82,6 +78,11 @@ mechanism."
   {:tag `Job}
   ([] (make-job (conf/ig)))
   ([conf] (make-job (conf/clone conf))))
+
+(defmethod print-method Job
+  [job ^Writer w]
+  (.write w "#hadoop.mapreduce/job ")
+  (print-method (conf/diff job) w))
 
 (defn mapper!
   "Allocate and return a new parkour mapper class for `job` as invoking `var`.
