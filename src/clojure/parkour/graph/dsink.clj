@@ -26,3 +26,7 @@ is not provided, and `step` is not already a distributed sink, the resulting
 sink produces the `nil` dseq."
   ([step] (if (dsink? step) step (dsink nil step)))
   ([dseq step] (DSink. dseq step)))
+
+(defn dsink-dseq
+  "Force `step` to a dsink, the return its corresponding dseq"
+  [step] (-> step dsink dseq/dseq))

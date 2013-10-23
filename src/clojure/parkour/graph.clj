@@ -1,17 +1,17 @@
 (ns parkour.graph
-  (:refer-clojure :exclude [partition shuffle])
+  (:refer-clojure :exclude [map partition shuffle reduce])
   (:require [clojure.core :as cc]
             [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
             [clojure.tools.logging :as log]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
                      (reducers :as pr) (wrapper :as w)]
-            [parkour.graph (tasks :as pgt) (common :as pgc) (cstep :as cstep)
-                           (dseq :as dseq) (dsink :as dsink)]
+            [parkour.graph (cstep :as cstep) (dseq :as dseq) (dsink :as dsink)]
             [parkour.io (mux :as mux) (dux :as dux)]
             [parkour.util
-             :refer [ignore-errors returning var-str mpartial mcomp]])
+             :refer [ignore-errors returning var-str mpartial mcomp map-vals]])
   (:import [java.util.concurrent ExecutionException]
+           [clojure.lang Var]
            [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.partition HashPartitioner]))
 
@@ -21,10 +21,10 @@
   [f inputs]
   (future
     (try
-      (apply f (map deref inputs))
+      (apply f (cc/map deref inputs))
       (catch Throwable t
         (ignore-errors
-          (->> inputs (map future-cancel) dorun))
+          (->> inputs (cc/map future-cancel) dorun))
         (throw t)))))
 
 (defn ^:private run-parallel*
@@ -36,11 +36,11 @@ the desired result.  Returns a tuple of updated `(results, result)`."
     [results result]
     (let [[inputs f] (graph output)]
       (let [[results inputs]
-            , (reduce (fn [[results inputs] input]
-                        (let [[results input]
-                              , (run-parallel* graph results input)]
-                          [results (conj inputs input)]))
-                      [results []] inputs)
+            , (cc/reduce (fn [[results inputs] input]
+                           (let [[results input]
+                                 , (run-parallel* graph results input)]
+                             [results (conj inputs input)]))
+                         [results []] inputs)
             result (graph-future f inputs)
             results (assoc results output result)]
         [results result]))))
@@ -65,68 +65,23 @@ entries for the keys in the collection `outputs`."
               (not (instance? ExecutionException e')) e'
               :else (recur e')))))))))
 
-(declare node-config)
+(defn ^:private stage
+  "The job stage of job node `node`."
+  [node & args]
+  (cond
+   (vector? node) ::vector
+   (map? node) (:stage node)
+   :else (throw (ex-info "Invalid `node`" {:node node}))))
 
-(defn ^:private subnode-config
-  "Configure `job` for `subnode` of `node`."
-  [^Job job node subnode]
-  (let [node (select-keys node [:uvar :rargs :jid])
-        subnode (merge node subnode)
-        subconf (node-config (mr/job job) subnode)]
-    (mux/add-subconf job subconf)))
-
-(defn ^:private subnodes-config
-  "Configure `job` for all `subnodes` of `node`."
-  [^Job job node subnodes]
-  (reduce (mpartial subnode-config node) job subnodes))
-
-(defn ^:private node-config
-  "Configure `job` according to the state of a job graph node `node`."
-  [^Job job node]
-  (doto job
-    (cstep/apply! (:source node))
-    (subnodes-config node (:subnodes node))
-    (pgt/mapper! node)
-    (pgt/combiner! node)
-    (pgt/partitioner! node)
-    (pgt/reducer! node)
-    (cstep/apply! (:config node))
-    (cstep/apply! (:sink node))))
-
-(def ^:private stage
-  "The job stage of job graph node `node`."
-  (fn [node & args]
-    (cond
-     (vector? node) ::vector
-     (map? node) (:stage node)
-     :else (throw (ex-info "Invalid `node`" {:node node})))))
-
-(defn ^:private apply-meta
-  "Parse `coll` as sequences of keyword-value pairs interspersed with individual
-values.  Apply keyword-value pairs as metadata to their subsequent individual
-values.  Return sequence of values."
-  [coll]
-  (first
-   (reduce (fn [[values md kw] x]
-             (cond
-              kw
-              , [values (assoc md kw x) nil]
-              (keyword? x)
-              , [values md x]
-              (seq md)
-              , [(conj values (vary-meta x merge md)) {} nil]
-              :else
-              , [(conj values x) {} nil]))
-           [[] {} nil] coll)))
+(defn ^:private error
+  [verb node]
+  (let [msg (str "Cannot `" verb "` from stage `" (stage node) "`.")]
+    (throw (ex-info msg {:node node}))))
 
 (let [id (atom 0)]
   (defn ^:private gen-id
     "Return application-unique source/sink ID."
     [] (swap! id inc)))
-
-(defn ^:private f-list
-  "If `f` is a class, return it.  Else return list containing `f`."
-  [f] (if (class? f) f (list f)))
 
 (defn source
   "Return a fresh `:source`-stage job graph node consuming from the
@@ -134,67 +89,72 @@ provided `dseq`."
   [dseq]
   {:stage :source,
    :source-id (gen-id),
-   :source (dseq/dseq dseq),
-   :config [],
+   :config [(dseq/dseq dseq)],
+   :requires [],
    })
 
 (defn config
-  "Add arbitrary configuration steps to job graph node `node`."
-  [node & steps] (assoc node :config (into (:config node []) steps)))
+  "Add arbitrary configuration steps to `node`, which may be either a single job
+node or a vector of job nodes."
+  [node & steps]
+  (if (identical? ::vector (stage node))
+    (mapv #(apply config % steps) node)
+    (assoc node :config (-> node :config (into steps)))))
 
-(def ^:private remote* nil)
-(defmulti ^:private remote*
-  "Internal dispatch multimethod for `remote` implementations."
-  {:arglists '([node f] [node f g])}
+(def ^:private remote-config nil)
+(defmulti ^:private remote-config
+  "Return config step for allocating remote task classes."
+  {:arglists '([alloc set-class cls] [alloc set-class uvar & args])}
+  (fn [alloc set-class cls-var & args] (type cls-var)))
+
+(defmethod remote-config Class
+  [alloc set-class cls] (mpartial set-class cls))
+
+(defmethod remote-config Var
+  [alloc set-class uvar & args]
+  (fn [job] (set-class job (apply alloc job uvar args))))
+
+(defmethod remote-config :default
+  [_ _ task & args]
+  (let [msg (str "Invalid task implementation `" task `";"
+                 " tasks may only be implemented by classes or vars.")]
+   (throw (ex-info msg {:task task}))))
+
+(defmacro ^:private defremotes
+  [& args]
+  `(do ~@(cc/map (fn [[name alloc set-class]]
+                   `(def ~(vary-meta name assoc :private true)
+                      (partial remote-config ~alloc ~set-class)))
+                 (cc/partition 3 args))))
+
+(defremotes
+  mapper-config mr/mapper! mr/set-mapper
+  combiner-config mr/combiner! mr/set-combiner
+  reducer-config mr/reducer! mr/set-reducer
+  partitioner-config mr/partitioner! mr/set-partitioner)
+
+(def map nil)
+(defmulti map
+  "Add map task to job node `node`, as implemented by `Mapper` class `cls`, or
+Clojure var `var` and optional `args`."
+  {:arglists '([node cls] [node var & args])}
   stage)
 
-(defn remote
-  "Create a new remote-execution task chained following the provided job graph
-`node` and implemented by function `f`.  When producing a `:map`-stage node, may
-provide a combiner function `g`, which will replace any existing job combiner
-function.  Functions may be preceded any number of `option` keyword-value pairs,
-which will be applied as metadata to the following function."
-  {:arglists '([node option* f] [node option* f option* g])}
-  [node & args] (apply remote* node (apply-meta args)))
+(defmethod map :default
+  [node & more] (error "map" node))
 
-(defmethod remote* :default
-  [node & fs]
-  (let [msg (str "Cannot chain `remote` from stage `" (stage node) "`.")]
-    (throw (ex-info msg {:node node}))))
-
-(defmethod remote* ::vector
-  [nodes & fs]
+(defmethod map ::vector
+  [nodes & more]
   (if-not (every? (comp #{:source} stage) nodes)
     (throw (ex-info "Cannot merge non-`:source` nodes." {:nodes nodes}))
-    (let [node (assoc (source (apply mux/dseq (map :source nodes)))
+    (let [node (assoc (source (apply mux/dseq (cc/map :config nodes)))
                  :requires (into [] (mapcat :requires nodes)))]
-      (apply remote node fs))))
+      (apply map node more))))
 
-(defmethod remote* :source
-  ([node f] (assoc node :stage :map, :mapper (f-list f)))
-  ([node f g] (assoc (remote node f) :combiner (f-list g))))
-
-(defmethod remote* :map
-  ([node f] (assoc node :mapper (cons f (:mapper node))))
-  ([node f g] (assoc (remote node f) :combiner (f-list g))))
-
-(def ^:private partition* nil)
-(defmulti ^:private partition*
-  "Internal dispatch multimethod for `partition` implementations."
-  {:arglists '([node classes f])}
-  stage)
-
-(defn partition
-  "Create new partition task chained following the provided job graph `node`, as
-configured by `step` and optionally implemented by `f`.  The `node` may be
-either a single job graph node or a vector of job graph nodes to co-group.  The
-`step` may be either a configuration step or a vector of the two map-output key
-& value classes.  The `f` partitioner may be a function or a `Partitioner`
-class.  If a function `f` is provided, it may be preceded by any number of
-`option` keyword-value pairs, which will be applied to it as metadata."
-  {:arglists '([node step] [node step option* f])}
-  ([node step] (partition* node step HashPartitioner))
-  ([node step & args] (apply partition* node step (apply-meta args))))
+(defmethod map :source
+  [node mapper & args]
+  (let [step (apply mapper-config mapper args)]
+    (-> node (config step) (assoc :stage :map))))
 
 (defn shuffle
   "Base shuffle configuration; sets map output key & value types to
@@ -211,121 +171,175 @@ the classes `ckey` and `cval` respectively."
        (= 2 (count classes))
        (every? class? classes)))
 
+(def ^:private partition* nil)
+(defmulti ^:private partition*
+  "Internal dispatch multimethod for `partition` implementations."
+  {:arglists '([node step] [node step cls] [node step var & args])}
+  stage)
+
+(defn partition
+  "Add partition task to the provided job node `node`, as configured by `step`
+and optionally implemented by either Partitioner class `cls` or Clojure var
+`var` & optional `args`.  The `node` may be either a single job node or a vector
+of job nodes to co-group.  The `step` may be either a configuration step or a
+vector of the two map-output key & value classes."
+  {:arglists '([node step] [node step cls] [node step var & args])}
+  ([node step] (partition* node step HashPartitioner))
+  ([node step & args] (apply partition* node step args)))
+
+(defmethod partition* :default
+  [node & more] (error "partition" node))
+
 (defmethod partition* ::vector
-  [nodes classes f]
+  [nodes classes cls-var & args]
   (if (= 1 (count nodes))
-    (partition (first nodes) classes f)
-    (-> {:stage :map,
-         :subnodes (vec (map-indexed #(assoc %2 :snid %1) nodes)),
-         :mapper parkour.hadoop.Mux$Mapper}
-        (partition classes f))))
+    (apply partition (first nodes) classes cls-var args)
+    (let [steps (mapv #(mpartial mux/add-substep (:config %)) nodes)
+          mapper (mapper-config parkour.hadoop.Mux$Mapper)
+          node {:stage :map,
+                :source-id (gen-id),
+                :config (conj steps mapper),
+                :requires (into [] (mapcat :requires nodes))}]
+      (apply partition node classes cls-var args))))
 
 (defmethod partition* :map
-  [node classes f]
-  (-> (assoc node :stage :partition, :partitioner f)
-      (config (if-not (shuffle-classes? classes)
+  [node classes cls-var & args]
+  (-> (assoc node :stage :partition)
+      (config (apply partitioner-config cls-var args)
+              (if-not (shuffle-classes? classes)
                 classes
                 (apply shuffle classes)))))
 
-(defmethod remote* :partition
-  [node f] (assoc node :stage :reduce, :reducer (f-list f)))
+(defn combine
+  "Add combine task to job node `node`, as implemented by `Reducer` class `cls`,
+or Clojure var `var` and optional `args`."
+  {:arglists '([node cls] [node var & args])}
+  [node cls-var & args]
+  (if-not (identical? :partition (stage node))
+    (error "combine" node)
+    (let [step (apply combiner-config cls-var args)]
+      (-> node (config step) (assoc :stage :combine)))))
 
-(defmethod remote* :reduce
-  [node f] (assoc node :reducer (cons f (:reducer node))))
+(defn reduce
+  "Add reduce task to job node `node`, as implemented by `Reducer` class `cls`,
+or Clojure var `var` and optional `args`."
+  {:arglists '([node cls] [node var & args])}
+  [node cls-var & args]
+  (if-not (#{:partition :combine} (stage node))
+    (error "reduce" node)
+    (let [step (apply reducer-config cls-var args)]
+      (-> node (config step) (assoc :stage :reduce)))))
 
-(defn ^:private sink*
-  "Chain sink task following job graph node `node`."
-  [node dsink] (assoc node :stage :sink, :sink dsink, :sink-id (gen-id)))
-
-(def sink nil)
-(defmulti sink
-  "Create a sink task chained following the job graph node `node` and sinking to
-`dsink`.  Yields a new `:source`-stage node reading from the sunk output."
-  {:arglists '([node dsink])}
-  stage)
+(defn ^:private re-source
+  [node dsink] (-> dsink dsink/dsink-dseq source (assoc :requires [node])))
 
 (defn ^:private map-only
   "Configuration step for map-only jobs."
   [^Job job] (.setNumReduceTasks job 0))
 
-(defmethod sink :map
+(defn ^:private sink*
+  "Chain sink task following job node `node`."
   [node dsink]
-  (-> node (config map-only) (assoc :stage reduce) (sink dsink)))
+  (if-not (map? node)
+    (error "sink" node)
+    (-> (assoc node :stage :sink, :sink-id (gen-id))
+        (cond-> (identical? :map (stage node)) (config map-only))
+        (config dsink))))
 
-(defmethod sink :default
-  [node dsink]
-  (let [dsink (dsink/dsink dsink), dseq (dseq/dseq dsink),
-        node (sink* node dsink)]
-    (assoc (source dseq) :requires [node])))
+(defn sink
+  "Add sinking to job node `node` for sinking to dsink `dsink` or named-output
+name-dsink pairs `named-dsinks`.  Yields either a new `:source`-stage node
+reading from the sunk output or a vector of such nodes."
+  {:arglists '([node dsink] [node & named-dsinks])}
+  ([node dsink]
+     (-> node (sink* dsink) (re-source dsink)))
+  ([node dsinks & rest]
+     (let [named-dsinks (cons dsinks rest),
+           dsinks (take-nth 2 (drop 1 named-dsinks)),
+           node (->> named-dsinks (apply hash-map) dux/dsink (sink* node))]
+       (mapv (partial re-source node) dsinks))))
 
-(def sink-multi nil)
-(defmulti sink-multi
-  "Create a sink task chained following the job graph node `node` and sinking to
-the provided `named-dsinks`, which should consist of alternating name/dsink
-pairs.  Yields a vector of new `:source`-stage nodes reading from each of the
-sunk outputs."
-  {:arglists '([node & named-dsinks])}
-  stage)
-
-(defmethod sink-multi :map
-  [node & named-dsinks]
-  (apply sink-multi (-> node (config map-only) (assoc :stage reduce))
-         ,          named-dsinks))
-
-(defmethod sink-multi :default
-  [node & named-dsinks]
-  (let [dsink (apply dux/dsink named-dsinks)
-        dseqs (map (comp dseq/dseq second) (cc/partition 2 named-dsinks))
-        node (sink* node dsink)]
-    (mapv #(assoc (source %) :requires [node]) dseqs)))
-
-(def ^:private job-fn nil)
-(defmulti ^:private job-fn
-  "Return job-execution function for provided `node`, with base Hadoop
-configuration `conf` and job name `jname`"
-  {:arglists '([node conf jname])}
-  stage)
-
-(defmethod job-fn :source
+(defn node-job
+  "Hadoop `Job` for job node `node`, starting with base configuration `conf`
+and named `jname`."
+  {:tag `Job}
   [node conf jname]
-  (constantly (:source node)))
+  (doto (mr/job conf)
+    (cstep/apply! (cstep/base jname))
+    (cstep/apply! (:config node))))
 
-(defmethod job-fn :default
+(defn node-fn
+  "Return a function for executing the job defined by the job node `node`, using
+base configuration `conf` and job name `jname`."
   [node conf jname]
-  (fn [& args]
-    (let [job (doto (mr/job conf)
-                (cstep/apply! (cstep/base jname))
-                (node-config node))]
-      (try
-        (returning true
-          (log/info "Launching job" jname)
-          (when-not (.waitForCompletion job false)
-            (throw (ex-info (str "Job " jname " failed.")
-                            {:jname jname, :job job, :node node})))
-          (log/info "Job" jname "completed successfully"))
-        (catch Throwable t
-          (ignore-errors (.killJob job))
-          (throw t))))))
+  (if (identical? :source (stage node))
+    (constantly (-> node :config first))
+    (fn [& args]
+      (let [job (node-job node conf jname)]
+        (try
+          (returning true
+            (log/info "Launching job" jname)
+            (when-not (.waitForCompletion job false)
+              (throw (ex-info (str "Job " jname " failed.")
+                              {:jname jname, :job job, :node node})))
+            (log/info "Job" jname "completed successfully"))
+          (catch Throwable t
+            (ignore-errors (.killJob job))
+            (throw t)))))))
+
+(defn ^:private node-id
+  "Application-unique node-identifier of node `node`."
+  [node]
+  (case (stage node)
+    :source (:source-id node)
+    :sink (:sink-id node)
+    #_else (error "node-id" node)))
+
+(defn ^:private flatten-graph*
+  [graph]
+  (let [tails (if (vector? graph) graph [graph])]
+    (->> (iterate (partial mapcat :requires) tails)
+         (take-while seq)
+         (apply concat)
+         (cc/reduce
+          (fn [[_ jids jobs :as state] node]
+            (let [nid (node-id node), jid (jids nid)]
+              (if jid
+                state
+                (let [jid (count jids), node (assoc node :jid jid)]
+                  [tails (assoc jids nid jid) (conj jobs node)]))))
+          [tails {} []]))))
+
+(defn ^:private flatten-graph
+  "Flatten job graph `graph` into a vector of job nodes annotated with vector
+positional job ID as `:jid` and by-ID dependencies as `:requires`.  Return tuple
+of the nodes-vector and a vector of the leaf-node job-IDs."
+  [graph]
+  (let [[tails jids jobs] (flatten-graph* graph)
+        jid->rjid (partial - (-> jids count dec))
+        rjids (comp jid->rjid jids), rjid (comp rjids node-id)]
+    [(mapv (fn [{:keys [jid requires], :or {requires []}, :as node}]
+             (let [jid (jid->rjid jid), requires (mapv rjid requires)]
+               (assoc node :jid jid :requires requires)))
+           (rseq jobs))
+     (mapv rjid tails)]))
 
 (defn ^:private job-name
   "Job name for `i`th job of `n` produced from var-name `base`."
   [base n i] (format "%s[%d/%d]" base (inc i) n))
 
 (defn execute
-  "Execute Hadoop jobs for the job graph produced by invoking the var `uvar`.
-Invokes `uvar` with the `rargs` vector of remote & local arguments and the
-`lvar` vector of local-only arguments (or the empty vector, if not provided).
-Jobs are configured starting with base configuration `conf`.  Returns a vector
-of the distributed sequences produced by the job graph leaves."
-  ([conf uvar rargs]
-     (execute conf uvar rargs []))
-  ([conf uvar rargs largs]
-     (let [[nodes tails] (pgc/job-graph uvar rargs largs)
-           njobs (- (count nodes) (count tails))
-           job-name (partial job-name (var-str uvar) njobs)
-           graph (->> nodes
-                      (r/map (fn [{:keys [jid requires], :as node}]
-                               (let [f (job-fn node conf (job-name jid))]
-                                 [jid [requires f]])))
-                      (into {}))]
-       (run-parallel graph tails))))
+  "Execute Hadoop jobs for the job graph `graph`, which should be a job graph
+leaf node or vector of leaf nodes.  Jobs are configured starting with base
+configuration `conf` and named based on the string `jname`.  Returns a vector of
+the distributed sequences produced by the job graph leaves."
+  [graph conf jname]
+  (let [[nodes tails] (flatten-graph graph)
+        njobs (- (count nodes) (count tails))
+        job-name (partial job-name jname njobs)
+        graph (->> nodes
+                   (r/map (fn [{:keys [jid requires], :as node}]
+                            (let [f (node-fn node conf (job-name jid))]
+                              [jid [requires f]])))
+                   (into {}))]
+    (run-parallel graph tails)))

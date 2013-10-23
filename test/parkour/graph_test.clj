@@ -10,29 +10,38 @@
             [parkour.util :refer [ignore-errors]])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
-(defn word-count
-  [[] [dseq dsink]]
-  (let [map-fn (fn [input]
-                 (->> input mr/vals
-                      (r/mapcat #(str/split % #"[ \t]+"))
-                      (r/map #(-> [% 1]))))
-        red-fn (fn [input]
-                 (->> input mr/keyvalgroups
-                      (r/map (fn [[word counts]]
-                               [word (r/reduce + 0 counts)]))))]
-    (-> (pg/source dseq)
-        (pg/remote map-fn red-fn)
-        (pg/partition [Text LongWritable])
-        (pg/remote red-fn)
-        (pg/sink dsink))))
+(defn word-count-mapper
+  [conf]
+  (fn [_ input]
+    (->> input mr/vals
+         (r/mapcat #(str/split % #"[ \t]+"))
+         (r/map #(-> [% 1])))))
 
-(deftest test-word-distinct
+(defn word-count-reducer
+  [conf]
+  (fn [_ input]
+    (->> input mr/keyvalgroups
+         (r/map (fn [[word counts]]
+                  [word (r/reduce + 0 counts)])))))
+
+(defn word-count
+  [conf dseq dsink]
+  (-> (pg/source dseq)
+      (pg/map #'word-count-mapper)
+      (pg/partition [Text LongWritable])
+      (pg/combine #'word-count-reducer)
+      (pg/reduce #'word-count-reducer)
+      (pg/sink dsink)
+      (pg/execute conf "word-count")))
+
+(deftest test-word-count
   (let [inpath (io/resource "word-count-input.txt")
         outpath (fs/path "tmp/word-distinct-output")
         outfs (fs/path-fs outpath)
         _ (.delete outfs outpath true)
-        largs [(text/dseq inpath) (seqf/dsink Text LongWritable outpath)]
-        [result] (pg/execute (conf/ig) #'word-count [] largs)]
+        dseq (text/dseq inpath)
+        dsink (seqf/dsink Text LongWritable outpath)
+        [result] (word-count (conf/ig) dseq dsink)]
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
            (into {} (r/map w/unwrap-all result))))))
 
@@ -55,31 +64,38 @@
             {:name "left", :type "string"}
             {:name "right", :type "string"}]})
 
+(defn trivial-join-mapper
+  [conf tag]
+  (fn [_ input]
+    (->> input mr/vals
+         (r/map (fn [line]
+                  (let [[key val] (str/split line #"\s")]
+                    [[(Long/parseLong key) tag] val]))))))
+
+(defn trivial-join-partitioner
+  [conf]
+  (fn ^long [[key] _ ^long nparts]
+    (-> key hash (mod nparts))))
+
+(defn trivial-join-reducer
+  [conf]
+  (fn [context input]
+    (->> input mr/keyvalgroups
+         (r/mapcat (fn [[[id] vals]]
+                     (let [vals (into [] vals)
+                           left (first vals)]
+                       (r/map #(-> [id left %]) (rest vals)))))
+         (mr/sink-as :keys))))
+
 (defn trivial-join
-  [[] [left right dsink]]
-  (let [map-fn (fn [tag input]
-                 (->> input mr/vals
-                      (r/map (fn [line]
-                               (let [[key val] (str/split line #"\s")]
-                                 [[(Long/parseLong key) tag] val])))))]
-    (-> [(-> (pg/source left) (pg/remote (partial map-fn 0)))
-         (-> (pg/source right) (pg/remote (partial map-fn 1)))]
-        (pg/partition
-         (mra/shuffle key-schema :string grouping-schema)
-         (fn ^long [[key] _ ^long nparts]
-           (-> key hash (mod nparts))))
-        (pg/remote
-         :hof true
-         :context true
-         (fn [conf]
-           (fn [context input]
-             (->> input mr/keyvalgroups
-                  (r/mapcat (fn [[[id] vals]]
-                              (let [vals (into [] vals)
-                                    left (first vals)]
-                                (r/map #(-> [id left %]) (rest vals)))))
-                  (mr/sink-as :keys)))))
-        (pg/sink dsink))))
+  [conf left right dsink]
+  (-> [(-> (pg/source left) (pg/map #'trivial-join-mapper 0))
+       (-> (pg/source right) (pg/map #'trivial-join-mapper 1))]
+      (pg/partition (mra/shuffle key-schema :string grouping-schema)
+                    #'trivial-join-partitioner)
+      (pg/reduce #'trivial-join-reducer)
+      (pg/sink dsink)
+      (pg/execute conf "trivial-join")))
 
 (deftest test-trivial-join
   (let [leftpath (io/resource "join-left.txt")
@@ -87,9 +103,9 @@
         outpath (fs/path "tmp/join-output")
         outfs (fs/path-fs outpath)
         _ (.delete outfs outpath true)
-        largs [(text/dseq leftpath) (text/dseq rightpath)
-               (mra/dsink [output-schema] outpath)]
-        [result] (pg/execute (conf/ig) #'trivial-join [] largs)]
+        left (text/dseq leftpath), right (text/dseq rightpath)
+        dsink (mra/dsink [output-schema] outpath)
+        [result] (trivial-join (conf/ig) left right dsink)]
     (is (= [[0 "foo" "blue"]
             [0 "foo" "green"]
             [0 "foo" "red"]
@@ -101,27 +117,32 @@
                 (into [])
                 sort)))))
 
+(defn multiple-outputs-mapper
+  [conf]
+  (fn [_ input]
+    (->> input mr/vals
+         (r/mapcat #(str/split % #"[ \t]+"))
+         (r/map #(-> [% 1])))))
+
+(defn multiple-outputs-reducer
+  [conf]
+  (fn [_ input]
+    (->> input mr/keyvalgroups
+         (r/map (fn [[word counts]]
+                  [word (r/reduce + 0 counts)]))
+         (r/map (fn [[word count]]
+                  (let [oname (if (even? count) :even :odd)]
+                    [oname word count])))
+         (mr/sink-as dux/named-keyvals))))
+
 (defn multiple-outputs
-  [[] [dseq even odd]]
+  [conf dseq even odd]
   (-> (pg/source dseq)
-      (pg/remote
-       (fn [input]
-         (->> input mr/vals
-              (r/mapcat #(str/split % #"[ \t]+"))
-              (r/map #(-> [% 1])))))
+      (pg/map #'multiple-outputs-mapper)
       (pg/partition [Text LongWritable])
-      (pg/remote
-       (fn [input]
-         (->> input mr/keyvalgroups
-              (r/map (fn [[word counts]]
-                       [word (r/reduce + 0 counts)]))
-              (r/map (fn [[word count]]
-                       (let [oname (if (even? count) :even :odd)]
-                         [oname word count])))
-              (mr/sink-as dux/named-keyvals))))
-      (pg/sink-multi
-       :even even
-       :odd odd)))
+      (pg/reduce #'multiple-outputs-reducer)
+      (pg/sink :even even, :odd odd)
+      (pg/execute conf "multiple-outputs")))
 
 (deftest test-multiple-outputs
   (let [inpath (io/resource "word-count-input.txt")
@@ -130,9 +151,9 @@
         oddpath (fs/path outpath "odd")
         outfs (fs/path-fs outpath)
         _ (.delete outfs outpath true)
-        largs [(text/dseq inpath)
-               (seqf/dsink Text LongWritable evenpath)
-               (seqf/dsink Text LongWritable oddpath)]
-        [even odd] (pg/execute (conf/ig) #'multiple-outputs [] largs)]
+        dseq (text/dseq inpath)
+        even (seqf/dsink Text LongWritable evenpath)
+        odd (seqf/dsink Text LongWritable oddpath)
+        [even odd] (multiple-outputs (conf/ig) dseq even odd)]
     (is (= {"banana" 2} (into {} (r/map w/unwrap-all even))))
     (is (= {"apple" 3, "carrot" 1} (into {} (r/map w/unwrap-all odd))))))

@@ -48,16 +48,14 @@ sub-configuration of `job`."
   (add-subconf job name (-> job dux-empty (cstep/apply! step))))
 
 (defn dsink
-  "Demultiplexing distributed sink, for other distributed sinks `named-dsinks`,
-which should consist of alternating name/dsink pairs.  The distributed sequence
-of the resulting sink is the multiplex distributed sequence of all component
-sinks' sequences."
-  [& named-dsinks]
-  (let [dsinks (partition 2 named-dsinks)]
-    (dsink/dsink
-     (apply mux/dseq (map (comp dseq/dseq second) dsinks))
-     (fn [^Job job]
-       (reduce (partial apply add-substep) job dsinks)))))
+  "Demultiplexing distributed sink, for other distributed sinks `dsinks`,
+a map of names to dsinks.  The distributed sequence of the resulting sink is the
+multiplex distributed sequence of all component sinks' sequences."
+  [dsinks]
+  (dsink/dsink
+   (apply mux/dseq (map dsink/dsink-dseq (vals dsinks)))
+   (fn [^Job job]
+     (reduce (partial apply add-substep) job dsinks))))
 
 (defn ^:private dux-state
   "Extract demultiplexing output state from `context`."

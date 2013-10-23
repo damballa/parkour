@@ -5,25 +5,32 @@
             [parkour.io (text :as text)])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
+(defn mapper
+  [conf]
+  (fn [_ input]
+    (->> (mr/vals input)
+         (r/mapcat #(str/split % #"\s+"))
+         (r/map #(-> [% 1])))))
+
+(defn reducer
+  [conf]
+  (fn [_ input]
+    (->> (mr/keyvalgroups input)
+         (r/map (fn [[word counts]]
+                  [word (r/reduce + 0 counts)])))))
+
 (defn word-count
-  [[] [dseq dsink]]
+  [conf dseq dsink]
   (-> (pg/source dseq)
-      (pg/remote
-       (fn [input]
-         (->> input mr/vals
-              (r/mapcat #(str/split % #"\s+"))
-              (r/map #(-> [% 1])))))
+      (pg/map #'mapper)
       (pg/partition [Text LongWritable])
-      (pg/remote
-       (fn [input]
-         (->> input mr/keyvalgroups
-              (r/map (fn [[word counts]]
-                       [word (r/reduce + 0 counts)])))))
-      (pg/sink dsink)))
+      (pg/reduce #'reducer)
+      (pg/sink dsink)
+      (pg/execute (conf/ig) "word-count")))
 
 (defn -main
   [& args]
   (let [[inpath outpath] args
         input (text/dseq inpath)
         output (text/dsink outpath)]
-    (pg/execute (conf/ig) #'word-count [] [input output])))
+    (word-count (conf/ig) input output)))

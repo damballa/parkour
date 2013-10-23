@@ -136,6 +136,22 @@ primitive-hinted as OOLL."
     "parkour.partitioner.args" (pr-str args))
   parkour.hadoop.Partitioner)
 
+(defn set-mapper
+  "Set the mapper class for `job` to `cls`."
+  [^Job job cls] (.setMapperClass job cls))
+
+(defn set-combiner
+  "Set the combiner class for `job` to `cls`."
+  [^Job job cls] (.setCombinerClass job cls))
+
+(defn set-reducer
+  "Set the reducer class for `job` to `cls`."
+  [^Job job cls] (.setReducerClass job cls))
+
+(defn set-partitioner
+  "Set the partitioner class for `job` to `cls`."
+  [^Job job cls] (.setPartitionerClass job cls))
+
 (let [cfn (fn [c] (Class/forName (str "org.apache.hadoop.mapreduce." c)))
       klass (or (ignore-errors (cfn "task.TaskAttemptContextImpl"))
                 (ignore-errors (cfn "TaskAttemptContext")))
