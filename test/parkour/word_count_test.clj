@@ -16,18 +16,16 @@
 
 (defn wc-mapper
   [conf]
-  (mra/task
-   (fn [input]
-     (->> (mr/vals input)
-          (r/mapcat #(str/split % #"\s"))
-          (r/map #(-> [% 1]))))))
+  (fn [_ input]
+    (->> (mr/vals input)
+         (r/mapcat #(str/split % #"\s"))
+         (r/map #(-> [% 1])))))
 
 (defn wc-reducer
   [conf]
-  (mra/task
-   (fn [input]
-     (->> (mr/keyvalgroups input)
-          (r/map (pr/mjuxt identity (partial r/reduce +)))))))
+  (fn [_ input]
+    (->> (mr/keyvalgroups input)
+         (r/map (pr/mjuxt identity (partial r/reduce +))))))
 
 (defn run-word-count
   [inpath outpath]
@@ -57,18 +55,16 @@
 
 (defn wd-mapper
   [conf]
-  (mra/task
-   (fn [input]
-     (->> (mr/vals input)
-          (r/mapcat #(str/split % #"\s"))
-          (mr/sink-as :keys)))))
+  (fn [_ input]
+    (->> (mr/vals input)
+         (r/mapcat #(str/split % #"\s"))
+         (mr/sink-as :keys))))
 
 (defn wd-reducer
   [conf]
-  (mra/task
-   (fn [input]
-     (->> (mr/keygroups input)
-          (mr/sink-as :keys)))))
+  (fn [_ input]
+    (->> (mr/keygroups input)
+         (mr/sink-as :keys))))
 
 (defn run-word-distinct
   [inpath outpath]

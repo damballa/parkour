@@ -16,12 +16,11 @@
 
 (defn mapper
   [conf tag]
-  (mra/task
-   (fn [input]
-     (->> (mr/vals input)
-          (r/map (fn [line]
-                   (let [[key val] (str/split line #"\s")]
-                     [[(Long/parseLong key) tag] val])))))))
+  (fn [_ input]
+    (->> (mr/vals input)
+         (r/map (fn [line]
+                  (let [[key val] (str/split line #"\s")]
+                    [[(Long/parseLong key) tag] val]))))))
 
 (defn partitioner
   [conf]
@@ -30,16 +29,15 @@
 
 (defn reducer
   [conf]
-  (mra/task
-   (fn [input]
-     (->> (mr/keykeyvalgroups input)
-          (r/mapcat (fn [[[id] keyvals]]
-                      (let [kv-tag (comp second first), kv-val second
-                            vals (pr/group-by+ kv-tag kv-val keyvals)
-                            left (get vals 0), right (get vals 1)]
-                        (for [left left, right right]
-                          [id left right]))))
-          (mr/sink-as :keys)))))
+  (fn [_ input]
+    (->> (mr/keykeyvalgroups input)
+         (r/mapcat (fn [[[id] keyvals]]
+                     (let [kv-tag (comp second first), kv-val second
+                           vals (pr/group-by+ kv-tag kv-val keyvals)
+                           left (get vals 0), right (get vals 1)]
+                       (for [left left, right right]
+                         [id left right]))))
+         (mr/sink-as :keys))))
 
 (defn run-join
   [leftpath rightpath outpath]
@@ -67,6 +65,7 @@
                          :fields [{:name "id", :type "long"}
                                   {:name "tag", :type "long"
                                    :order "ignore"}]})
+      (.setPartitionerClass (mr/partitioner! job #'partitioner))
       (.setReducerClass (mr/reducer! job #'reducer))
       (mra/set-output {:name "output", :type "record",
                        :abracad.reader "vector"
