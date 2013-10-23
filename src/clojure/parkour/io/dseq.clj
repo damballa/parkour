@@ -1,9 +1,8 @@
-(ns parkour.graph.dseq
+(ns parkour.io.dseq
   (:require [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
-            [parkour.conf :as conf]
-            [parkour.graph.cstep :as cstep]
-            [parkour.graph.dseq (mapred :as mr1) (mapreduce :as mr2)]
+            [parkour (conf :as conf) (cstep :as cstep)]
+            [parkour.io.dseq (mapred :as mr1) (mapreduce :as mr2)]
             [parkour.util :refer [ignore-errors]])
   (:import [java.io Writer]))
 

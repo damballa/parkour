@@ -1,4 +1,4 @@
-(ns parkour.graph.dseq.mapreduce
+(ns parkour.io.dseq.mapreduce
   {:private true}
   (:require [clojure.core.protocols :as ccp]
             [parkour (mapreduce :as mr) (wrapper :as w)]

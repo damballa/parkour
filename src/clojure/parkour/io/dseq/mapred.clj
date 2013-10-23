@@ -1,4 +1,4 @@
-(ns parkour.graph.dseq.mapred
+(ns parkour.io.dseq.mapred
   {:private true}
   (:require [clojure.core.protocols :as ccp]
             [parkour (conf :as conf) (wrapper :as w)]

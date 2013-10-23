@@ -6,8 +6,7 @@
             [abracad.avro :as avro]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr) (reducers :as pr)]
-            [parkour.io (avro :as mra) (mux :as mux)]
-            [parkour.graph.dseq :as dseq]
+            [parkour.io (dseq :as dseq) (mux :as mux) (avro :as mra)]
             [parkour.util :refer [returning]])
   (:import [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.input TextInputFormat]

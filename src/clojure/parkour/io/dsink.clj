@@ -1,5 +1,6 @@
-(ns parkour.graph.dsink
-  (:require [parkour.graph (cstep :as cstep) (dseq :as dseq)]
+(ns parkour.io.dsink
+  (:require [parkour (cstep :as cstep)]
+            [parkour.io (dseq :as dseq)]
             [parkour.util :refer [ignore-errors]])
   (:import [java.io Writer]))
 

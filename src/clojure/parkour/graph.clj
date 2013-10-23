@@ -4,10 +4,10 @@
             [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
             [clojure.tools.logging :as log]
-            [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
-                     (reducers :as pr) (wrapper :as w)]
-            [parkour.graph (cstep :as cstep) (dseq :as dseq) (dsink :as dsink)]
-            [parkour.io (mux :as mux) (dux :as dux)]
+            [parkour (conf :as conf) (fs :as fs) (cstep :as cstep)
+                     (wrapper :as w) (mapreduce :as mr) (reducers :as pr)]
+            [parkour.io (dseq :as dseq) (dsink :as dsink)
+                        (mux :as mux) (dux :as dux)]
             [parkour.util
              :refer [ignore-errors returning var-str mpartial mcomp map-vals]])
   (:import [java.util.concurrent ExecutionException]

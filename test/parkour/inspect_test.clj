@@ -3,7 +3,7 @@
             [clojure.java.io :as io]
             [clojure.core.reducers :as r]
             [parkour (fs :as fs) (mapreduce :as mr) (wrapper :as w)]
-            [parkour.graph.dseq :as dseq])
+            [parkour.io.dseq :as dseq])
   (:import [org.apache.hadoop.mapred JobConf]))
 
 (defn mr1-add-path

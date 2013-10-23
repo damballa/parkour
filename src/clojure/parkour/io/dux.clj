@@ -1,9 +1,9 @@
 (ns parkour.io.dux
   (:require [clojure.edn :as edn]
-            [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)]
+            [parkour (conf :as conf) (wrapper :as w) (cstep :as cstep)
+                     (mapreduce :as mr)]
             [parkour.mapreduce (sink :as snk)]
-            [parkour.graph (cstep :as cstep) (dseq :as dseq) (dsink :as dsink)]
-            [parkour.io (mux :as mux)]
+            [parkour.io (dseq :as dseq) (dsink :as dsink) (mux :as mux)]
             [parkour.util :refer [returning]])
   (:import [clojure.lang IFn]
            [org.apache.hadoop.conf Configurable]

@@ -3,8 +3,8 @@
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
                      (wrapper :as w) (graph :as pg)]
-            [parkour.graph (dseq :as dseq)]
-            [parkour.io (text :as text) (avro :as mravro) (mux :as mux)]
+            [parkour.io (dseq :as dseq) (mux :as mux)
+                        (text :as text) (avro :as mravro)]
             [parkour.util :refer [mpartial]]))
 
 (deftest test-input

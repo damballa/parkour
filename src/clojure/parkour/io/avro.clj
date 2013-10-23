@@ -3,7 +3,7 @@
   (:require [abracad.avro :as avro]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr)]
-            [parkour.graph (dseq :as dseq) (dsink :as dsink)]
+            [parkour.io (dseq :as dseq) (dsink :as dsink)]
             [parkour.util :refer [ignore-errors returning mpartial]])
   (:import [org.apache.avro Schema]
            [org.apache.avro.mapred AvroKey AvroValue AvroWrapper]

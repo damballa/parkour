@@ -1,7 +1,7 @@
 (ns parkour.io.mux
   (:require [clojure.edn :as edn]
-            [parkour (conf :as conf) (mapreduce :as mr)]
-            [parkour.graph (cstep :as cstep) (dseq :as dseq)]
+            [parkour (conf :as conf) (cstep :as cstep) (mapreduce :as mr)]
+            [parkour.io (dseq :as dseq)]
             [parkour.util :refer [returning]])
   (:import [org.apache.hadoop.mapreduce Job]
            [parkour.hadoop Mux$InputFormat]))

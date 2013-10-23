@@ -1,4 +1,4 @@
-(ns parkour.graph.cstep
+(ns parkour.cstep
   (:require [parkour (conf :as conf) (mapreduce :as mr)]
             [parkour.util :refer [returning]])
   (:import [clojure.lang APersistentMap APersistentVector IFn]
