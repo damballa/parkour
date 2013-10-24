@@ -1,7 +1,7 @@
 (ns parkour.io.dseq
   (:require [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
-            [parkour (conf :as conf) (cstep :as cstep)]
+            [parkour (conf :as conf) (cstep :as cstep) (wrapper :as w)]
             [parkour.io.dseq (mapred :as mr1) (mapreduce :as mr2)]
             [parkour.util :refer [ignore-errors]])
   (:import [java.io Writer]))
@@ -32,6 +32,9 @@
   (coll-reduce [this f] (ccp/coll-reduce this f (f)))
   (coll-reduce [this f init]
     (r/reduce f init (-> this cstep/apply! reducible)))
+
+  w/Wrapper
+  (unwrap [this] (r/map w/unwrap-all this))
 
   DSeqable
   (-dseq [this] this))
