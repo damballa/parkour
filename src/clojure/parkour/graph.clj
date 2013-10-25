@@ -8,8 +8,7 @@
                      (wrapper :as w) (mapreduce :as mr) (reducers :as pr)]
             [parkour.io (dseq :as dseq) (dsink :as dsink)
                         (mux :as mux) (dux :as dux)]
-            [parkour.util
-             :refer [ignore-errors returning var-str mpartial mcomp map-vals]])
+            [parkour.util :refer [ignore-errors returning doto-let mpartial]])
   (:import [java.util.concurrent ExecutionException]
            [clojure.lang Var]
            [org.apache.hadoop.mapreduce Job]
@@ -63,7 +62,10 @@ entries for the keys in the collection `outputs`."
              (cond
               (nil? e') e
               (not (instance? ExecutionException e')) e'
-              :else (recur e')))))))))
+              :else (recur e'))))))
+      (catch Exception e
+        (ignore-errors (future-cancel outputs))
+        (throw e)))))
 
 (defn ^:private stage
   "The job stage of job node `node`."
@@ -268,6 +270,41 @@ and named `jname`."
     (cstep/apply! (cstep/base jname))
     (cstep/apply! (:config node))))
 
+(defmacro ^:private with-shutdown-hook
+  "Execute `body` with function `f` as a registered shutdown hook for `body`'s
+dynamic scope."
+  [f & body]
+  `(let [hook# (Thread. ~f)]
+    (try
+      (-> (Runtime/getRuntime) (.addShutdownHook hook#))
+      ~@body
+      (finally
+        (-> (Runtime/getRuntime) (.removeShutdownHook hook#))))))
+
+(defn run-job
+  "Run `job` and wait synchronously for it to complete.  Kills the job on
+exceptions or JVM shutdown.  Unlike the `Job#waitForCompletion()` method, does
+not swallowing `InterruptedException`."
+  [^Job job]
+  (let [interval (conf/get-int job "jobclient.completion.poll.interval" 5000)
+        jname (.getJobName job)
+        abort (fn []
+                (log/warn "Stopping job" jname)
+                (ignore-errors (.killJob job)))]
+    (with-shutdown-hook abort
+      (try
+        (log/info "Launching job" jname)
+        (.submit job)
+        (while (not (.isComplete job))
+          (Thread/sleep interval))
+        (doto-let [result (.isSuccessful job)]
+          (if result
+            (log/info "Job" jname "succeeded")
+            (log/warn "Job" jname "failed")))
+        (catch Exception e
+          (abort)
+          (throw e))))))
+
 (defn node-fn
   "Return a function for executing the job defined by the job node `node`, using
 base configuration `conf` and job name `jname`."
@@ -276,16 +313,10 @@ base configuration `conf` and job name `jname`."
     (constantly (-> node :config first))
     (fn [& args]
       (let [job (node-job node conf jname)]
-        (try
-          (returning true
-            (log/info "Launching job" jname)
-            (when-not (.waitForCompletion job false)
-              (throw (ex-info (str "Job " jname " failed.")
-                              {:jname jname, :job job, :node node})))
-            (log/info "Job" jname "completed successfully"))
-          (catch Throwable t
-            (ignore-errors (.killJob job))
-            (throw t)))))))
+        (returning true
+          (when-not (run-job job)
+            (throw (ex-info (str "Job " jname " failed.")
+                            {:jname jname, :job job, :node node}))))))))
 
 (defn ^:private node-id
   "Application-unique node-identifier of node `node`."
