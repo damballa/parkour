@@ -25,6 +25,7 @@
   (-> (pg/source dseq)
       (pg/map #'mapper)
       (pg/partition [Text LongWritable])
+      (pg/combine #'reducer)
       (pg/reduce #'reducer)
       (pg/sink dsink)
       (pg/execute (conf/ig) "word-count")))

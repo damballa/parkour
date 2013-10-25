@@ -116,20 +116,21 @@ Here’s the complete classic “word count” example, written using Parkour:
 (ns parkour.examples.word-count
   (:require [clojure.string :as str]
             [clojure.core.reducers :as r]
-            [parkour (conf :as conf) (mapreduce :as mr) (graph :as pg)]
-            [parkour.io (text :as text)])
+            [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)
+                     (graph :as pg)]
+            [parkour.io (text :as text) (seqf :as seqf)])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
 (defn mapper
   [conf]
-  (fn [_ input]
+  (fn [context input]
     (->> (mr/vals input)
          (r/mapcat #(str/split % #"\s+"))
          (r/map #(-> [% 1])))))
 
 (defn reducer
   [conf]
-  (fn [_ input]
+  (fn [context input]
     (->> (mr/keyvalgroups input)
          (r/map (fn [[word counts]]
                   [word (r/reduce + 0 counts)])))))
@@ -139,6 +140,7 @@ Here’s the complete classic “word count” example, written using Parkour:
   (-> (pg/source dseq)
       (pg/map #'mapper)
       (pg/partition [Text LongWritable])
+      (pg/combine #'reducer)
       (pg/reduce #'reducer)
       (pg/sink dsink)
       (pg/execute (conf/ig) "word-count")))
@@ -147,8 +149,10 @@ Here’s the complete classic “word count” example, written using Parkour:
   [& args]
   (let [[inpath outpath] args
         input (text/dseq inpath)
-        output (text/dsink outpath)]
-    (word-count (conf/ig) input output)))
+        output (seqf/dsink Text LongWritable outpath)]
+    (->> (word-count (conf/ig) input output)
+         first w/unwrap (into {})
+         prn)))
 ```
 
 Let’s walk through some important features of this example.
@@ -158,12 +162,12 @@ Let’s walk through some important features of this example.
 The remote task vars (the arguments to the `map`, `combine`, and `reduce` calls)
 have complete control over execution of their associated tasks.  The task vars
 are higher-order functions which accept the job configuration plus any explicit
-serialized parameters and return a task function.
+serialized parameters as arguments and return a task function.
 
 In the default Hadoop Java interface, Hadoop calls a user-supplied method for
 each input tuple.  Parkour instead calls the task function with the task context
-and the entire set of input tuples as a single reducible collection, and expects
-a reducible output collection as the result.
+and the entire set of local input tuples as a single reducible collection, and
+expects a reducible output collection as the result.
 
 The input collections are directly reducible as vectors of key/value pairs, but
 the `parkour.mapreduce` namespace contains functions to efficiently reshape the
@@ -176,7 +180,7 @@ shapes for task output.
 ### Automatic wrapping & unwrapping
 
 Hadoop jobs generally do not act directly on values, instead using instances of
-wrapper types — such as `Writable`s – which implement their own serialization
+wrapper types – such as `Writable`s – which implement their own serialization
 and/or are tied to a serialization method registered with the Hadoop
 serialization framework.  Parkour by default automatically handles unwrapping
 any input objects and re-wrapping any output objects which are not compatible
@@ -184,8 +188,15 @@ with the configured task output type.  The example job uses the `Writable`
 `Text` and `LongWritable` types, but the task code deals entirely with native
 strings and integers.
 
+This auto-un/wrapping is entirely optional, and programs may exchange the
+convenience of native values for the performance advantages of working directly
+with Hadoop’s serialization containers.
+
 ### Results
 
-Although not shown in this example, the return value of the `execute` function
-is a vector of dseqs for the graph leaf node results.  These dseqs may be
-consumed locally, or used as inputs for additional job graphs.
+The return value of the `execute` function is a vector of dseqs for the graph
+leaf node results.  These dseqs may be consumed locally as in the example, or
+used as inputs for additional jobs.  When locally `reduce`d, dseqs yield
+key-value vectors of the raw Hadoop wrapper objects produced by the backing
+Hadoop input format.  The wrapper objects – or the dseqs themselves – may be
+`unwrap`ed to directly access the contained values.
