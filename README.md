@@ -1,51 +1,67 @@
-# parkour
+# Parkour
 
-Hadoop MapReduce in idiomatic Clojure.
+Hadoop MapReduce in idiomatic Clojure.  Parkour takes your Clojure code’s
+functional gymnastics and sends it free-running across the urban environment of
+your Hadoop cluster.
 
-## Rationale
+## Installation
 
-Cascading and Cascalog are excellent pieces of engineering, but
-introduce significant complexity.  Each component layers on its own
-abstractions, and the result is at significant distance from the
-underlying Hadoop platform, while still depending on all its
-specifics.  This makes it more difficult to reason about job execution
-and more difficult to write performant jobs.
+Parkour is available on Clojars.  Add this `:dependency` to your Leiningen
+`project.clj`:
 
-As a Clojure integration layer written directly against Hadoop,
-parkour expresses the following properties:
-
-- Functional.  Many abstractions in Hadoop and Cascading are
-  ultimately just functions in object clothing.  In parkour, Mappers,
-  Reducers, Partitioners, and Cascading’s many flavors of Operation
-  are all replaced with plain Clojure functions.
-- Dynamic.  Hadoop and Cascading reconstitute remote task code by
-  performing reflection or Java deserialization on instances of
-  concrete types.  This approach is antithetical to idiomatic Clojure
-  code, which tends to involve run-time generation of non-seralizable
-  closures.  In parkour, task steps are reconstituted by requiring
-  namespaces and invoking vars, which eliminates the need for concrete
-  types or even ahead-of-time compilation.
-- Idiomatic.  Any Clojure code base will already have many calls to
-  the functions named `map` and `reduce`.  In parkour, these functions
-  sit at the heart of MapReduce tasks, acting on distributed remote
-  sequences exactly as they would on local ones.
+```clj
+[com.damballa/parkour "0.3.0"]
+```
 
 ## Usage
 
-FIXME
+Parkour is a Clojure library for writing Hadoop MapReduce jobs.  If you know
+Hadoop, and you know Clojure, then you’re most of the way to knowing Parkour.
+The [Parkour introduction][intro] contains an overview of the key concepts, but
+here is the classic “word count” example, in Parkour:
 
-## Uncookedbook
+```clj
+(defn mapper
+  [conf]
+  (fn [context input]
+    (->> (mr/vals input)
+         (r/mapcat #(str/split % #"\s+"))
+         (r/map #(-> [% 1])))))
 
-These are things parkour should be able to do:
+(defn reducer
+  [conf]
+  (fn [context input]
+    (->> (mr/keyvalgroups input)
+         (r/map (fn [[word counts]]
+                  [word (r/reduce + 0 counts)])))))
 
-  - Multiple reducer outputs.
-  - Multiple mappers consuming multiple inputs.
-  - Group by E2LD for reduction, using a side-data ETLD list.
-  - Re-usable distributed counting and generation of unique indices as
-    for a matrix.  Support arbitrary types being counted and indexed.
+(defn word-count
+  [dseq dsink]
+  (-> (pg/source dseq)
+      (pg/map #'mapper)
+      (pg/partition [Text LongWritable])
+      (pg/combine #'reducer)
+      (pg/reduce #'reducer)
+      (pg/sink dsink)))
+```
+
+## Documentation
+
+Parkour’s documentation is divided into a number of separate sections:
+
+- [Introduction][intro] – A short getting-started introduction, with an overview
+  of Parkour’s key concepts.
+- [Motivation][motivation] – A detailed explanation of the goals Parkour exists
+  to achieve, with comparison to other libraries and frameworks.
+- [Namespaces guide][namespaces] – A guided tour of Parkour’s namespaces,
+  explaining how each set of functionality fits into the whole.
 
 ## License
 
-Copyright © 2013 Damballa, Inc. & Marshall Bockrath-Vandegrift
+Copyright © 2013 Marshall Bockrath-Vandegrift & Damballa, Inc.
 
 Distributed under the Eclipse Public License, the same as Clojure.
+
+[intro]: blob/master/intro.md
+[motivation]: blob/master/motivation.md
+[namespaces]: blob/master/namespaces.md
