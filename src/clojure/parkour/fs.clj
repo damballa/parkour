@@ -118,7 +118,7 @@
             (into {})))))
 
 (defn path-open
-  "Open an input stream on `p`."
+  "Open an input stream on `p`, or default `fs` if not provided."
   ([p] (path-open (path-fs p) p))
   ([fs p] (.open ^FileSystem fs (path p))))
 
@@ -139,7 +139,7 @@ filesystem.  May be overridden in configuration via the property
   "/tmp")
 
 (defn ^:private run-id
-  "A likely-unique user and time-based string."
+  "A likely-unique user- and time-based string."
   []
   (let [user (System/getProperty "user.name")
         time (System/currentTimeMillis)
