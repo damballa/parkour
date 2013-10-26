@@ -6,7 +6,7 @@
             [parkour (conf :as conf) (reducers :as pr)]
             [parkour.util :refer [ignore-errors returning map-vals mpartial]])
   (:import [java.net URI URL]
-           [java.io File IOException InputStream Writer]
+           [java.io File IOException InputStream OutputStream Reader Writer]
            [org.apache.hadoop.fs FileStatus FileSystem Path]
            [org.apache.hadoop.filecache DistributedCache]))
 
@@ -128,9 +128,43 @@ supported scheme and via `io/input-stream` when not."
   {:tag `InputStream}
   ([p] (input-stream (conf/ig) p))
   ([conf p]
-     (if-let [fs (ignore-errors (path-fs conf p))]
-       (path-open fs p)
-       (io/input-stream p))))
+     (let [p (path p)]
+       (if-let [fs (ignore-errors (path-fs conf p))]
+         (path-open fs p)
+         (io/input-stream (io/as-url p))))))
+
+(defn path-create
+  "Create an output stream on `p` for `fs`, or default `fs` if not provided."
+  ([p] (path-create (path-fs p) p))
+  ([fs p] (.create ^FileSystem fs (path p))))
+
+(extend Path
+  io/IOFactory
+  (assoc io/default-streams-impl
+    :make-input-stream (fn [p opts]
+                         (if-let [fs (or (:fs opts) (path-fs p))]
+                           (io/make-input-stream (path-open fs p) opts)
+                           (io/input-stream (io/as-url p))))
+    :make-output-stream (fn [p opts]
+                          (if-let [fs (or (:fs opts) (path-fs p))]
+                            (io/make-output-stream (path-open fs p) opts)
+                            (io/output-stream (io/as-url p))))))
+
+;; Private for some reason, so copy internally
+(def ^:private do-copy @#'io/do-copy)
+
+(defmethod do-copy [Path OutputStream]
+  [input output opts] (do-copy (io/input-stream input) output opts))
+(defmethod do-copy [Path Writer]
+  [input output opts] (do-copy (io/reader input) output opts))
+(defmethod do-copy [Path File]
+  [input output opts] (do-copy (io/input-stream input) output opts))
+(defmethod do-copy [InputStream Path]
+  [input output opts] (do-copy input (io/output-stream output) opts))
+(defmethod do-copy [Reader Path]
+  [input output opts] (do-copy input (io/writer output) opts))
+(defmethod do-copy [File Path]
+  [input output opts] (do-copy input (io/output-stream output) opts))
 
 (def ^:dynamic *temp-dir*
   "Default path to system temporary directory on the default
