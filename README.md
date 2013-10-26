@@ -15,8 +15,10 @@ Parkour is available on Clojars.  Add this `:dependency` to your Leiningen
 
 ## Usage
 
-Parkour is a Clojure library for writing Hadoop MapReduce jobs.  If you know
-Hadoop, and you know Clojure, then you’re most of the way to knowing Parkour.
+Parkour is a Clojure library for writing Hadoop MapReduce jobs.  It tries to
+avoid being a “framework” – if you know Hadoop, and you know Clojure, then
+you’re most of the way to knowing Parkour.
+
 The [Parkour introduction][intro] contains an overview of the key concepts, but
 here is the classic “word count” example, in Parkour:
 
