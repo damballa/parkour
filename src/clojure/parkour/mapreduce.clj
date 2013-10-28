@@ -95,23 +95,23 @@ mechanism."
   (print-method (conf/diff job) w))
 
 (defn mapper!
-  "Allocate and return a new parkour mapper class for `job` as invoking `var`.
+  "Allocate and return a new parkour mapper class for `conf` as invoking `var`.
 The `var` will be called during task-setup with the job Configuration and any
 provided `args` (which must be EDN-serializable).  It should return a function
 of one argument, which will be invoked with the task context, and should perform
 the desired content of the map task."
-  [^Job job var & args]
-  (let [i (conf/get-int job "parkour.mapper.next" 0)]
-    (conf/assoc! job
+  [conf var & args]
+  (let [i (conf/get-int conf "parkour.mapper.next" 0)]
+    (conf/assoc! conf
       "parkour.mapper.next" (inc i)
       (format "parkour.mapper.%d.var" i) (pr-str var)
       (format "parkour.mapper.%d.args" i) (pr-str args))
     (Class/forName (format "parkour.hadoop.Mappers$_%d" i))))
 
 (defn ^:private reducer!*
-  [step ^Job job var & args]
-  (let [i (conf/get-int job "parkour.reducer.next" 0)]
-    (conf/assoc! job
+  [step conf var & args]
+  (let [i (conf/get-int conf "parkour.reducer.next" 0)]
+    (conf/assoc! conf
       "parkour.reducer.next" (inc i)
       (format "parkour.reducer.%d.step" i) (name step)
       (format "parkour.reducer.%d.var" i) (pr-str var)
@@ -119,30 +119,30 @@ the desired content of the map task."
     (Class/forName (format "parkour.hadoop.Reducers$_%d" i))))
 
 (defn reducer!
-  "Allocate and return a new parkour reducer class for `job` as invoking `var`.
+  "Allocate and return a new parkour reducer class for `conf` as invoking `var`.
 The `var` will be called during task-setup with the job Configuration and any
 provided `args` (which must be EDN-serializable).  It should return a function
 of one argument, which will be invoked with the task context, and should perform
 the desired content of the reduce task."
-  [^Job job var & args]
-  (apply reducer!* :reduce job var args))
+  [conf var & args]
+  (apply reducer!* :reduce conf var args))
 
 (defn combiner!
   "As per `reducer!`, but allocate and configure for the Hadoop combine step,
 which may impact e.g. output types."
-  [^Job job var & args]
-  (apply reducer!* :combine job var args))
+  [conf var & args]
+  (apply reducer!* :combine conf var args))
 
 (defn partitioner!
-  "Allocate and return a new parkour partitioner class for `job` as invoking
+  "Allocate and return a new parkour partitioner class for `conf` as invoking
 `var`.  The `var` will be called during task-setup with the job Configuration
 and any provided `args` (which must be EDN-serializable).  It should return a
 function of three arguments: a map-output key, a map-output value, and an
 integral reduce-task count.  That function will called for each map-output
 tuple, and should return an integral value mod the reduce-task count.  Should be
 primitive-hinted as OOLL."
-  [^Job job var & args]
-  (conf/assoc! job
+  [conf var & args]
+  (conf/assoc! conf
     "parkour.partitioner.var" (pr-str var)
     "parkour.partitioner.args" (pr-str args))
   parkour.hadoop.Partitioner)
