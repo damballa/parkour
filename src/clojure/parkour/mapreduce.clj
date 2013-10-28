@@ -9,6 +9,7 @@
             [parkour.mapreduce (source :as src) (sink :as snk)]
             [parkour.util :refer [returning ignore-errors]])
   (:import [java.io Writer]
+           [clojure.lang Var]
            [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce TaskAttemptContext TaskAttemptID]))
 
@@ -107,6 +108,7 @@ If `var` has a truthy value for the `:parkour.mapreduce/raw` metadata key, then
 Parkour will invoke the `var`-returned function with only the task context, and
 will ignore any return value."
   [conf var & args]
+  (assert (instance? Var var))
   (let [i (conf/get-int conf "parkour.mapper.next" 0)]
     (conf/assoc! conf
       "parkour.mapper.next" (inc i)
@@ -116,6 +118,7 @@ will ignore any return value."
 
 (defn ^:private reducer!*
   [step conf var & args]
+  (assert (instance? Var var))
   (let [i (conf/get-int conf "parkour.reducer.next" 0)]
     (conf/assoc! conf
       "parkour.reducer.next" (inc i)
@@ -158,6 +161,7 @@ If `var` has a truthy value for the `:parkour.mapreduce/raw` metadata key, then
 Parkour will invoke the `var`-returned partitioner function with the raw (not
 unwrapped) tuple key and value objects."
   [conf var & args]
+  (assert (instance? Var var))
   (conf/assoc! conf
     "parkour.partitioner.var" (pr-str var)
     "parkour.partitioner.args" (pr-str args))
