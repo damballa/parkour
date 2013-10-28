@@ -34,6 +34,14 @@ of such tuples."
   "Pair of current tuple's key and sequence of grouped key and value pairs."
   [context] [(key context) (r/map #(-> [(key context) %]) (vals context))])
 
+(defn keykeys
+  "Pair of current tuple's key and sequence of grouped keys."
+  [context] [(key context) (r/map (fn [_] (key context)) (vals context))])
+
+(defn keys
+  "Current grouping key's sequence of grouped keys."
+  [context] (r/map (fn [_] (key context)) (vals context)))
+
 (defn reduce
   "As per `cc/reduce`, but in terms of the `TupleSource` protocol.  When
 provided, applies `nextf` to `context` to retrieve the next tuple source for

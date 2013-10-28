@@ -43,6 +43,16 @@ the tuples in `context`."
 keys and values from the tuples in `context`."
   [context] (src/reducer src/next-key src/keykeyvals context))
 
+(defn keykeygroups
+  "Produce pairs of distinct grouping keys and associated sequences of specific
+keys from the tuples in `context`."
+  [context] (src/reducer src/next-key src/keykeys context))
+
+(defn keysgroups
+  "Produce sequences of specific keys associated with distinct grouping keys
+from the tuples in `context`."
+[context] (src/reducer src/next-key src/keys context))
+
 (defn wrap-sink
   "Return new tuple sink which wraps keys and values as the types `ckey` and
 `cval` respectively, which should be compatible with the key and value type of
