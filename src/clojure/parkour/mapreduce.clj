@@ -95,11 +95,17 @@ mechanism."
   (print-method (conf/diff job) w))
 
 (defn mapper!
-  "Allocate and return a new parkour mapper class for `conf` as invoking `var`.
-The `var` will be called during task-setup with the job Configuration and any
-provided `args` (which must be EDN-serializable).  It should return a function
-of one argument, which will be invoked with the task context, and should perform
-the desired content of the map task."
+  "Allocate and return a new Parkour mapper class for `conf` as invoking `var`.
+The `var` will be called during task-setup with the job `Configuration` and any
+provided `args` (which must be EDN-serializable).  The `var` should return a
+function of two arguments, which will be invoked with the task context and a
+reducible collection of the `unwrap`ed input tuples.  It should return a
+reducible collection of the output tuples, which will be automatically wrapped
+to match the job-configured map ouput types.
+
+If `var` has a truthy value for the `:parkour.mapreduce/raw` metadata key, then
+Parkour will invoke the `var`-returned function with only the task context, and
+will ignore any return value."
   [conf var & args]
   (let [i (conf/get-int conf "parkour.mapper.next" 0)]
     (conf/assoc! conf
@@ -119,11 +125,17 @@ the desired content of the map task."
     (Class/forName (format "parkour.hadoop.Reducers$_%d" i))))
 
 (defn reducer!
-  "Allocate and return a new parkour reducer class for `conf` as invoking `var`.
-The `var` will be called during task-setup with the job Configuration and any
-provided `args` (which must be EDN-serializable).  It should return a function
-of one argument, which will be invoked with the task context, and should perform
-the desired content of the reduce task."
+  "Allocate and return a new Parkour reducer class for `conf` as invoking `var`.
+The `var` will be called during task-setup with the job `Configuration` and any
+provided `args` (which must be EDN-serializable).  The `var` should return a
+function of two arguments, which will be invoked with the task context and a
+reducible collection of the `unwrap`ed input tuples.  It should return a
+reducible collection of the output tuples, which will be automatically wrapped
+to match the job-configured map ouput types.
+
+If `var` has a truthy value for the `:parkour.mapreduce/raw` metadata key, then
+Parkour will invoke the `var`-returned function with only the task context, and
+will ignore any return value."
   [conf var & args]
   (apply reducer!* :reduce conf var args))
 
@@ -134,13 +146,17 @@ which may impact e.g. output types."
   (apply reducer!* :combine conf var args))
 
 (defn partitioner!
-  "Allocate and return a new parkour partitioner class for `conf` as invoking
-`var`.  The `var` will be called during task-setup with the job Configuration
-and any provided `args` (which must be EDN-serializable).  It should return a
-function of three arguments: a map-output key, a map-output value, and an
-integral reduce-task count.  That function will called for each map-output
-tuple, and should return an integral value mod the reduce-task count.  Should be
-primitive-hinted as OOLL."
+  "Allocate and return a new Parkour partitioner class for `conf` as invoking
+`var`.  The `var` will be called during task-setup with the job `Configuration`
+and any provided `args` (which must be EDN-serializable).  The `var` should
+return a function of three arguments: an `unwrap`ed map-output key, an
+`unwrap`ed map-output value, and an integral reduce-task count.  That function
+will called for each map-output tuple, must return an integral value mod the
+reduce-task count, and should be primitive-hinted as `OOLL`.
+
+If `var` has a truthy value for the `:parkour.mapreduce/raw` metadata key, then
+Parkour will invoke the `var`-returned partitioner function with the raw (not
+unwrapped) tuple key and value objects."
   [conf var & args]
   (conf/assoc! conf
     "parkour.partitioner.var" (pr-str var)
