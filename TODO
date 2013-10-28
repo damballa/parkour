@@ -14,3 +14,11 @@ As per =parkour.inspect= / =parkour.graph.dseq=.
 
 - Splits being processed by individual tasks
 - Probably other logging?
+
+* Use class loader instead of pools
+
+The current implementation builds small statically-compiled pools of
+var-trampolining implementations of the various Hadoop classes which Hadoop
+expects to locate via name-based reflection.  A more general implementation
+would use a custom ClassLoader which could dynamically generate and return new
+instances of the supported types.
