@@ -15,7 +15,7 @@ The `parkour.conf` namespace contains functions for manipulating Hadoop
 string conversion on parameter-set, type-specific functions for parameter
 access, and automatic conversion for the wrapped `Configuration`s of objects
 such as `Job`s and `Configurable`s.  It also provides a tagged literal form for
-`Configuration`s a map of differences from the current default.
+`Configuration`s as a map of differences from the default.
 
 ```clj
 (require '[parkour.conf :as conf])
@@ -23,7 +23,7 @@ such as `Job`s and `Configurable`s.  It also provides a tagged literal form for
 (conf/ig)
 ;;=> #hadoop.conf/configuration {}
 (conf/assoc! *1 "foo" 1, "baz" [1 2 3])
-#hadoop.conf/configuration {"baz" "1,2,3", "foo" "1"}
+;;=> #hadoop.conf/configuration {"baz" "1,2,3", "foo" "1"}
 ```
 
 ### parkour.fs
@@ -46,18 +46,18 @@ literal forms for Hadoop `Path` and `java.net.URI` objects.
 
 The `parkour.wrapper` namespace provides the `Wrapper` protocol, which allows
 generic Clojure access to `Writable`s and other mutable serialization classes
-fitting the default Hadoop idiom.  The `parkour.wrapper` namespaces contains
-implementations for many of the most common classes, with others easily provided
-by the user.
+fitting the default Hadoop idiom.
 
 The protocol `unwrap` function extracts a native value from a wrapper object.
 The `rewrap` function mutates a wrapper object to wrap a new value.  The
 multimethod-backed `new-instance` function creates a fresh instance of an
 arbitrary wrapper class, as per most `Writable`s’ zero-argument constructor.
 
-Much of the namespace’s functionality has sensible default implementations, and
-the `auto-wrapper` macro can automatically define a `Wrapper` implementation for
-many common type.
+The `parkour.wrapper` namespaces contains implementations for many of the most
+common classes, with others easily provided by the user.  Much of the
+namespace’s functionality has sensible default implementations, and the
+`auto-wrapper` macro can automatically define a `Wrapper` implementation for
+many common types.
 
 ```clj
 (require '[parkour.wrapper :as w])
@@ -214,18 +214,31 @@ inputs/outputs to use different values for any parameter isolated to the
 input/output format.  This isolation removes the need for special-purpose
 de/muxing classes like `AvroMultipleOutputs`.
 
+```clj
+(require '[clojure.core.reducers :as r])
+(require '[parkour.io.text :as text])
+
+(->> (text/dseq "project.clj")
+     (r/map (comp str second))
+     (r/map #(subs % 0 32))
+     (r/take 1)
+     (into []))
+;;=> ["(defproject com.damballa/parkour"]
+```
+
 ## Job graph API
 
 The `parkour.graph` namespace provides the Parkour job graph API.  The job graph
 API is a functional internal DSL for assembling configuration steps into _job
 nodes_ containing complete job configurations, and for assembling job nodes into
-_job graphs_ of interconnected multi-job processing pipelines.
+_job graphs_ of multi-job processing pipelines.
 
-A job node consists primarily of a list of configuration steps and a _job
-stage_.  The job stage captures the state of a job node in the course of a
-relatively linear process of adding all the configuration steps necessary to
-produce a complete job.  Each stage has an associated API function which
-produces a node in that stage while adding an associated configuration step.
+A job node consists primarily of a list of configuration steps, a list of
+dependency job nodes, and a _job stage_.  The job stage captures the state of a
+job node in the course of a relatively linear process of adding all the
+configuration steps necessary to produce a complete job.  Each stage has an
+associated API function which produces a node in that stage while adding an
+associated configuration step.
 
 The job graph API functions and associated stages are as follows:
 
@@ -233,13 +246,15 @@ The job graph API functions and associated stages are as follows:
   dseq as its initial step.  This is the sole graph API function which does not
   act on an existing job node.
 - `map` – Accepts a `:source` node and a map-task var or class; returns a `:map`
-  node with a configuration step setting that mapper.  Instead of a single
+  node with a configuration step specifying that mapper.  Instead of a single
   `:source` node, also accepts a vector of `:source` nodes, which are configured
   as multiplex input to the mapper.
 - `partition` – Accepts a `:map` node, a shuffle configuration step, and an
   optional partitioner var or class; returns a `:partition` node.  Instead of a
   single `:map` node, also accepts a vector of `:map` nodes, which are
-  configured as multiplex input to the partitioner.
+  configured as multiplex input to the partitioner.  Instead of a configuration
+  step, also accepts a vector of two classes, which are configured as the map
+  output key and value classes for a basic shuffle.
 - `combine` – Accepts a `:partition` node and a combine-task var or class;
   returns a `:combine` node.
 - `reduce` – Accepts a `:partition` or `:combine` node and a reduce-task var or
@@ -248,7 +263,19 @@ The job graph API functions and associated stages are as follows:
   `:source` node which consumes from the provided dsink’s associated dseq and
   depends on the job node completed by the dsink’s configuration step.  Instead
   of a single output dsink, also accepts multiple arguments as a sequence of
-  name-dsink outputs, which are configured as demultiplex named outputs.
+  name-dsink outputs, which are configured as demultiplex named outputs;
+  returns a vector of `:source` nodes for the associated dseqs.
+
+In addition to the per-stage functions, the job graph API also provide a generic
+`config` function, which adds arbitrary configuration steps to a node in any
+stage.
+
+The job graph API `execute` function will execute the jobs produced by a graph
+of job nodes.  The `execute` function accepts either a single job graph leaf
+node or a vector of such nodes, a base `Configuration`, and a job basename.  It
+runs the jobs composing the graph, attempting to run independent jobs in
+parallel.  On successful completion, it returns a vector of the provided leaf
+node dseqs, and on failure throws an exception.
 
 ```clj
 (defn word-count
