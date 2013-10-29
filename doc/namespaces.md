@@ -14,7 +14,7 @@ The `parkour.conf` namespace contains functions for manipulating Hadoop
 `Configuration` objects as bash-in-place mutable maps.  It provides type-aware
 string conversion on parameter-set, type-specific functions for parameter
 access, and automatic conversion for the wrapped `Configuration`s of objects
-such as `Job`s and `Configurables`.  It also provides a tagged literal form for
+such as `Job`s and `Configurable`s.  It also provides a tagged literal form for
 `Configuration`s a map of differences from the current default.
 
 ```clj
@@ -53,7 +53,7 @@ by the user.
 The protocol `unwrap` function extracts a native value from a wrapper object.
 The `rewrap` function mutates a wrapper object to wrap a new value.  The
 multimethod-backed `new-instance` function creates a fresh instance of an
-arbitrary wrapper class, as per `Writable`s’ zero-argument constructor.
+arbitrary wrapper class, as per most `Writable`s’ zero-argument constructor.
 
 Much of the namespace’s functionality has sensible default implementations, and
 the `auto-wrapper` macro can automatically define a `Wrapper` implementation for
@@ -89,10 +89,10 @@ they return the configured class, allowing the user to then pass that class to
 any function or Hadoop method expecting a class of that type.  These include the
 standard `.setMapperClass` etc methods, but also such methods as
 `MultipleInputs`’ `.addInputPath`.  This approach allows Parkour to work cleanly
-with Hadoop interface which use multiple classes of the same abstract type, as
+with Hadoop interfaces which use multiple classes of the same abstract type, as
 with `MultipleInputs`’ use of multiple `Mapper` classes.
 
-The invoked vars follow a uniform higher-order-function interface, where during
+The invoked vars follow a uniform higher-order function interface, where during
 task-setup Parkour invokes the var-functions with the job `Configuration`
 followed by any (EDN-serialized) class-var binding arguments.  The var-functions
 then return functions (or other objects) which implement the functionality of
@@ -155,7 +155,7 @@ protocol, which cover the majority of common uses:
   invoking the function on a provided `Job` instance.
 - Maps – Clojure maps are applied by setting the value of each `Job`-parameter
   map key to the associated map value.
-- Vectors` – Clojure vectors are applied by applying each vector member as a
+- Vectors – Clojure vectors are applied by applying each vector member as a
   configuration step, allowing easy composition of configuration step.
 
 ```clj
@@ -200,14 +200,14 @@ implementations for common input and output formats:
   Avro dseqs and dsinks, also provides a `shuffle` function for configuring an
   Avro-serialized shuffle.
 
-Two provide general facilities, distinct from particular concrete input or
-output formats:
+Two namespaces provide general facilities, distinct from particular concrete
+input or output formats:
 
 - `parkour.io.mux` – General multiple inputs; and
 - `parkour.io.dux` – General multiple outputs.
 
 The multiple inputs/outputs provided by these namespaces differ from the
-standard Hadoop `MultipleInputs` and `MultipleOutputs` classes by proxing the
+standard Hadoop `MultipleInputs` and `MultipleOutputs` classes by proxying the
 full `InputFormat` and `OutputFormat` interfaces across sub-format instances
 configured with complete distinct sub-configurations.  This allows different
 inputs/outputs to use different values for any parameter isolated to the

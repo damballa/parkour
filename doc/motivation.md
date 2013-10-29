@@ -51,10 +51,11 @@ Crunch wrappers for Scala ([Scrunch][scrunch]) and Clojure ([Crackle][crackle]).
 The [Cascading][cascading] framework pre-dates FlumeJava, but uses a very
 similar model.
 
-These libraries all present the same basic interface: A handful of distributed
+These libraries all present the same basic interface: a handful of distributed
 collection types expose a small set of manipulation methods which lazily
 accumulate a graph of applied computations.  An execution planner then optimizes
-and distributes computation of the graph in terms of concrete MapReduce tasks.
+and distributes computation of the resulting graph in terms of concrete
+MapReduce tasks.
 
 Although a credible attempt, Crackle demonstrates the difficulties in
 translating this approach to idiomatic Clojure.  The most fundamental is that
