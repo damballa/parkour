@@ -64,6 +64,6 @@ Copyright © 2013 Marshall Bockrath-Vandegrift & Damballa, Inc.
 
 Distributed under the Eclipse Public License, the same as Clojure.
 
-[intro]: blob/master/intro.md
-[motivation]: blob/master/motivation.md
-[namespaces]: blob/master/namespaces.md
+[intro]: blob/master/doc/intro.md
+[motivation]: blob/master/doc/motivation.md
+[namespaces]: blob/master/doc/namespaces.md
