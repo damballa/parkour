@@ -67,10 +67,12 @@ optional value schema `vs`."
        (AvroJob/setMapOutputKeySchema (avro/parse-schema ks))
        (.setMapOutputValueClass NullWritable)))
   ([^Job job ks vs]
-     (doto job
-       (set-data-model)
-       (AvroJob/setMapOutputKeySchema (avro/parse-schema ks))
-       (AvroJob/setMapOutputValueSchema (avro/parse-schema vs)))))
+     (if (nil? vs)
+       (set-map-output ks)
+       (doto job
+         (set-data-model)
+         (AvroJob/setMapOutputKeySchema (avro/parse-schema ks))
+         (AvroJob/setMapOutputValueSchema (avro/parse-schema vs))))))
 
 (defn set-grouping
   "Configure `job` combine & reduce phases to group keys via schema `gs`,
@@ -95,7 +97,7 @@ which should be encoding-compatible with the map-output key schema."
   [job klass] (lazy-output-format* ^Job job ^Class klass))
 
 (defn set-output
-    "Configure `job` output to produce Avro with key schema `ks` and
+  "Configure `job` output to produce Avro with key schema `ks` and
 optional value schema `vs`.  Configures job output format to match
 when the output format has not been otherwise explicitly specified."
   ([^Job job ks]
@@ -115,7 +117,8 @@ when the output format has not been otherwise explicitly specified."
   [x] (or (instance? Schema x) (keyword? x)))
 
 (defn dseq
-  "Distributed sequence of Avro input."
+  "Distributed sequence of Avro input, applying the vector of `schemas` as per
+the arguments to `set-input`, and reading from `paths`."
   [schemas & paths]
   (dseq/dseq
    (fn [^Job job]
@@ -124,7 +127,8 @@ when the output format has not been otherwise explicitly specified."
        (FileInputFormat/addInputPath job (fs/path path))))))
 
 (defn shuffle
-  "Configuration step for Avro shuffle."
+  "Configuration step for Avro shuffle, with key schema `ks`, optional value
+schema `vs`, and optional grouping schema `gs`."
   ([ks] (mpartial set-map-output ks))
   ([ks vs] (mpartial set-map-output ks vs))
   ([ks vs gs]
@@ -132,7 +136,8 @@ when the output format has not been otherwise explicitly specified."
       (mpartial set-grouping gs)]))
 
 (defn dsink
-  "Distributed sink for Avro output."
+  "Distributed sink for Avro output, applying the vector of `schemas` as per the
+arguments to `set-output`, and writing to `path`."
   [schemas path]
   (dsink/dsink
    (let [defaults (-> schemas count (repeat :default))]
