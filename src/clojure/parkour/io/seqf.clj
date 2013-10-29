@@ -8,6 +8,7 @@
            [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]))
 
 (defn dseq
+  "Distributed sequence for reading from Hadoop sequence files at `paths`."
   [& paths]
   (dseq/dseq
    (fn [^Job job]
@@ -16,12 +17,14 @@
        (FileInputFormat/addInputPath job (fs/path path))))))
 
 (defn dsink
-  [ckey cval path]
-  (dsink/dsink
-   (dseq path)
-   (fn [^Job job]
-     (doto job
-       (.setOutputFormatClass SequenceFileOutputFormat)
-       (.setOutputKeyClass ckey)
-       (.setOutputValueClass cval)
-       (FileOutputFormat/setOutputPath (fs/path path))))))
+  "Distributed sink writing tuples of classes `ckey` and `cval` to `path`."
+  ([ckey cval path] (dsink [ckey cval] path))
+  ([[ckey cval] path]
+     (dsink/dsink
+      (dseq path)
+      (fn [^Job job]
+        (doto job
+          (.setOutputFormatClass SequenceFileOutputFormat)
+          (.setOutputKeyClass ckey)
+          (.setOutputValueClass cval)
+          (FileOutputFormat/setOutputPath (fs/path path)))))))
