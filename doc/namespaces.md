@@ -286,7 +286,7 @@ node dseqs, and on failure throws an exception.
       (pg/combine #'reducer)
       (pg/reduce #'reducer)
       (pg/sink dsink)
-      (pg/execute (conf/ig) "word-count")))
+      (pg/execute conf "word-count")))
 ```
 
 [abracad]: https://github.com/damballa/abracad/
