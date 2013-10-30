@@ -2,7 +2,7 @@
   (:require [clojure.string :as str]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)
-                     (graph :as pg)]
+                     (graph :as pg) (tool :as tool)]
             [parkour.io (text :as text) (seqf :as seqf)])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
@@ -22,19 +22,19 @@
 
 (defn word-count
   [conf dseq dsink]
-  (-> (pg/source dseq)
+  (-> (pg/input dseq)
       (pg/map #'mapper)
       (pg/partition [Text LongWritable])
       (pg/combine #'reducer)
       (pg/reduce #'reducer)
-      (pg/sink dsink)
+      (pg/output dsink)
       (pg/execute conf "word-count")))
 
 (defn -main
   [& args]
-  (let [[inpath outpath] args
+  (let [[outpath inpath] args
         input (text/dseq inpath)
         output (seqf/dsink Text LongWritable outpath)]
     (->> (word-count (conf/ig) input output)
-         first w/unwrap (into {})
-         prn)))
+         first w/unwrap (into {}) prn
+         tool/integral System/exit)))

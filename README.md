@@ -39,12 +39,12 @@ here is the classic “word count” example, in Parkour:
 
 (defn word-count
   [dseq dsink]
-  (-> (pg/source dseq)
+  (-> (pg/input dseq)
       (pg/map #'mapper)
       (pg/partition [Text LongWritable])
       (pg/combine #'reducer)
       (pg/reduce #'reducer)
-      (pg/sink dsink)))
+      (pg/output dsink)))
 ```
 
 ## Documentation

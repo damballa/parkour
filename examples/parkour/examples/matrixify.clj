@@ -72,26 +72,26 @@ returning dseq on final matrix entries."
         c-counts (fs/path c-path "counts"), r-counts (fs/path r-path "counts")
         matrix-path (fs/path workdir "matrix")
         [c-data c-counts]
-        , (-> (pg/source dseq)
+        , (-> (pg/input dseq)
               (pg/map #'parse-mapper)
               (pg/partition (mra/shuffle :string name-value))
               (pg/reduce #'dim-count-reducer)
-              (pg/sink :data (mra/dsink [:string index-value] c-data)
-                       :counts (mra/dsink [:long :long] c-counts)))
+              (pg/output :data (mra/dsink [:string index-value] c-data)
+                         :counts (mra/dsink [:long :long] c-counts)))
         [r-data r-counts]
-        , (-> (pg/source c-data)
+        , (-> (pg/input c-data)
               (pg/map Mapper)
               (pg/partition (mra/shuffle :string index-value))
               (pg/reduce #'dim-count-reducer)
-              (pg/sink :data (mra/dsink [long-pair index-value] r-data)
-                       :counts (mra/dsink [:long :long] r-counts)))
+              (pg/output :data (mra/dsink [long-pair index-value] r-data)
+                         :counts (mra/dsink [:long :long] r-counts)))
         [c-counts r-counts r-data]
         , (-> [c-counts r-counts r-data]
               (pg/execute conf "matrixify/dim-count"))
         c-offsets (offsets c-counts), r-offsets (offsets r-counts)]
-    (-> (pg/source r-data)
+    (-> (pg/input r-data)
         (pg/map #'absind-mapper c-offsets r-offsets)
-        (pg/sink (mra/dsink [entry] matrix-path))
+        (pg/output (mra/dsink [entry] matrix-path))
         (pg/execute conf "matrixify/absind"))))
 
 (defn -main
@@ -100,8 +100,5 @@ returning dseq on final matrix entries."
         indseq (apply text/dseq inpaths)]
     (->> (matrixify (conf/ig) workdir indseq) first
          (r/map (comp w/unwrap first))
-         (reduce (fn [_ entry]
-                   (println (str/join "\t" entry)))
-                 nil)
-         tool/integral
-         System/exit)))
+         (reduce (fn [_ entry] (println (str/join "\t" entry))) nil)
+         tool/integral System/exit)))

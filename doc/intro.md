@@ -104,8 +104,8 @@ appropriate configuration.  These functions ensure a basic level of internal
 consistency for job configurations, while also providing a shorthand for common
 configuration steps.
 
-The core functions and associated stages are: `source`, `map`, `partition`,
-`combine`, `reduce`, and `sink`.  Additionally, the generic `config` function
+The core functions and associated stages are: `input`, `map`, `partition`,
+`combine`, `reduce`, and `output`.  Additionally, the generic `config` function
 allows adding arbitrary configuration steps to a job node in any stage.
 
 ## Example
@@ -137,12 +137,12 @@ Here’s the complete classic “word count” example, written using Parkour:
 
 (defn word-count
   [conf dseq dsink]
-  (-> (pg/source dseq)
+  (-> (pg/input dseq)
       (pg/map #'mapper)
       (pg/partition [Text LongWritable])
       (pg/combine #'reducer)
       (pg/reduce #'reducer)
-      (pg/sink dsink)
+      (pg/output dsink)
       (pg/execute conf "word-count")))
 
 (defn -main

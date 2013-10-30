@@ -242,12 +242,12 @@ associated configuration step.
 
 The job graph API functions and associated stages are as follows:
 
-- `source` – Accepts an input dseq; returns a new `:source`-stage node with the
+- `input` – Accepts an input dseq; returns a new `:input`-stage node with the
   dseq as its initial step.  This is the sole graph API function which does not
   act on an existing job node.
-- `map` – Accepts a `:source` node and a map-task var or class; returns a `:map`
+- `map` – Accepts a `:input` node and a map-task var or class; returns a `:map`
   node with a configuration step specifying that mapper.  Instead of a single
-  `:source` node, also accepts a vector of `:source` nodes, which are configured
+  `:input` node, also accepts a vector of `:input` nodes, which are configured
   as multiplex input to the mapper.
 - `partition` – Accepts a `:map` node, a shuffle configuration step, and an
   optional partitioner var or class; returns a `:partition` node.  Instead of a
@@ -259,12 +259,12 @@ The job graph API functions and associated stages are as follows:
   returns a `:combine` node.
 - `reduce` – Accepts a `:partition` or `:combine` node and a reduce-task var or
   class; returns a `:reduce` node.
-- `sink` – Accepts a `:map` or `:reduce` node and an output dsink; returns a
-  `:source` node which consumes from the provided dsink’s associated dseq and
+- `output` – Accepts a `:map` or `:reduce` node and an output dsink; returns a
+  `:input` node which consumes from the provided dsink’s associated dseq and
   depends on the job node completed by the dsink’s configuration step.  Instead
   of a single output dsink, also accepts multiple arguments as a sequence of
-  name-dsink outputs, which are configured as demultiplex named outputs;
-  returns a vector of `:source` nodes for the associated dseqs.
+  name-dsink outputs, which are configured as demultiplex named outputs; returns
+  a vector of `:input` nodes for the associated dseqs.
 
 In addition to the per-stage functions, the job graph API also provide a generic
 `config` function, which adds arbitrary configuration steps to a node in any
@@ -280,7 +280,7 @@ node dseqs, and on failure throws an exception.
 ```clj
 (defn word-count
   [conf dseq dsink]
-  (-> (pg/source dseq)
+  (-> (pg/input dseq)
       (pg/map #'mapper)
       (pg/partition [Text LongWritable])
       (pg/combine #'reducer)

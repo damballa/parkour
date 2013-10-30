@@ -82,20 +82,26 @@ entries for the keys in the collection `outputs`."
 
 (let [id (atom 0)]
   (defn ^:private gen-id
-    "Return application-unique source/sink ID."
+    "Return application-unique input/output ID."
     [] (swap! id inc)))
 
-(defn source
-  "Return a fresh `:source`-stage job graph node consuming from the provided
-`dseq`.  If instead provided a `:source`-stage node, will return it."
+(defn input
+  "Return a fresh `:input`-stage job graph node consuming from the provided
+`dseq`.  If instead provided a `:input`-stage node, will return it."
   [dseq]
-  (if (identical? :source (:stage dseq))
+  (if (identical? :input (:stage dseq))
     dseq
-    {:stage :source,
-     :source-id (gen-id),
+    {:stage :input,
+     :input-id (gen-id),
      :config [(dseq/dseq dseq)],
      :requires [],
      }))
+
+(def
+  ^{:deprecated true, :arglists '([dseq])}
+  source
+  "Deprecated alias for `input`."
+  input)
 
 (defn config
   "Add arbitrary configuration steps to `node`, which may be either a single job
@@ -149,13 +155,13 @@ Clojure var `var` and optional `args`."
 
 (defmethod map ::vector
   [nodes & more]
-  (if-not (every? (comp #{:source} stage) nodes)
-    (throw (ex-info "Cannot merge non-`:source` nodes." {:nodes nodes}))
-    (let [node (assoc (source (apply mux/dseq (cc/map :config nodes)))
+  (if-not (every? (comp #{:input} stage) nodes)
+    (throw (ex-info "Cannot merge non-`:input` nodes." {:nodes nodes}))
+    (let [node (assoc (input (apply mux/dseq (cc/map :config nodes)))
                  :requires (into [] (mapcat :requires nodes)))]
       (apply map node more))))
 
-(defmethod map :source
+(defmethod map :input
   [node mapper & args]
   (let [step (apply mapper-config mapper args)]
     (-> node (config step) (assoc :stage :map))))
@@ -201,7 +207,7 @@ vector of the two map-output key & value classes."
     (let [steps (mapv #(mpartial mux/add-substep (:config %)) nodes)
           mapper (mapper-config parkour.hadoop.Mux$Mapper)
           node {:stage :map,
-                :source-id (gen-id),
+                :input-id (gen-id),
                 :config (conj steps mapper),
                 :requires (into [] (mapcat :requires nodes))}]
       (apply partition node classes cls-var args))))
@@ -234,34 +240,40 @@ or Clojure var `var` and optional `args`."
     (let [step (apply reducer-config cls-var args)]
       (-> node (config step) (assoc :stage :reduce)))))
 
-(defn ^:private re-source
-  [node dsink] (-> dsink dsink/dsink-dseq source (assoc :requires [node])))
+(defn ^:private re-input
+  [node dsink] (-> dsink dsink/dsink-dseq input (assoc :requires [node])))
 
 (defn ^:private map-only
   "Configuration step for map-only jobs."
   [^Job job] (.setNumReduceTasks job 0))
 
-(defn ^:private sink*
-  "Chain sink task following job node `node`."
+(defn ^:private output*
+  "Chain output task following job node `node`."
   [node dsink]
   (if-not (map? node)
-    (error "sink" node)
-    (-> (assoc node :stage :sink, :sink-id (gen-id))
+    (error "output" node)
+    (-> (assoc node :stage :output, :output-id (gen-id))
         (cond-> (identical? :map (stage node)) (config map-only))
         (config dsink))))
 
-(defn sink
-  "Add sinking to job node `node` for sinking to dsink `dsink` or named-output
-name-dsink pairs `named-dsinks`.  Yields either a new `:source`-stage node
-reading from the sunk output or a vector of such nodes."
+(defn output
+  "Add output task to job node `node` for writing to `dsink` or named-output
+name-dsink pairs `named-dsinks`.  Yields either a new `:input`-stage node
+reading from the written output or a vector of such nodes."
   {:arglists '([node dsink] [node & named-dsinks])}
   ([node dsink]
-     (-> node (sink* dsink) (re-source dsink)))
+     (-> node (output* dsink) (re-input dsink)))
   ([node dsinks & rest]
      (let [named-dsinks (cons dsinks rest),
            dsinks (take-nth 2 (drop 1 named-dsinks)),
-           node (->> named-dsinks (apply hash-map) dux/dsink (sink* node))]
-       (mapv (partial re-source node) dsinks))))
+           node (->> named-dsinks (apply hash-map) dux/dsink (output* node))]
+       (mapv (partial re-input node) dsinks))))
+
+(def
+  ^{:deprecated true, :arglists '([node dsink] [node & named-dsinks])}
+  sink
+  "Deprecated alias for `output`."
+  output)
 
 (defn node-job
   "Hadoop `Job` for job node `node`, starting with base configuration `conf`
@@ -311,7 +323,7 @@ not swallow `InterruptedException`."
   "Return a function for executing the job defined by the job node `node`, using
 base configuration `conf` and job name `jname`."
   [node conf jname]
-  (if (identical? :source (stage node))
+  (if (identical? :input (stage node))
     (constantly (-> node :config first))
     (fn [& args]
       (let [job (node-job node conf jname)]
@@ -324,8 +336,8 @@ base configuration `conf` and job name `jname`."
   "Application-unique node-identifier of node `node`."
   [node]
   (case (stage node)
-    :source (:source-id node)
-    :sink (:sink-id node)
+    :input (:input-id node)
+    :output (:output-id node)
     #_else (error "node-id" node)))
 
 (defn ^:private flatten-graph*
