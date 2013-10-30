@@ -8,14 +8,15 @@
   (:import [org.apache.avro Schema]
            [org.apache.avro.mapred AvroKey AvroValue AvroWrapper]
            [org.apache.avro.mapreduce
-             AvroJob AvroKeyInputFormat AvroKeyValueInputFormat
-             AvroKeyOutputFormat AvroKeyValueOutputFormat]
+             AvroJob AvroKeyInputFormat AvroKeyOutputFormat
+             AvroKeyValueOutputFormat]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]
            [abracad.avro ClojureData]
-           [parkour.hadoop AvroKeyGroupingComparator]))
+           [parkour.hadoop
+             AvroKeyGroupingComparator ClojureAvroKeyValueInputFormat]))
 
 (extend-protocol w/Wrapper
   AvroWrapper
@@ -56,7 +57,7 @@ input writer schema(s)."
        (AvroJob/setInputValueSchema job (avro/parse-schema vs)))
      (doto job
        (set-data-model)
-       (.setInputFormatClass AvroKeyValueInputFormat))))
+       (.setInputFormatClass ClojureAvroKeyValueInputFormat))))
 
 (defn set-map-output
   "Configure `job` map output to produce Avro with key schema `ks` and
