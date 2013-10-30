@@ -286,7 +286,7 @@ dynamic scope."
 (defn run-job
   "Run `job` and wait synchronously for it to complete.  Kills the job on
 exceptions or JVM shutdown.  Unlike the `Job#waitForCompletion()` method, does
-not swallowing `InterruptedException`."
+not swallow `InterruptedException`."
   [^Job job]
   (let [interval (conf/get-int job "jobclient.completion.poll.interval" 5000)
         jname (.getJobName job)
