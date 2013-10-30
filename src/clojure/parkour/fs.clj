@@ -67,13 +67,14 @@
     (let [uri (URI. x)]
       (condp = (.getScheme uri)
         "file" (.toURI (io/file uri))
-        nil    (let [p (Path. x)]
-                 (.toUri (.makeQualified p (path-fs p))))
+        nil    (-uri (-path x))
         ,,,,,, uri)))
 
   Path
   (-path [x] x)
-  (-uri [x] (.toUri (.makeQualified x (path-fs x))))
+  (-uri [x]
+    (let [fs (ignore-errors (path-fs x))]
+      (-> x (cond-> fs (.makeQualified fs)) .toUri)))
 
   URI
   (-path [x] (Path. x))
@@ -141,14 +142,16 @@ supported scheme and via `io/input-stream` when not."
 (extend Path
   io/IOFactory
   (assoc io/default-streams-impl
-    :make-input-stream (fn [p opts]
-                         (if-let [fs (or (:fs opts) (path-fs p))]
-                           (io/make-input-stream (path-open fs p) opts)
-                           (io/input-stream (io/as-url p))))
-    :make-output-stream (fn [p opts]
-                          (if-let [fs (or (:fs opts) (path-fs p))]
-                            (io/make-output-stream (path-open fs p) opts)
-                            (io/output-stream (io/as-url p))))))
+    :make-input-stream
+    , (fn [p opts]
+        (if-let [fs (or (:fs opts) (ignore-errors (path-fs p)))]
+          (io/make-input-stream (path-open fs p) opts)
+          (io/make-input-stream (io/as-url p) opts)))
+    :make-output-stream
+    , (fn [p opts]
+        (if-let [fs (or (:fs opts) (ignore-errors (path-fs p)))]
+          (io/make-output-stream (path-create fs p) opts)
+          (io/make-output-stream (io/as-url p) opts)))))
 
 ;; Private for some reason, so copy internally
 (def ^:private do-copy @#'io/do-copy)
