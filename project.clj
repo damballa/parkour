@@ -12,14 +12,13 @@
                  [org.apache.avro/avro "1.7.5"]
                  [org.apache.avro/avro-mapred "1.7.5"
                   :exclusions [org.apache.avro/avro-ipc]]]
-  :aliases {"test" ["with-profile" ~(str ;;"default,hadoop-0-20-2:"
-                                         "default,hadoop-0-20-205:"
-                                         "default,hadoop-1-0-3:"
-                                         "default,hadoop-1-2-1:"
-                                         "default,hadoop-cdh3:"
-                                         "default,hadoop-cdh4:"
-                                         "default,hadoop-2-2-0")
-                    ,              "test"]}
+  :aliases {"test-all" ["with-profile" ~(str "default,hadoop-0-20-205:"
+                                             "default,hadoop-1-0-3:"
+                                             "default,hadoop-1-2-1:"
+                                             "default,hadoop-cdh3:"
+                                             "default,hadoop-cdh4:"
+                                             "default,hadoop-2-2-0")
+                        ,              "test"]}
   :profiles {:provided {:dependencies
                         [[org.codehaus.jsr166-mirror/jsr166y "1.7.0"]
                          [org.apache.hadoop/hadoop-core "1.2.1"]
@@ -29,8 +28,6 @@
              :examples {:source-paths ["examples"]}
              :dev [:examples]
              :test {:resource-paths ["test-resources"]}
-             :hadoop-0-20-2 {:dependencies
-                             [[org.apache.hadoop/hadoop-core "0.20.2"]]}
              :hadoop-0-20-205 {:dependencies
                                [[org.apache.hadoop/hadoop-core "0.20.205.0"]]}
              :hadoop-1-0-3 {:dependencies
