@@ -44,6 +44,7 @@ configuration copied from the current default."
 
 (defn clone
   "Return new Hadoop `Configuration`, cloning `conf`."
+  {:tag `Configuration}
   [conf] (Configuration. (configuration conf)))
 
 (defmacro with-default
@@ -81,6 +82,7 @@ the `body` expressions."
 
 (defn assoc!
   "Set `conf` parameter `key` to `val`."
+  {:tag `Configuration}
   ([conf] conf)
   ([conf key val]
      (returning conf
@@ -91,12 +93,13 @@ the `body` expressions."
          conf
          (recur conf (first kvs) (second kvs) (nnext kvs))))))
 
-(def set!
+(def ^{:tag `Configuration} set!
   "Alias for `assoc!`."
   assoc!)
 
 (defn merge!
   "Merge `coll` of key-value pairs into Hadoop configuration `conf`."
+  {:tag `Configuration}
   [conf coll]
   (apply assoc! conf (apply concat coll)))
 
