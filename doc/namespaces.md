@@ -51,7 +51,7 @@ fitting the default Hadoop idiom.
 The protocol `unwrap` function extracts a native value from a wrapper object.
 The `rewrap` function mutates a wrapper object to wrap a new value.  The
 multimethod-backed `new-instance` function creates a fresh instance of an
-arbitrary wrapper class, as per most `Writable`s’ zero-argument constructor.
+arbitrary wrapper class, as per most `Writable`s’ zero-argument constructors.
 
 The `parkour.wrapper` namespaces contains implementations for many of the most
 common classes, with others easily provided by the user.  Much of the
@@ -142,7 +142,7 @@ exposed by the base Hadoop Java API.
 
 ### parkour.cstep
 
-The `parkour.cstep` namespaces provides the `ConfigStep` protocol.  Although
+The `parkour.cstep` namespace provides the `ConfigStep` protocol.  Although
 configuration steps are conceptually just functions over `Job` objects,
 implementation in terms of a protocol yields certain practical advantages.  The
 namespace provides the protocol-backed `apply!` function for applying an
