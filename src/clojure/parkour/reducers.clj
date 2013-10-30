@@ -1,7 +1,28 @@
 (ns parkour.reducers
+  (:refer-clojure :exclude [map-indexed reductions])
   (:require [clojure.core.reducers :as r]
             [clojure.core.protocols :as ccp]
             [parkour.util :refer [returning]]))
+
+(defn map-indexed
+  "Reducers version of `map-indexed`."
+  [f coll]
+  (r/reducer coll
+    (fn [f1]
+      (let [i (atom -1)]
+        (fn [acc x] (f1 acc (f (swap! i inc) x)))))))
+
+(defn reductions
+  "Reducers version of `reductions`."
+  [f init coll]
+  (r/reducer coll
+    (fn [f1]
+      (let [sentinel (Object.), state (atom sentinel)]
+        (fn [acc x]
+          (f1 (if (identical? sentinel @state)
+                (f1 acc (reset! state init))
+                acc)
+              (swap! state f x)))))))
 
 (defn reduce-by
   "Partition `coll` with `keyfn` as per `partition-by`, then reduce
