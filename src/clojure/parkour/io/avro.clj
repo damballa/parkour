@@ -113,8 +113,19 @@ when the output format has not been otherwise explicitly specified."
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))
        (AvroJob/setOutputValueSchema (avro/parse-schema vs)))))
 
-(defn ^:private schema?
-  [x] (or (instance? Schema x) (keyword? x)))
+(defn tuple-schema
+  "Return Avro schema for record consisting of fields of the provided `types`."
+  [& types]
+  (let [schemas (mapv avro/parse-schema types)
+        schemas (->> {:name (name (gensym "parkour.io.avro.tuple")),
+                      :type "record",
+                      :abracad.reader "vector",
+                      :fields (map-indexed (fn [i ^Schema schema]
+                                             {:name (str "field" i),
+                                              :type (.getFullName schema)})
+                                           schemas)}
+                     (conj schemas))]
+    (apply avro/parse-schema schemas)))
 
 (defn dseq
   "Distributed sequence of Avro input, applying the vector of `schemas` as per
