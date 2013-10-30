@@ -22,10 +22,3 @@ var-trampolining implementations of the various Hadoop classes which Hadoop
 expects to locate via name-based reflection.  A more general implementation
 would use a custom ClassLoader which could dynamically generate and return new
 instances of the supported types.
-
-* Clojure/Abracad AvroKeyValueInputFormat
-
-The =AvroKeyValueInputFormat= class only works in terms of =GenericRecord=
-instances, and thus doesn’t work with Abracad.  Need to either figure out a way
-to make it work generically (hard) or implement internal version which works
-with Abracad-produced Clojure vectors.
