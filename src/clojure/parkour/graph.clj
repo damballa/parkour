@@ -86,14 +86,16 @@ entries for the keys in the collection `outputs`."
     [] (swap! id inc)))
 
 (defn source
-  "Return a fresh `:source`-stage job graph node consuming from the
-provided `dseq`."
+  "Return a fresh `:source`-stage job graph node consuming from the provided
+`dseq`.  If instead provided a `:source`-stage node, will return it."
   [dseq]
-  {:stage :source,
-   :source-id (gen-id),
-   :config [(dseq/dseq dseq)],
-   :requires [],
-   })
+  (if (identical? :source (:stage dseq))
+    dseq
+    {:stage :source,
+     :source-id (gen-id),
+     :config [(dseq/dseq dseq)],
+     :requires [],
+     }))
 
 (defn config
   "Add arbitrary configuration steps to `node`, which may be either a single job
