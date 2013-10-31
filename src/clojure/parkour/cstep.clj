@@ -14,6 +14,7 @@
 `step` may be a function, which will be passed the `job`; a map of configuration
 parameters and values; a vector of other steps; or anything implementing the
 `ConfigStep` protocol."
+  {:tag `Job}
   ([step] (apply! (mr/job) step))
   ([job step] (returning job (-apply! step job))))
 
