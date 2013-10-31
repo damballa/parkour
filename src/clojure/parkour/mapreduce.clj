@@ -192,15 +192,20 @@ unwrapped) tuple key and value objects."
 
 (defprotocol ^:private GetTaskAttemptID
   "Protocol for extracting a task attempt ID."
-  (^:private taid [x] "Task attempt ID for `x`."))
+  (^:private -taid [x] "Task attempt ID for `x`."))
 
 (extend-protocol GetTaskAttemptID
-  TaskAttemptContext (taid [tac] (.getTaskAttemptID tac))
-  TaskAttemptID (taid [taid] taid))
+  TaskAttemptContext (-taid [tac] (.getTaskAttemptID tac))
+  TaskAttemptID (-taid [taid] taid))
+
+(defn ^:private taid
+  "Return `TaskAttemptID` for `x` when provided, or a new `TaskAttemptID`."
+  ([] (TaskAttemptID. "parkour" 0 false 0 0))
+  ([x] (-taid x)))
 
 (defn tac
   "Return a new TaskAttemptContext instance using provided configuration `conf`
 and task attempt ID `taid`."
   {:tag `TaskAttemptContext}
-  ([conf] (tac conf (TaskAttemptID.)))
+  ([conf] (tac conf (taid)))
   ([conf id] (tac* (conf/ig conf) (taid id))))

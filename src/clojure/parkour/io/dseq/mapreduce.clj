@@ -3,8 +3,7 @@
   (:require [clojure.core.protocols :as ccp]
             [parkour (mapreduce :as mr) (wrapper :as w)]
             [parkour.util :refer [ignore-errors doto-let returning]])
-  (:import [org.apache.hadoop.mapreduce InputFormat RecordReader]
-           [org.apache.hadoop.mapreduce TaskAttemptID]))
+  (:import [org.apache.hadoop.mapreduce InputFormat RecordReader]))
 
 (defn input-format?
   [klass] (isa? klass InputFormat))
@@ -44,7 +43,7 @@
                 (if (empty? splits)
                   acc
                   (let [split (first splits), splits (rest splits)
-                        tac (mr/tac job (TaskAttemptID.)),
+                        tac (mr/tac job),
                         rr (doto (.createRecordReader ifi split tac)
                              (.initialize split tac))]
                     (recur acc splits (swap! rra update-rr rr))))))
