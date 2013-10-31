@@ -5,45 +5,46 @@ import java.io.IOException;
 import clojure.lang.IDeref;
 import clojure.lang.RT;
 
+import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-public class ProxyRecordReader<K, V> extends RecordReader<K, V> {
-  protected IRecordReader<K, V> irr;
+public abstract class WrapperRecordReader<K, V> extends RecordReader<K, V> {
+  protected RecordReader<K, V> rr;
 
-  public ProxyRecordReader(IRecordReader<K, V> irr) {
-    this.irr = irr;
+  public WrapperRecordReader(RecordReader<K, V> rr) {
+    this.rr = rr;
   }
 
   @Override
   public void close() throws IOException {
-    irr.close();
+    rr.close();
   }
 
   @Override
   public K getCurrentKey() throws IOException, InterruptedException {
-    return irr.getCurrentKey();
+    return rr.getCurrentKey();
   }
 
   @Override
   public V getCurrentValue() throws IOException, InterruptedException {
-    return irr.getCurrentValue();
+    return rr.getCurrentValue();
   }
 
   @Override
   public float getProgress() throws IOException, InterruptedException {
-    return irr.getProgress();
+    return rr.getProgress();
   }
 
   @Override
   public void initialize(InputSplit split, TaskAttemptContext context)
       throws IOException, InterruptedException {
-    this.irr = irr.initialize(split, context);
+    rr.initialize(split, context);
   }
 
   @Override
   public boolean nextKeyValue() throws IOException, InterruptedException {
-    return irr.nextKeyValue();
+    return rr.nextKeyValue();
   }
 }

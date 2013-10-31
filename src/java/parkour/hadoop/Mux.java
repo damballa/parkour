@@ -43,7 +43,7 @@ public class Mux {
     }
   }
 
-  public static class RecordReader<K, V> extends ProxyRecordReader<K, V> {
+  public static class RecordReader<K, V> extends WrapperRecordReader<K, V> {
     public RecordReader(org.apache.hadoop.mapreduce.RecordReader<K, V> rr) {
       super(rr);
     }

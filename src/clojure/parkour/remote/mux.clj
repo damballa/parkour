@@ -1,4 +1,5 @@
 (ns parkour.remote.mux
+  {:private true}
   (:require [clojure.core.reducers :as r]
             [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)]
             [parkour.io.mux :as mux])
