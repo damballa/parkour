@@ -6,6 +6,7 @@
   (:import [java.io Writer]
            [java.util List Map Set]
            [org.apache.hadoop.conf Configuration Configurable]
+           [org.apache.hadoop.fs Path]
            [org.apache.hadoop.mapreduce Job JobContext]))
 
 (def ^:dynamic ^:private ^Configuration *default*
@@ -139,6 +140,7 @@ the `body` expressions."
   Boolean (.setBoolean conf key (boolean val)))
 
 (defmethod conf-coerce :default [val] val)
+(defmethod conf-coerce Path [val] (str val))
 (defmethod conf-coerce Class [val] (.getName ^Class val))
 (defmethod conf-coerce List [val] (str/join "," (map conf-coerce val)))
 (defmethod conf-coerce Set [val] (str/join "," (map conf-coerce val)))
