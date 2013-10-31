@@ -35,6 +35,8 @@ parameters and values; a vector of other steps; or anything implementing the
       (.setJarByClass parkour.hadoop.Mappers)
       (conf/assoc! #_job
         "mapreduce.task.classpath.user.precedence" true
+        "mapreduce.job.user.classpath.first" true
+        "mapreduce.user.classpath.first" true
         "avro.serialization.data.model" "abracad.avro.ClojureData"))))
 
 (defn step-map
