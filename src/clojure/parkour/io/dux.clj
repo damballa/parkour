@@ -82,27 +82,17 @@ basename `base`."
         tac (mr/tac conf context), c (get-counter context oname)
         ckey (.getOutputKeyClass job), cval (.getOutputValueClass job)
         rw (.getRecordWriter ^OutputFormat of tac)]
-    (reify
-      Configurable
-      (getConf [_] conf)
-
-      w/Wrapper
-      (unwrap [_] rw)
-
-      snk/TupleSink
-      (-key-class [_] ckey)
-      (-val-class [_] cval)
-      (-emit-keyval [_ key val]
-        (.write rw key val)
-        (.increment c 1))
-
-      IFn
-      (invoke [sink keyval] (snk/emit-keyval sink keyval))
-      (invoke [sink key val] (snk/emit-keyval sink key val))
-      (applyTo [sink args]
-        (case (count args)
-          1 (let [[keyval] args] (snk/emit-keyval sink keyval))
-          2 (let [[key val] args] (snk/emit-keyval sink key val)))))))
+    (snk/wrap-sink
+     (reify
+       Configurable (getConf [_] conf)
+       w/Wrapper (unwrap [_] rw)
+       snk/TupleSink
+       (-key-class [_] ckey)
+       (-val-class [_] cval)
+       (-close [_] (.close rw context))
+       (-emit-keyval [_ key val]
+         (.write rw key val)
+         (.increment c 1))))))
 
 (defn get-sink
   "Get sink for named output `oname` and optional (file output format only) file
@@ -112,7 +102,6 @@ basename `base`."
      (let [[jobs ofs rws] (dux-state context), rwkey [oname base]]
        @(or (get-in @rws rwkey)
             (let [new-rw (partial new-rw context oname base)
-                  new-rw (comp snk/wrap-sink new-rw)
                   add-rw (fn [rws]
                            (if rws
                              (if-let [rw (get-in rws rwkey)]
