@@ -135,8 +135,7 @@ the arguments to `set-input`, and reading from `paths`."
   (dseq/dseq
    (fn [^Job job]
      (apply set-input job schemas)
-     (doseq [path paths]
-       (FileInputFormat/addInputPath job (fs/path path))))))
+     (FileInputFormat/setInputPaths job (fs/path-array paths)))))
 
 (defn shuffle
   "Configuration step for Avro shuffle, with key schema `ks`, optional value

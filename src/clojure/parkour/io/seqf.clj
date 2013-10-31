@@ -13,8 +13,7 @@
   (dseq/dseq
    (fn [^Job job]
      (.setInputFormatClass job SequenceFileInputFormat)
-     (doseq [path paths]
-       (FileInputFormat/addInputPath job (fs/path path))))))
+     (FileInputFormat/setInputPaths job (fs/path-array paths)))))
 
 (defn dsink
   "Distributed sink writing tuples of classes `ckey` and `cval` to `path`."

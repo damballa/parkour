@@ -28,6 +28,11 @@
   ([x y] (Path. (-path x) (str y)))
   ([x y & more] (apply path (path x y) more)))
 
+(defn path-array
+  "Array of `Path`s for each entry in seq `ps`."
+  {:tag `"[Lorg.apache.hadoop.fs.Path;"}
+  [ps] (into-array Path (map path ps)))
+
 (defmethod print-method Path [x w] (write-all w "#hadoop.fs/path \"" x "\""))
 (defmethod print-dup Path [x w] (write-all w "#hadoop.fs/path \"" x "\""))
 

@@ -14,8 +14,7 @@ of (file offset, text line)."
   (dseq/dseq
    (fn [^Job job]
      (.setInputFormatClass job TextInputFormat)
-     (doseq [path paths]
-       (FileInputFormat/addInputPath job (fs/path path))))))
+     (FileInputFormat/setInputPaths job (fs/path-array paths)))))
 
 (defn dsink
   "Distributed sink for line-delimited text output.  Produces one line
