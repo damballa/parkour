@@ -107,6 +107,15 @@
      (->> (.listStatus ^FileSystem fs (path p))
           (map #(.getPath ^FileStatus %) ))))
 
+(defn path-delete
+  "Recursively delete files at path `p`."
+  ([p] (path-delete (path-fs p) p))
+  ([fs p] (.delete ^FileSystem fs (path p) true)))
+
+(defn hidden?
+  "True iff `p` is an HDFS-hidden ('_'-prefixed) file."
+  [p] (-> p path .getName (.startsWith "_")))
+
 (defn path-map
   "Return map of file basename to full path for all files in `dir`."
   ([dir] (path-map (path-fs dir) dir))
