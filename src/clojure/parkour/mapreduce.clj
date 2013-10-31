@@ -202,4 +202,5 @@ unwrapped) tuple key and value objects."
   "Return a new TaskAttemptContext instance using provided configuration `conf`
 and task attempt ID `taid`."
   {:tag `TaskAttemptContext}
-  [conf id] (tac* (conf/ig conf) (taid id)))
+  ([conf] (tac conf (TaskAttemptID.)))
+  ([conf id] (tac* (conf/ig conf) (taid id))))
