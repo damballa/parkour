@@ -58,10 +58,10 @@ data with parallel index (reducer, offset) tuple and final reducer count."
          (mr/sink-as :keys))))
 
 ;; Avro schemas
-(def name-value (mra/tuple-schema :string :double))
-(def long-pair (mra/tuple-schema :long :long))
-(def index-value (mra/tuple-schema long-pair :double))
-(def entry (mra/tuple-schema :long :long :double))
+(def name-value (mra/tuple-schema [:string :double]))
+(def long-pair (mra/tuple-schema [:long :long]))
+(def index-value (mra/tuple-schema [long-pair :double]))
+(def entry (mra/tuple-schema [:long :long :double]))
 
 (defn matrixify
   "Run matrix-ification jobs for `dseq`, storing output under `workdir` and
