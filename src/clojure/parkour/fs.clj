@@ -162,12 +162,19 @@ supported scheme and via `io/input-stream` when not."
   [input output opts] (do-copy (io/reader input) output opts))
 (defmethod do-copy [Path File]
   [input output opts] (do-copy (io/input-stream input) output opts))
+
 (defmethod do-copy [InputStream Path]
-  [input output opts] (do-copy input (io/output-stream output) opts))
+  [input output opts]
+  (with-open [output (io/output-stream output)]
+    (do-copy input output opts)))
 (defmethod do-copy [Reader Path]
-  [input output opts] (do-copy input (io/writer output) opts))
+  [input output opts]
+  (with-open [output (io/writer output)]
+    (do-copy input output opts)))
 (defmethod do-copy [File Path]
-  [input output opts] (do-copy input (io/output-stream output) opts))
+  [input output opts]
+  (with-open [output (io/output-stream output)]
+    (do-copy input output opts)))
 
 (def ^:dynamic *temp-dir*
   "Default path to system temporary directory on the default
