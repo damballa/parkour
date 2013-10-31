@@ -1,7 +1,3 @@
-* Local sinking support
-
-As per =parkour.inspect= / =parkour.graph.dseq=.
-
 * Integration for writing other Hadoop classes
 
 ** Input formats

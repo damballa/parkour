@@ -1,8 +1,12 @@
 (ns parkour.io.dsink
-  (:require [parkour (cstep :as cstep)]
+  (:require [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)
+                     (cstep :as cstep)]
+            [parkour.mapreduce (sink :as snk)]
             [parkour.io (dseq :as dseq)]
             [parkour.util :refer [ignore-errors]])
-  (:import [java.io Writer]))
+  (:import [java.io Closeable Writer]
+           [org.apache.hadoop.conf Configurable]
+           [org.apache.hadoop.mapreduce OutputCommitter OutputFormat]))
 
 (deftype DSink [dseq step]
   Object
@@ -29,5 +33,32 @@ sink produces the `nil` dseq."
   ([dseq step] (DSink. dseq step)))
 
 (defn dsink-dseq
-  "Force `step` to a dsink, the return its corresponding dseq"
+  "Force `step` to a dsink, then return its corresponding dseq."
   [step] (-> step dsink dseq/dseq))
+
+(defn sink-for
+  "Local sink for writing tuples as written via `dsink`.  Must `.close` to
+flush, as if via `with-open`."
+  {:tag Closeable}
+  [dsink]
+  (let [job (cstep/apply! dsink), conf (conf/ig job), tac (mr/tac conf)
+        ckey (.getOutputKeyClass job), cval (.getOutputValueClass job)
+        of (doto ^OutputFormat (w/new-instance job (.getOutputFormatClass job))
+                 (.checkOutputSpecs job))
+        oc (doto (.getOutputCommitter of tac)
+             (.setupJob job)
+             (.setupTask tac))
+        rw (.getRecordWriter of tac)]
+    (snk/wrap-sink
+     (reify
+       Configurable (getConf [_] conf)
+       w/Wrapper (unwrap [_] rw)
+       snk/TupleSink
+       (-key-class [_] ckey)
+       (-val-class [_] cval)
+       (-emit-keyval [_ key val] (.write rw key val))
+       (-close [_]
+         (.close rw tac)
+         (when (.needsTaskCommit oc tac)
+           (.commitTask oc tac))
+         (.commitJob oc job))))))

@@ -3,18 +3,21 @@
   (:require [clojure.core :as cc]
             [parkour (conf :as conf) (wrapper :as w)]
             [parkour.util :refer [returning]])
-  (:import [clojure.lang IFn]
+  (:import [java.io Closeable]
+           [clojure.lang IFn]
            [org.apache.hadoop.conf Configurable]
            [org.apache.hadoop.mapreduce MapContext ReduceContext]))
 
 (defprotocol TupleSink
   "Internal protocol for emitting tuples to a sink."
-  (-emit-keyval [sink key val]
-    "Emit the tuple pair of `key` and `value` to `sink`.")
   (-key-class [sink]
     "Key class expected by `sink`.")
   (-val-class [sink]
-    "Value class expected by `sink`."))
+    "Value class expected by `sink`.")
+  (-emit-keyval [sink key val]
+    "Emit the tuple pair of `key` and `value` to `sink`.")
+  (-close [sink]
+    "Close the sink, flushing any buffered output."))
 
 (defn emit-keyval
   "Emit pair of `key` and `val` to `sink` as a complete tuple."
@@ -42,6 +45,7 @@
   (-key-class [sink] (.getMapOutputKeyClass sink))
   (-val-class [sink] (.getMapOutputValueClass sink))
   (-emit-keyval [sink key val] (.write sink key val))
+  (-close [_])
 
   ReduceContext
   (-key-class [sink]
@@ -53,7 +57,8 @@
       "combine" (.getMapOutputValueClass sink)
       "reduce" (.getOutputValueClass sink)))
   (-emit-keyval [sink key val]
-    (.write sink key val)))
+    (.write sink key val))
+  (-close [_]))
 
 (defn ^:private wrapper-class
   "Sink key/value class, for provided class `c` and original sink class `c'`.
@@ -80,10 +85,14 @@ the original class."
          TupleSink
          (-key-class [_] ckey)
          (-val-class [_] cval)
+         (-close [_] (-close sink))
          (-emit-keyval [_ key val]
            (let [key (if (instance? ckey key) key (w/rewrap wkey key))
                  val (if (instance? cval val) val (w/rewrap wval val))]
              (-emit-keyval sink key val)))
+
+         Closeable
+         (close [_] (-close sink))
 
          IFn
          (invoke [sink keyval] (emit-keyval sink keyval))
