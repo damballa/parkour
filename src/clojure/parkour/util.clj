@@ -102,3 +102,18 @@ composed function as the first argument of each composing function."
       (if (compare-and-set! atom oldval newval)
         oldval
         (recur)))))
+
+;; Derived from clojure/core/reducers.clj
+(defmacro compile-if
+  "Evaluate `exp` and if it returns logical true and doesn't error, expand to
+`then`.  Else expand to `else` if provided."
+  ([exp then] `(compile-if exp then nil))
+  ([exp then else]
+     (if (try (eval exp) (catch Throwable _ false))
+       `(do ~then)
+       `(do ~else))))
+
+(defmacro compile-when
+  "Evaluate `exp` and if it returns logical true and doesn't error, expand
+`body` forms."
+  [exp & body] `(compile-if (do ~@body) nil))
