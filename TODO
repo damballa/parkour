@@ -8,7 +8,6 @@
 
 * Logging
 
-- Splits being processed by individual tasks
 - Probably other logging?
 
 * Use class loader instead of pools

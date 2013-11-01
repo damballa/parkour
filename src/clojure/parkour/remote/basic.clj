@@ -2,9 +2,10 @@
   {:private true}
   (:require [clojure.string :as str]
             [clojure.edn :as edn]
-            [parkour (conf :as conf) (mapreduce :as mr) (wrapper :as w)]
-            [parkour.util :refer [doto-let]])
-  (:import [clojure.lang IFn$OOLL]))
+            [clojure.tools.logging :as log]
+            [parkour (conf :as conf) (mapreduce :as mr) (wrapper :as w)])
+  (:import [clojure.lang IFn$OOLL]
+           [org.apache.hadoop.mapreduce MapContext]))
 
 (defn require-readers
   "Require the namespaces of all `*data-readers*` vars."
@@ -51,21 +52,26 @@ arguments `args`.  Wrap with `wrap`, unless `v` is a raw task function."
   [id context]
   (let [conf (doto (conf/ig context)
                (conf/assoc! "parkour.step" "map"))
-        [v args] (step-v-args conf "mapper" id)]
+        [v args] (step-v-args conf "mapper" id)
+        split (.getInputSplit ^MapContext context)]
+    (log/infof "mapper: split=%s, var=%s, args=%s"
+               (pr-str split) (pr-str v) (pr-str args))
     (conf/with-default conf
       ((task-fn task-transformer v conf args) context))))
 
 (defn reducer-run
   [id context]
-  (let [conf (doto-let [conf (conf/ig context)]
-               (->> (conf/get conf (str "parkour.reducer." id ".step"))
-                    (conf/assoc! conf "parkour.step")))
+  (let [step (conf/get context (str "parkour.reducer." id ".step"))
+        conf (doto (conf/ig context)
+               (conf/assoc! "parkour.step" step))
         [v args] (step-v-args conf "reducer" id)]
+    (log/infof "reducer: var=%s, args=%s" (pr-str v) (pr-str args))
     (conf/with-default conf
       ((task-fn task-transformer v conf args) context))))
 
 (defn partitioner-set-conf
   [conf]
   (let [[v args] (step-v-args conf "partitioner")]
+    (log/infof "partitioner: var=%s, args=%s" (pr-str v) (pr-str args))
     (conf/with-default conf
       (task-fn task-partitioner v conf args))))
