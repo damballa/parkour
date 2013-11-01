@@ -5,13 +5,18 @@
             [parkour.io (dseq :as dseq)]
             [parkour.util :refer [ignore-errors]])
   (:import [java.io Closeable Writer]
+           [clojure.lang IObj]
            [org.apache.hadoop.conf Configurable]
            [org.apache.hadoop.mapreduce OutputCommitter OutputFormat]))
 
-(deftype DSink [dseq step]
+(deftype DSink [meta dseq step]
   Object
   (toString [this]
     (str "conf=" (-> step cstep/step-map pr-str ignore-errors (or "?"))))
+
+  IObj
+  (meta [_] meta)
+  (withMeta [_ meta] (DSink. meta dseq step))
 
   cstep/ConfigStep
   (-apply! [_ job] (cstep/apply! job step))
@@ -30,7 +35,7 @@ step which returns `dseq` when called as a zero-argument function.  When `dseq`
 is not provided, and `step` is not already a distributed sink, the resulting
 sink produces the `nil` dseq."
   ([step] (if (dsink? step) step (dsink nil step)))
-  ([dseq step] (DSink. dseq step)))
+  ([dseq step] (DSink. (meta step) dseq step)))
 
 (defn dsink-dseq
   "Force `step` to a dsink, then return its corresponding dseq."

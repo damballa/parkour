@@ -4,7 +4,8 @@
             [parkour (conf :as conf) (cstep :as cstep) (wrapper :as w)]
             [parkour.io.dseq (mapred :as mr1) (mapreduce :as mr2)]
             [parkour.util :refer [ignore-errors]])
-  (:import [java.io Writer]))
+  (:import [java.io Writer]
+           [clojure.lang IObj]))
 
 (defprotocol DSeqable
   "Protocol for producing distribute sequence."
@@ -20,10 +21,14 @@
                      (mr2/input-format? klass) mr2/reducible)]
        (rsf job klass))))
 
-(deftype DSeq [step]
+(deftype DSeq [meta step]
   Object
   (toString [this]
     (str "conf=" (-> step cstep/step-map pr-str ignore-errors (or "?"))))
+
+  IObj
+  (meta [_] meta)
+  (withMeta [_ meta] (DSeq. meta step))
 
   cstep/ConfigStep
   (-apply! [_ job] (cstep/apply! job step))
@@ -41,7 +46,7 @@
 
 (extend-protocol DSeqable
   nil (-dseq [_] nil)
-  Object (-dseq [step] (DSeq. step)))
+  Object (-dseq [step] (DSeq. (meta step) step)))
 
 (defn dseq?
   "True iff `x` is a distributed sequence."
