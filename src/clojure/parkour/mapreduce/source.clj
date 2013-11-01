@@ -47,7 +47,7 @@ of such tuples."
 provided, applies `nextf` to `context` to retrieve the next tuple source for
 each iteration and `dataf` to retrieve the tuple values passed to `f`."
   ([context f init]
-     (reduce next-keyval keyval f init))
+     (reduce next-keyval keyval context f init))
   ([nextf dataf context f init]
      (loop [context context, state init]
        (if-let [context (nextf context)]
