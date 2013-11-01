@@ -10,7 +10,7 @@ Parkour is available on Clojars.  Add this `:dependency` to your Leiningen
 `project.clj`:
 
 ```clj
-[com.damballa/parkour "0.3.0"]
+[com.damballa/parkour "0.3.2"]
 ```
 
 ## Usage
