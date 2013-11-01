@@ -177,10 +177,11 @@ specific integration for job input and output.
 The `parkour.io.dseq` namespace provides the `dseq` function for reifying a
 job-input configuration step as a “distributed sequence.”  As with any other
 configuration step, the backing configuration step functions simply call
-underlying job-configuration methods.  But in addition to acting as the
-configuration steps they wrap, distributed sequences also act as
-locally-reducible collections, providing well-integrated access to the input or
-output of any Hadoop job.
+underlying job-configuration methods.
+
+In addition to acting as the configuration steps they wrap, distributed
+sequences also act as locally-reducible collections.  This provides seamless
+local access to the input or output of any Hadoop job.
 
 The `parkour.io.dsink` namespace provides the `dsink` function for reifying a
 job-output configuration step as a “distributed sink.”  As with dseqs, dsinks
@@ -189,6 +190,11 @@ however takes a second parameter, which is a dseq for consuming as input the
 results of a job writing to the dsink.  This allows abstract specification of
 job-chains, where subsequent jobs consume as input the output of previous jobs.
 When called on a dsink, the `dseq` function will return this mirroring dseq.
+
+The `dsink/sink-for` function allows any `dsink` to be opened for writing
+locally.  The same `mr/sink` function used in job task functions will write
+local collections to these local sinks, producing the same output as when
+running a job.  This simplifies the creation of test fixtures, etc.
 
 Most of the remaining namespaces provide pre-built dseq and dsink
 implementations for common input and output formats:

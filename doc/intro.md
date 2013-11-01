@@ -85,9 +85,11 @@ source to also be treated as a local reducible collection.
 
 A Parkour distributed sink configures a job for output to a particular location
 and output format, reifying a function calling the underlying Hadoop
-`Job#setOutputFormatClass` etc methods.  In addition to `ConfigStep`, dsinks
+`Job#setOutputFormatClass` etc methods.  Dsinks are reified so that they can
 also implement the Parkour `DSeqable` protocol, which yields a dseq for reading
-back the results of writing to the dsink.
+back the results of writing to the dsink.  For testing etc, the `dsink/sink-for`
+function opens a local key/value tuple sink from a dsink, allowing local
+creation of any output a MapReduce job could produce.
 
 ### Job graph
 
