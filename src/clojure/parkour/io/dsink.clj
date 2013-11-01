@@ -3,7 +3,7 @@
                      (cstep :as cstep)]
             [parkour.mapreduce (sink :as snk)]
             [parkour.io (dseq :as dseq)]
-            [parkour.util :refer [ignore-errors]])
+            [parkour.util :refer [ignore-errors returning]])
   (:import [java.io Closeable Writer]
            [clojure.lang IObj]
            [org.apache.hadoop.conf Configurable]
@@ -67,3 +67,15 @@ flush, as if via `with-open`."
          (when (.needsTaskCommit oc tac)
            (.commitTask oc tac))
          (.commitJob oc job))))))
+
+(defn with-dseq*
+  "Function form of `with-dseq`."
+  [dsink f]
+  (returning (dsink-dseq dsink)
+    (with-open [sink (sink-for dsink)]
+      (mr/sink sink (f)))))
+
+(defmacro with-dseq
+  "Evaluate `body` forms, write tuples from resulting collection to the local
+sink produced from `dsink`, and return `dsink`'s associated dseq."
+  [dsink & body] `(with-dseq* ~dsink (fn ^:once [] ~@body)))

@@ -16,10 +16,7 @@
 
 (deftest test-output
   (let [lines ["foo" "bar" "baz" "quux"], p (fs/path "tmp/text")]
-    (fs/path-delete p)
-    (with-open [out (->> p text/dsink dsink/sink-for)]
-      (->> lines
-           (mr/sink-as :keys)
-           (mr/sink out)))
+    (dsink/with-dseq (text/dsink (doto p fs/path-delete))
+      (mr/sink-as :keys lines))
     (is (= lines (->> p fs/path-list (remove fs/hidden?) first
                       slurp str/split-lines)))))
