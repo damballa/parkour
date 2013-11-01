@@ -4,12 +4,12 @@
             [clojure.edn :as edn]
             [clojure.tools.logging :as log]
             [parkour (conf :as conf) (mapreduce :as mr) (wrapper :as w)])
-  (:import [clojure.lang IFn$OOLL]
+  (:import [clojure.lang IFn$OOLL Var]
            [org.apache.hadoop.mapreduce MapContext]))
 
 (defn require-readers
   "Require the namespaces of all `*data-readers*` vars."
-  [] (doseq [[_ v] *data-readers*] (-> v .-ns ns-name require)))
+  [] (doseq [[_ ^Var v] *data-readers*] (-> v .-ns ns-name require)))
 
 (defn step-v-args
   ([conf key]
