@@ -27,7 +27,12 @@
                          [org.slf4j/slf4j-log4j12 "1.6.1"]
                          [log4j "1.2.17"]]}
              :examples {:source-paths ["examples"]}
-             :dev [:examples]
+             :dev [:examples
+                   {:repositories {"conjars" "http://conjars.org/repo/"}
+                    :dependencies
+                    [[cascading/cascading-hadoop "2.2.0"
+                      :exclusions [org.codehaus.janino/janino
+                                   org.apache.hadoop/hadoop-core]]]}]
              :test {:resource-paths ["test-resources"]}
              :hadoop-0-20-205 {:dependencies
                                [[org.apache.hadoop/hadoop-core "0.20.205.0"]]}
