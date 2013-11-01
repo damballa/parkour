@@ -11,7 +11,8 @@
   (:import [java.io Writer]
            [clojure.lang Var]
            [org.apache.hadoop.mapreduce Job]
-           [org.apache.hadoop.mapreduce TaskAttemptContext TaskAttemptID]))
+           [org.apache.hadoop.mapreduce TaskAttemptContext TaskAttemptID]
+           [org.apache.hadoop.mapreduce Counters CounterGroup Counter]))
 
 (defn keys
   "Produce keys only from the tuples in `context`."
@@ -209,3 +210,13 @@ and task attempt ID `taid`."
   {:tag `TaskAttemptContext}
   ([conf] (tac conf (taid)))
   ([conf id] (tac* (conf/ig conf) (taid id))))
+
+(defn counters-map
+  "Translate job `counters` into nested Clojure map of strings to counts."
+  [counters]
+  (if (and counters (not (instance? Counters counters)))
+    (->> counters meta ::counters counters-map)
+    (let [c-entry (juxt #(.getName ^Counter %) #(.getValue ^Counter %))
+          group (fn [g] (->> g (r/map c-entry) (into {})))
+          g-entry (juxt #(.getName ^CounterGroup %) group)]
+      (->> counters (r/map g-entry) (into {})))))

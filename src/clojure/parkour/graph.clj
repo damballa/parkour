@@ -319,18 +319,25 @@ not swallow `InterruptedException`."
           (abort)
           (throw e))))))
 
-(defn node-fn
+(def node-fn nil)
+(defmulti node-fn
   "Return a function for executing the job defined by the job node `node`, using
 base configuration `conf` and job name `jname`."
+  {:arglists '([node conf jname])}
+  stage)
+
+(defmethod node-fn :input
   [node conf jname]
-  (if (identical? :input (stage node))
-    (constantly (-> node :config first))
-    (fn [& args]
-      (let [job (node-job node conf jname)]
-        (returning true
-          (when-not (run-job job)
-            (throw (ex-info (str "Job " jname " failed.")
-                            {:jname jname, :job job, :node node}))))))))
+  (fn [^Job job]
+    (-> node :config first (vary-meta assoc ::mr/counters (.getCounters job)))))
+
+(defmethod node-fn :default
+  [node conf jname]
+  (fn [& args]
+    (doto-let [job (node-job node conf jname)]
+      (when-not (run-job job)
+        (throw (ex-info (str "Job " jname " failed.")
+                        {:jname jname, :job job, :node node}))))))
 
 (defn ^:private node-id
   "Application-unique node-identifier of node `node`."

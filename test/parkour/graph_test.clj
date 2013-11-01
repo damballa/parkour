@@ -42,6 +42,8 @@
         dseq (text/dseq inpath)
         dsink (seqf/dsink Text LongWritable outpath)
         [result] (word-count (conf/ig) dseq dsink)]
+    (is (= 6 (-> (->> result mr/counters-map vals (apply merge))
+                 (get "MAP_OUTPUT_RECORDS"))))
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
            (into {} (r/map w/unwrap-all result))))))
 
