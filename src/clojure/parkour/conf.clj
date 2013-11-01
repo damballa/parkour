@@ -81,6 +81,10 @@ the `body` expressions."
   "Get class value of `conf` parameter `key`."
   ^Class [conf key default] (.getClass (configuration conf) key default))
 
+(defn get-vector
+  "Get string-vector value of `conf` parameter `key`."
+  [conf key default] (or (some-> (get conf key) (str/split #",")) default))
+
 (defn assoc!
   "Set `conf` parameter `key` to `val`."
   {:tag `Configuration}
