@@ -51,12 +51,15 @@ here is the classic “word count” example, in Parkour:
 
 Parkour’s documentation is divided into a number of separate sections:
 
-- [Introduction][intro] – A short getting-started introduction, with an overview
-  of Parkour’s key concepts.
-- [Motivation][motivation] – A detailed explanation of the goals Parkour exists
-  to achieve, with comparison to other libraries and frameworks.
-- [Namespaces guide][namespaces] – A guided tour of Parkour’s namespaces,
-  explaining how each set of functionality fits into the whole.
+- [Introduction][intro] – A getting-started introduction, with an overview of
+  Parkour’s key concepts.
+- [Motivation][motivation] – An explanation of the goals Parkour exists to
+  achieve, with comparison to other libraries and frameworks.
+- [Namespaces][namespaces] – A tour of Parkour’s namespaces, explaining how each
+  set of functionality fits into the whole.
+- [Serialization][serialization] – How Parkour integrates Clojure with Hadoop
+  serialization mechanisms.
+- [Testing][testing] – Patterns for testing Parkour MapReduce jobs.
 
 ## License
 
@@ -67,3 +70,5 @@ Distributed under the Eclipse Public License, the same as Clojure.
 [intro]: blob/master/doc/intro.md
 [motivation]: blob/master/doc/motivation.md
 [namespaces]: blob/master/doc/namespaces.md
+[serialization]: blob/master/doc/serialization.md
+[testing]: blob/master/doc/testing.md

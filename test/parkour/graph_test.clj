@@ -6,7 +6,7 @@
             [parkour (graph :as pg) (mapreduce :as mr) (reducers :as pr)
                      (conf :as conf) (fs :as fs) (wrapper :as w)]
             [parkour.io (text :as text) (seqf :as seqf) (avro :as mra)
-                        (dux :as dux)]
+                        (dux :as dux) (dsink :as dsink) (mem :as mem)]
             [parkour.util :refer [ignore-errors]])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
@@ -14,7 +14,7 @@
   [conf]
   (fn [_ input]
     (->> input mr/vals
-         (r/mapcat #(str/split % #"[ \t]+"))
+         (r/mapcat #(str/split % #"\s+"))
          (r/map #(-> [% 1])))))
 
 (defn word-count-reducer
@@ -36,7 +36,7 @@
 
 (deftest test-word-count
   (let [inpath (io/resource "word-count-input.txt")
-        outpath (fs/path "tmp/word-distinct-output")
+        outpath (fs/path "tmp/word-count-output")
         outfs (fs/path-fs outpath)
         _ (.delete outfs outpath true)
         dseq (text/dseq inpath)
@@ -45,7 +45,28 @@
     (is (= 6 (-> (->> result mr/counters-map vals (apply merge))
                  (get "MAP_OUTPUT_RECORDS"))))
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
-           (into {} (r/map w/unwrap-all result))))))
+           (->> result w/unwrap (into {}))))))
+
+(deftest test-word-count-local
+  (let [inpath (doto (fs/path "tmp/word-count-input") fs/path-delete)
+        outpath (doto (fs/path "tmp/word-count-output") fs/path-delete)
+        dseq (dsink/with-dseq (text/dsink inpath)
+               (->> ["apple banana banana" "carrot apple" "apple"]
+                    (mr/sink-as :keys)))
+        dsink (seqf/dsink [Text LongWritable] outpath)
+        [result] (word-count (conf/ig) dseq dsink)]
+    (is (= {"apple" 3, "banana" 2, "carrot" 1}
+           (->> result w/unwrap (into {}))))))
+
+(deftest test-word-count-mem
+  (let [outpath (doto (fs/path "tmp/word-count-output") fs/path-delete)
+        dseq (mem/dseq [[nil "apple banana banana"]
+                        [nil "carrot apple"]
+                        [nil "apple"]])
+        dsink (seqf/dsink [Text LongWritable] outpath)
+        [result] (word-count (conf/ig) dseq dsink)]
+    (is (= {"apple" 3, "banana" 2, "carrot" 1}
+           (->> result w/unwrap (into {}))))))
 
 (def key-schema
   {:name "key", :type "record"
