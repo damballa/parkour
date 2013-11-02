@@ -336,8 +336,7 @@ base configuration `conf` and job name `jname`."
   (fn [& args]
     (doto-let [job (node-job node conf jname)]
       (when-not (run-job job)
-        (throw (ex-info (str "Job " jname " failed.")
-                        {:jname jname, :job job, :node node}))))))
+        (throw (ex-info (str "Job " jname " failed.") {:jname jname}))))))
 
 (defn ^:private node-id
   "Application-unique node-identifier of node `node`."
