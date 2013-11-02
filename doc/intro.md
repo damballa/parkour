@@ -151,10 +151,10 @@ Here’s the complete classic “word count” example, written using Parkour:
   [& args]
   (let [[inpath outpath] args
         input (text/dseq inpath)
-        output (seqf/dsink Text LongWritable outpath)]
+        output (seqf/dsink [Text LongWritable] outpath)]
     (->> (word-count (conf/ig) input output)
-         first w/unwrap (into {})
-         prn)))
+         first w/unwrap (into {}) prn
+         tool/integral System/exit)))
 ```
 
 Let’s walk through some important features of this example.

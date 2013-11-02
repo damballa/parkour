@@ -203,6 +203,7 @@ implementations for common input and output formats:
 - `parkour.io.nline` – Line-oriented text files, with `n` lines per map task.
 - `parkour.io.seqf` – Hadoop sequence files.
 - `parkour.io.cascading` – Cascading sequence files.
+- `parkour.io.mem` – Memory-based input, for testing.
 - `parkour.io.avro` – Clojure-customized Avro input and output via
   [Abracad][abracad].  In addition to `dseq` and `dsink` functions for creating
   Avro dseqs and dsinks, also provides a `shuffle` function for configuring an

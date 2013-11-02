@@ -9,7 +9,7 @@ specific to Parkour.
 Hadoop’s `Writable` types establish the most common idiom for handling
 serialization on Hadoop.  In this idiom, tasks hold single mutable instances of
 serialization-specific wrapper types.  These instances are mutated for each
-input or output key/value.  
+input or output key/value.
 
 Parkour makes this pattern concrete in the `parkour.wrapper` namespaces’s
 `Wrapper` protocol.  The `Wrapper` protocol provides two functions:
@@ -19,7 +19,7 @@ Parkour makes this pattern concrete in the `parkour.wrapper` namespaces’s
 - `rewrap` – Accepts a wrapper type instance and a new value; returns a wrapper
   type instance holding the wrapped value.  Defaults to returning the value
   object itself.
-  
+
 In task functions, by default, input tuples are `unwrap`ed to values and output
 tuples are `rewrap`ed to the configured task output types.  This behavior is
 optional, and may be disabled via `:parkour.mapreduce/raw` metadata on

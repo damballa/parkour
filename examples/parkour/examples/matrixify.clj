@@ -1,4 +1,8 @@
 (ns parkour.examples.matrixify
+  "Example Parkour job graph translating a graph with arbitrary text-labeled
+nodes into an absolute-indexed matrix.  Accepts text-lines of
+whitespace-separated `src`, `dst`, and `weight` nodes.  Translates `src` nodes
+to rows, `dst` nodes to column, and `weight`s to matrix values."
   (:require [clojure.string :as str]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
@@ -26,7 +30,7 @@ data with parallel index (reducer, offset) tuple and final reducer count."
   (fn [context input]
     (let [red (conf/get-long conf "mapred.task.partition" -1)
           dim (->> (mr/keyvalgroups input)
-                   (reduce (fn [i [dim odims-vals]]
+                   (reduce (fn [i [_ odims-vals]]
                              (returning (inc i)
                                (->> odims-vals
                                     (r/map (fn [[odim val]]

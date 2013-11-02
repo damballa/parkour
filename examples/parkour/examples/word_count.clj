@@ -34,7 +34,7 @@
   [& args]
   (let [[outpath inpath] args
         input (text/dseq inpath)
-        output (seqf/dsink Text LongWritable outpath)]
+        output (seqf/dsink [Text LongWritable] outpath)]
     (->> (word-count (conf/ig) input output)
          first w/unwrap (into {}) prn
          tool/integral System/exit)))

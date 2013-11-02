@@ -2,14 +2,14 @@
 
 Like most Hadoop libraries, Pakour supports testing jobs by running jobs in
 local mode.  Unlike most libraries, local access to dseqs and dsinks makes
-input-construction and result-checking nearly as straightforward testing
+input-construction and result-checking nearly as straightforward as testing
 non-MapReduce code.
 
 ## Input/Output
 
 Parkour allows seamless testing of job results exactly as a regular program
-would consume job results.  That said, Parkour does provide a small number of
-support functions primarily designed to simplify construction of test _inputs_.
+would consume job results.  Parkour does provide a small number of test-support
+functions primarily designed to simplify construction of test _inputs_.
 
 ### with-dseq
 
