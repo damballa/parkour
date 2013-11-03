@@ -1,0 +1,5 @@
+/.lein-*
+/target/
+/tmp/
+/dist/
+/build/
