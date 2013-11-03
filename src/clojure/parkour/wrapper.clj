@@ -86,7 +86,9 @@ Writables."
   DoubleWritable
   FloatWritable)
 
-(defmulti new-instance*
+(def ^:no-doc ^:internal new-instance* nil)
+(defmulti ^:no-doc ^:internal new-instance*
+  "Internal class-dispatched instance-creation multimethod."
   (fn dispatch
     ([klass] klass)
     ([conf klass] klass)))

@@ -33,9 +33,9 @@ exception, return -1."
        (apply f conf (seq args))))))
 
 (defn tool
-  "Hadoop `Tool` for function `f`, which should take a Hadoop
-`Configuration` as it's first argument, follow by any number of
-additional (command-line string) argument."
+  "Hadoop `Tool` for function `f`, which should take a Hadoop `Configuration` as
+its first argument, follow by any number of additional (command-line string)
+argument."
   {:tag `Tool}
   ([f] (ParkourTool. nil f))
   ([conf f] (ParkourTool. (conf/iguration conf) f)))

@@ -11,9 +11,11 @@
            [org.apache.hadoop.filecache DistributedCache]))
 
 (defprotocol Coercions
-  (^org.apache.hadoop.fs.Path
+  "Protocol for coercing objects to Hadoop `Path`s and `java.net.URI`s.  Logical
+extension of `clojure.java.io/Coercions`."
+  (^org.apache.hadoop.fs.Path ^:no-doc
     -path [x] "Coerce argument to a Path; private implementation.")
-  (^java.net.URI
+  (^java.net.URI ^:no-doc
     -uri [x] "Coerce argument to a URI; private implementation."))
 
 (defmacro ^:private write-all

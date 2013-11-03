@@ -13,6 +13,20 @@
                  [org.apache.avro/avro "1.7.5"]
                  [org.apache.avro/avro-mapred "1.7.5"
                   :exclusions [org.apache.avro/avro-ipc]]]
+  :plugins [[codox/codox "0.6.6"]]
+  :codox {:src-dir-uri "https://github.atl.damballa/rnd/parkour/blob/master/"
+          :src-linenum-anchor-prefix "L"
+          :sources ["src/clojure"]
+          :exclude [parkour.io.dseq.mapred
+                    parkour.io.dseq.mapreduce
+                    parkour.mapreduce.sink
+                    parkour.mapreduce.source
+                    parkour.remote.basic
+                    parkour.remote.dux
+                    parkour.remote.mem
+                    parkour.remote.mux
+                    parkour.util]
+          :output-dir "tmp/codox"}
   :aliases {"test-all" ["with-profile" ~(str "default,hadoop-0-20-205:"
                                              "default,hadoop-1-0-3:"
                                              "default,hadoop-1-2-1:"

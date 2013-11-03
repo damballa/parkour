@@ -7,7 +7,7 @@
 
 (defprotocol ConfigStep
   "Protocol for objects which add a job configuration step."
-  (-apply! [step job] "Apply configuration `step` to Hadoop `job`."))
+  (^:no-doc -apply! [step job] "Apply configuration `step` to Hadoop `job`."))
 
 (defn apply!
   "Apply configuration `step` to Hadoop `job`, returning the mutated job.  The
