@@ -1,3 +1,10 @@
+* More execution options
+
+Parkour currently inherits Hadoop’s default job-failure behavior when a job’s
+output directory already exists.  It would be nice to support other behaviors,
+such as skipping existing, overwriting existing, or a make-like model where
+outputs are overwritten when their inputs have changed.
+
 * Integration for writing other Hadoop classes
 
 ** Input formats
@@ -17,3 +24,7 @@ var-trampolining implementations of the various Hadoop classes which Hadoop
 expects to locate via name-based reflection.  A more general implementation
 would use a custom ClassLoader which could dynamically generate and return new
 instances of the supported types.
+
+The ClassLoader approach may not however be possible.  It’s not clear if Hadoop
+allows tasks to configure an alternative ClassLoader prior to task
+initialization.
