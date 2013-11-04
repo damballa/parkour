@@ -42,6 +42,25 @@ literal forms for Hadoop `Path` and `java.net.URI` objects.
 ;;=> "(defproject com.damballa/parkour"
 ```
 
+### parkour.tool
+
+The `parkour.tool` namespace provides functions to wrap Clojure functions as
+Hadoop `Tool`s and to run Clojure functions via the Hadoop `ToolRunner`.  This
+provides a simple standard interface for implementing command-line tools which
+allow end-users to set arbitrary Hadoop configuration parameters at run-time.
+
+```clj
+(require '[parkour.tool :as tool])
+
+(defn tool
+  [conf & args]
+  ...)
+
+(defn -main
+  [& args]
+  (System/exit (tool/run tool args)))
+```
+
 ### parkour.wrapper
 
 The `parkour.wrapper` namespace provides the `Wrapper` protocol, which allows

@@ -60,6 +60,7 @@ Parkour’s documentation is divided into a number of separate sections:
 - [Serialization][serialization] – How Parkour integrates Clojure with Hadoop
   serialization mechanisms.
 - [Testing][testing] – Patterns for testing Parkour MapReduce jobs.
+– [Deployment][deployment] – Running Parkour applications on a Hadoop cluster.
 - [Reference][api] – Generated API reference, via [codox][codox].
 
 ## License
@@ -73,5 +74,6 @@ Distributed under the Eclipse Public License, the same as Clojure.
 [namespaces]: https://github.atl.damballa/rnd/parkour/blob/master/doc/namespaces.md
 [serialization]: https://github.atl.damballa/rnd/parkour/blob/master/doc/serialization.md
 [testing]: https://github.atl.damballa/rnd/parkour/blob/master/doc/testing.md
+[deployment]: https://github.atl.damballa/rnd/parkour/blob/master/doc/deployment.md
 [api]: https://github.atl.damballa/pages/rnd/parkour/
 [codox]: https://github.com/weavejester/codox
