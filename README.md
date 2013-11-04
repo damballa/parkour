@@ -75,5 +75,5 @@ Distributed under the Apache License, Version 2.0.
 [serialization]: https://github.com/damballa/parkour/blob/master/doc/serialization.md
 [testing]: https://github.com/damballa/parkour/blob/master/doc/testing.md
 [deployment]: https://github.com/damballa/parkour/blob/master/doc/deployment.md
-[api]: https://github.atl.damballa/pages/rnd/parkour/
+[api]: http://damballa.github.io/parkour/
 [codox]: https://github.com/weavejester/codox
