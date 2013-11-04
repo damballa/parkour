@@ -17,7 +17,7 @@ the Hadoop core `Tool` and `ToolRunner` classes allow end-users to set arbitrary
 Hadoop configuration parameters via command-line arguments.  The functions in
 the `parkour.tool` namespace allow normal Clojure functions to be used as
 `Tool`s, and allow running `Tool`s or functions – and parsing command-line
-argument – via the `ToolRunner`.
+arguments – via the `ToolRunner`.
 
 ```clj
 (require '[parkour.tool :as tool])
@@ -52,8 +52,8 @@ the standard `hadoop` command-line interface:
 - `hadoop jar` – The `hadoop jar` sub-command will run a JAR main class or
   main-less JAR command-line–specified class in a JVM configured for the
   associated Hadoop installation.
-- `hadoop classpath` – The `hadoop classpath` sub-command will print to standard
-  out the complete class path for the associated Hadoop installation’s core
+- `hadoop classpath` – The `hadoop classpath` sub-command will print to stdout
+  the complete class path for the associated Hadoop installation’s core
   artifacts and dependencies.  This class path may be used to manually launch a
   JVM with the necessary class path, plus any other desired options.
 
