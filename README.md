@@ -69,11 +69,11 @@ Copyright © 2013 Marshall Bockrath-Vandegrift & Damballa, Inc.
 
 Distributed under the Apache License, Version 2.0.
 
-[intro]: https://github.atl.damballa/rnd/parkour/blob/master/doc/intro.md
-[motivation]: https://github.atl.damballa/rnd/parkour/blob/master/doc/motivation.md
-[namespaces]: https://github.atl.damballa/rnd/parkour/blob/master/doc/namespaces.md
-[serialization]: https://github.atl.damballa/rnd/parkour/blob/master/doc/serialization.md
-[testing]: https://github.atl.damballa/rnd/parkour/blob/master/doc/testing.md
-[deployment]: https://github.atl.damballa/rnd/parkour/blob/master/doc/deployment.md
+[intro]: https://github.com/damballa/parkour/blob/master/doc/intro.md
+[motivation]: https://github.com/damballa/parkour/blob/master/doc/motivation.md
+[namespaces]: https://github.com/damballa/parkour/blob/master/doc/namespaces.md
+[serialization]: https://github.com/damballa/parkour/blob/master/doc/serialization.md
+[testing]: https://github.com/damballa/parkour/blob/master/doc/testing.md
+[deployment]: https://github.com/damballa/parkour/blob/master/doc/deployment.md
 [api]: https://github.atl.damballa/pages/rnd/parkour/
 [codox]: https://github.com/weavejester/codox

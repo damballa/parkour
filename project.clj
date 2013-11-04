@@ -14,7 +14,7 @@
                  [org.apache.avro/avro-mapred "1.7.5"
                   :exclusions [org.apache.avro/avro-ipc]]]
   :plugins [[codox/codox "0.6.6"]]
-  :codox {:src-dir-uri "https://github.atl.damballa/rnd/parkour/blob/master/"
+  :codox {:src-dir-uri "https://github.com/damballa/parkour/blob/master/"
           :src-linenum-anchor-prefix "L"
           :sources ["src/clojure"]
           :exclude [parkour.io.dseq.mapred
