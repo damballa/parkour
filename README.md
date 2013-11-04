@@ -67,7 +67,7 @@ Parkour’s documentation is divided into a number of separate sections:
 
 Copyright © 2013 Marshall Bockrath-Vandegrift & Damballa, Inc.
 
-Distributed under the Eclipse Public License, the same as Clojure.
+Distributed under the Apache License, Version 2.0.
 
 [intro]: https://github.atl.damballa/rnd/parkour/blob/master/doc/intro.md
 [motivation]: https://github.atl.damballa/rnd/parkour/blob/master/doc/motivation.md
