@@ -1,5 +1,5 @@
 (ns parkour.reducers
-  (:refer-clojure :exclude [map-indexed reductions])
+  (:refer-clojure :exclude [map-indexed reductions distinct])
   (:require [clojure.core.reducers :as r]
             [clojure.core.protocols :as ccp]
             [parkour.util :refer [returning]]))
@@ -87,3 +87,20 @@ vector of the results."
   ([x y] y)
   ([x y z] y)
   ([x y z & more] y))
+
+(defn distinct-by
+  "Remove adjacent duplicate values of `(f x)` for each `x` in `coll`."
+  [f coll]
+  (r/reducer coll
+    (fn [f1]
+      (let [prev (atom ::initial)]
+        (fn [acc x]
+          (let [k (f x)]
+            (if (= @prev k)
+              acc
+              (returning (f1 acc x)
+                (reset! prev k)))))))))
+
+(defn distinct
+  "Remove adjacent duplicate values from `coll`."
+  [coll] (distinct-by identity coll))
