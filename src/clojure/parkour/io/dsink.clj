@@ -3,11 +3,13 @@
                      (cstep :as cstep)]
             [parkour.mapreduce (sink :as snk)]
             [parkour.io (dseq :as dseq)]
-            [parkour.util :refer [ignore-errors returning]])
+            [parkour.util :refer [ignore-errors returning coerce]])
   (:import [java.io Closeable Writer]
            [clojure.lang IObj]
            [org.apache.hadoop.conf Configurable]
-           [org.apache.hadoop.mapreduce OutputCommitter OutputFormat]))
+           [org.apache.hadoop.mapreduce Job]
+           [org.apache.hadoop.mapreduce OutputCommitter OutputFormat]
+           [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]))
 
 (deftype DSink [meta dseq step]
   Object
@@ -79,3 +81,19 @@ flush, as if via `with-open`."
   "Evaluate `body` forms, write tuples from resulting collection to the local
 sink produced from `dsink`, and return `dsink`'s associated dseq."
   [dsink & body] `(with-dseq* ~dsink (fn ^:once [] ~@body)))
+
+(def output-paths* nil)
+(defmulti ^:internal output-paths*
+  "Internal implementation multimethod for `output-paths`."
+  {:arglists '([job])}
+  #(.getOutputFormatClass ^Job %))
+
+(defn output-paths
+  "Vector of output-paths produced by job or configuration step `step`."
+  [step] (->> step (coerce Job cstep/apply!) output-paths*))
+
+(defmethod output-paths* :default
+  [_] [])
+
+(defmethod output-paths* FileOutputFormat
+  [^Job job] [(FileOutputFormat/getOutputPath job)])

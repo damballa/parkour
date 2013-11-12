@@ -295,6 +295,21 @@ dynamic scope."
       (finally
         (-> (Runtime/getRuntime) (.removeShutdownHook hook#))))))
 
+(defn ^:private abort-fn
+  "Function for terminating `job`, killing it and cleaning up output path(s)."
+  {:tag `Runnable}
+  [^Job job]
+  (let [jname (.getJobName job)
+        fs-paths (mapv (juxt (partial fs/path-fs job) identity)
+                       (dsink/output-paths job))]
+    (fn []
+      (when-not (.isComplete job)
+        (log/warn "Stopping job" jname)
+        (ignore-errors (.killJob job)))
+      (doseq [[fs path] fs-paths]
+        (log/warn "Cleaning up path" (str path))
+        (ignore-errors (fs/path-delete fs path))))))
+
 (defn run-job
   "Run `job` and wait synchronously for it to complete.  Kills the job on
 exceptions or JVM shutdown.  Unlike the `Job#waitForCompletion()` method, does
@@ -302,9 +317,7 @@ not swallow `InterruptedException`."
   [^Job job]
   (let [interval (conf/get-int job "jobclient.completion.poll.interval" 5000)
         jname (.getJobName job)
-        abort (fn []
-                (log/warn "Stopping job" jname)
-                (ignore-errors (.killJob job)))]
+        abort (abort-fn job)]
     (with-shutdown-hook abort
       (try
         (log/info "Launching job" jname)
@@ -314,7 +327,9 @@ not swallow `InterruptedException`."
         (doto-let [result (.isSuccessful job)]
           (if result
             (log/info "Job" jname "succeeded")
-            (log/warn "Job" jname "failed")))
+            (do
+              (log/warn "Job" jname "failed")
+              (abort))))
         (catch Exception e
           (abort)
           (throw e))))))

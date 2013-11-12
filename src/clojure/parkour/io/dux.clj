@@ -1,5 +1,6 @@
 (ns parkour.io.dux
   (:require [clojure.edn :as edn]
+            [clojure.core.reducers :as r]
             [parkour (conf :as conf) (wrapper :as w) (cstep :as cstep)
                      (mapreduce :as mr)]
             [parkour.mapreduce (sink :as snk)]
@@ -56,6 +57,12 @@ multiplex distributed sequence of all component sinks' sequences."
    (apply mux/dseq (map dsink/dsink-dseq (vals dsinks)))
    (fn [^Job job]
      (reduce (partial apply add-substep) job dsinks))))
+
+(defmethod dsink/output-paths* Dux$OutputFormat
+  [^Job job]
+  (->> job get-subconfs vals
+       (r/mapcat #(dsink/output-paths (conf/merge! (mr/job job) %)))
+       (into [])))
 
 (defn ^:private dux-state
   "Extract demultiplexing output state from `context`."
