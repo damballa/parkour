@@ -3,7 +3,8 @@
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
              ,       (mapreduce :as mr) (graph :as pg)]
-            [parkour.io (dsink :as dsink) (seqf :as seqf)])
+            [parkour.io (dsink :as dsink) (seqf :as seqf)]
+            [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.io Text LongWritable NullWritable]
            [org.apache.hadoop.mapreduce Mapper]))
 
@@ -37,7 +38,7 @@
         (pg/partition [Text LongWritable])
         (pg/reduce #'reducer shapef mapf transf)
         (pg/output (seqf/dsink [Text NullWritable] outpath))
-        (pg/execute (conf/ig) "test-source")
+        (pg/execute (th/config) "test-source")
         (->> first (r/map (comp read-string w/unwrap first)) (into [])))))
 
 (defn into-vec [coll] (into [] coll))

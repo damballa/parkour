@@ -9,7 +9,8 @@
             [parkour.io.avro :as mra]
             [parkour.reducers :as pr]
             [parkour.conf :as conf]
-            [parkour.util :refer [returning]])
+            [parkour.util :refer [returning]]
+            [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.mapreduce.lib.input
              TextInputFormat FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]))
@@ -38,7 +39,8 @@
       (mra/set-map-output :string :long)
       (mra/set-output :string :long)
       (FileInputFormat/addInputPath (fs/path inpath))
-      (FileOutputFormat/setOutputPath (fs/path outpath)))
+      (FileOutputFormat/setOutputPath (fs/path outpath))
+      (conf/assoc! "jobclient.completion.poll.interval" 100))
     (.waitForCompletion job true)))
 
 (deftest test-word-count
@@ -77,7 +79,8 @@
       (mra/set-map-output :string)
       (mra/set-output :string)
       (FileInputFormat/addInputPath (fs/path inpath))
-      (FileOutputFormat/setOutputPath (fs/path outpath)))
+      (FileOutputFormat/setOutputPath (fs/path outpath))
+      (th/config))
     (.waitForCompletion job true)))
 
 (deftest test-word-distinct

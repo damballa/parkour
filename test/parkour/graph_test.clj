@@ -7,7 +7,8 @@
                      (conf :as conf) (fs :as fs) (wrapper :as w)]
             [parkour.io (text :as text) (seqf :as seqf) (avro :as mra)
                         (dux :as dux) (dsink :as dsink) (mem :as mem)]
-            [parkour.util :refer [ignore-errors]])
+            [parkour.util :refer [ignore-errors]]
+            [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
 (defn word-count-mapper
@@ -41,7 +42,7 @@
         _ (.delete outfs outpath true)
         dseq (text/dseq inpath)
         dsink (seqf/dsink Text LongWritable outpath)
-        [result] (word-count (conf/ig) dseq dsink)]
+        [result] (word-count (th/config) dseq dsink)]
     (is (= 6 (-> (->> result mr/counters-map vals (apply merge))
                  (get "MAP_OUTPUT_RECORDS"))))
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
@@ -54,7 +55,7 @@
                (->> ["apple banana banana" "carrot apple" "apple"]
                     (mr/sink-as :keys)))
         dsink (seqf/dsink [Text LongWritable] outpath)
-        [result] (word-count (conf/ig) dseq dsink)]
+        [result] (word-count (th/config) dseq dsink)]
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
            (->> result w/unwrap (into {}))))))
 
@@ -64,7 +65,7 @@
                         [nil "carrot apple"]
                         [nil "apple"]])
         dsink (seqf/dsink [Text LongWritable] outpath)
-        [result] (word-count (conf/ig) dseq dsink)]
+        [result] (word-count (th/config) dseq dsink)]
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
            (->> result w/unwrap (into {}))))))
 
@@ -128,7 +129,7 @@
         _ (.delete outfs outpath true)
         left (text/dseq leftpath), right (text/dseq rightpath)
         dsink (mra/dsink [output-schema] outpath)
-        [result] (trivial-join (conf/ig) left right dsink)]
+        [result] (trivial-join (th/config) left right dsink)]
     (is (= [[0 "foo" "blue"]
             [0 "foo" "green"]
             [0 "foo" "red"]
@@ -177,6 +178,6 @@
         dseq (text/dseq inpath)
         even (seqf/dsink Text LongWritable evenpath)
         odd (seqf/dsink Text LongWritable oddpath)
-        [even odd] (multiple-outputs (conf/ig) dseq even odd)]
+        [even odd] (multiple-outputs (th/config) dseq even odd)]
     (is (= {"banana" 2} (into {} (r/map w/unwrap-all even))))
     (is (= {"apple" 3, "carrot" 1} (into {} (r/map w/unwrap-all odd))))))

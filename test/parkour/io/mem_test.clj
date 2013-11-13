@@ -3,7 +3,8 @@
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr) (graph :as pg)]
-            [parkour.io (dsink :as dsink) (mem :as mem) (seqf :as seqf)])
+            [parkour.io (dsink :as dsink) (mem :as mem) (seqf :as seqf)]
+            [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
 (deftest test-input
@@ -20,5 +21,5 @@
     (let [[results] (-> (pg/input (mem/dseq records))
                         (pg/map #'map-identity)
                         (pg/sink (seqf/dsink [Text LongWritable] p))
-                        (pg/execute (conf/ig) "mem-test/test-job-input"))]
+                        (pg/execute (th/config) "mem-test/test-job-input"))]
       (is (= records (->> results w/unwrap (into [])))))))

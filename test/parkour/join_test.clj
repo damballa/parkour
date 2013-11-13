@@ -7,7 +7,8 @@
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr) (reducers :as pr)]
             [parkour.io (dseq :as dseq) (mux :as mux) (avro :as mra)]
-            [parkour.util :refer [returning]])
+            [parkour.util :refer [returning]]
+            [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.input TextInputFormat]
            [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]
@@ -71,7 +72,8 @@
                        :fields [{:name "id", :type "long"}
                                 {:name "left", :type "string"}
                                 {:name "right", :type "string"}]})
-      (FileOutputFormat/setOutputPath (fs/path outpath)))
+      (FileOutputFormat/setOutputPath (fs/path outpath))
+      (th/config))
     (.waitForCompletion job true)))
 
 (deftest test-join
