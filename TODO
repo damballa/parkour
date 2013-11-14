@@ -28,3 +28,24 @@ instances of the supported types.
 The ClassLoader approach may not however be possible.  It’s not clear if Hadoop
 allows tasks to configure an alternative ClassLoader prior to task
 initialization.
+
+* Make dseqs locally foldable
+
+Right now dseqs may be locally =reduce=-d, but there’s no reason they shouldn’t
+be =fold=-able.  The fold implementation should be able to use fork-join to run
+the fold in parallel across the input splits.
+
+* Support for EMR
+
+Probably a separate project.  Suggested by ztellman, potentially a Leiningen
+plugin, mechanism for easily spinning up EMR clusters and launching Parkour
+jobs.
+
+* Cluster-REPL integration
+
+Probably also a separate project, but potentially with helper hooks.  Like
+pdns-lab, but as an all-in-one package.  Launch nREPL server under cluster
+configuration.  Leiningen integration for automatic uberjar re-building, fast
+uberjar re-builds.  Use project configuration to specify job JAR.  Helper
+integration for extracting and running over subset of data, as per Pig
+ILLUSTRATE.  Allow in-REPL testing by rebinding to local configurations.

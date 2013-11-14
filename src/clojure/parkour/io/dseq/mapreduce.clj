@@ -15,6 +15,7 @@
 (defn rr?
   [rr] (instance? RecordReader rr))
 
+;; TODO: Make more functional; any need to be thread-safe?
 (deftype RecordReaderTupleSource
     [^Job job ^InputFormat ifi
      ^:unsynchronized-mutable splits
