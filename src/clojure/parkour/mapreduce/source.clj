@@ -62,9 +62,13 @@ and `dataf` to retrieve the tuple values passed to `f`."
      (source-reduce next-keyval keyval source f init))
   ([nextf dataf source f init]
      (loop [source source, state init]
-       (if-let [source (nextf source)]
-         (recur source (f state (dataf source)))
-         state))))
+       (let [source (nextf source)]
+         (if-not source
+           state
+           (let [state (f state (dataf source))]
+             (if (reduced? state)
+               @state
+               (recur source state))))))))
 
 (defn source-seq
   "A seq for `source`, in terms of the `TupleSource` protocol.  When provided,
