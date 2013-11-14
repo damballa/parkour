@@ -119,7 +119,7 @@ Here’s the complete classic “word count” example, written using Parkour:
   (:require [clojure.string :as str]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)
-                     (graph :as pg)]
+                     (graph :as pg) (tool :as tool)]
             [parkour.io (text :as text) (seqf :as seqf)])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
@@ -145,16 +145,20 @@ Here’s the complete classic “word count” example, written using Parkour:
       (pg/combine #'reducer)
       (pg/reduce #'reducer)
       (pg/output dsink)
-      (pg/execute conf "word-count")))
+      (pg/execute conf "word-count")
+      first))
+
+(defn tool
+  [conf & args]
+  (let [[outpath & inpaths] args
+        input (apply text/dseq inpaths)
+        output (seqf/dsink [Text LongWritable] outpath)]
+    (->> (word-count conf input output)
+         w/unwrap (into {})
+         prn)))
 
 (defn -main
-  [& args]
-  (let [[inpath outpath] args
-        input (text/dseq inpath)
-        output (seqf/dsink [Text LongWritable] outpath)]
-    (->> (word-count (conf/ig) input output)
-         first w/unwrap (into {}) prn
-         tool/integral System/exit)))
+  [& args] (System/exit (tool/run tool args)))
 ```
 
 Let’s walk through some important features of this example.

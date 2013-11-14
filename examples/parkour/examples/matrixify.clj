@@ -1,13 +1,14 @@
 (ns parkour.examples.matrixify
   "Example Parkour job graph translating a graph with arbitrary text-labeled
 nodes into an absolute-indexed matrix.  Accepts text-lines of
-whitespace-separated `src`, `dst`, and `weight` nodes.  Translates `src` nodes
+whitespace-separated `src`, `dst`, and `weight` edges.  Translates `src` nodes
 to rows, `dst` nodes to column, and `weight`s to matrix values."
   (:require [clojure.string :as str]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr) (graph :as pg) (tool :as tool)]
-            [parkour.io (text :as text) (avro :as mra) (dux :as dux)]
+            [parkour.io (dseq :as dseq) (text :as text) (avro :as mra)
+                        (dux :as dux)]
             [parkour.util :refer [returning]]
             [abracad.avro :as avro])
   (:import [org.apache.hadoop.mapreduce Mapper]))
@@ -62,10 +63,10 @@ data with parallel index (reducer, offset) tuple and final reducer count."
          (mr/sink-as :keys))))
 
 ;; Avro schemas
-(def name-value (mra/tuple-schema [:string :double]))
-(def long-pair (mra/tuple-schema [:long :long]))
-(def index-value (mra/tuple-schema [long-pair :double]))
-(def entry (mra/tuple-schema [:long :long :double]))
+(def name-value (avro/tuple-schema [:string :double]))
+(def long-pair (avro/tuple-schema [:long :long]))
+(def index-value (avro/tuple-schema [long-pair :double]))
+(def entry (avro/tuple-schema [:long :long :double]))
 
 (defn matrixify
   "Run matrix-ification jobs for `dseq`, storing output under `workdir` and
@@ -96,13 +97,17 @@ returning dseq on final matrix entries."
     (-> (pg/input r-data)
         (pg/map #'absind-mapper c-offsets r-offsets)
         (pg/output (mra/dsink [entry] matrix-path))
-        (pg/execute conf "matrixify/absind"))))
+        (pg/execute conf "matrixify/absind")
+        first)))
 
-(defn -main
-  [& args]
+(defn tool
+  [conf & args]
   (let [[workdir & inpaths] args
         indseq (apply text/dseq inpaths)]
-    (->> (matrixify (conf/ig) workdir indseq) first
+    (->> (matrixify conf workdir indseq)
          (r/map (comp w/unwrap first))
-         (reduce (fn [_ entry] (println (str/join "\t" entry))) nil)
-         tool/integral System/exit)))
+         (reduce (fn [_ entry] (println (str/join "\t" entry)))
+                 nil))))
+
+(defn -main
+  [& args] (System/exit (tool/run tool args)))

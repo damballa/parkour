@@ -28,13 +28,17 @@
       (pg/combine #'reducer)
       (pg/reduce #'reducer)
       (pg/output dsink)
-      (pg/execute conf "word-count")))
+      (pg/execute conf "word-count")
+      first))
+
+(defn tool
+  [conf & args]
+  (let [[outpath & inpaths] args
+        input (apply text/dseq inpaths)
+        output (seqf/dsink [Text LongWritable] outpath)]
+    (->> (word-count conf input output)
+         w/unwrap (into {})
+         prn)))
 
 (defn -main
-  [& args]
-  (let [[outpath inpath] args
-        input (text/dseq inpath)
-        output (seqf/dsink [Text LongWritable] outpath)]
-    (->> (word-count (conf/ig) input output)
-         first w/unwrap (into {}) prn
-         tool/integral System/exit)))
+  [& args] (System/exit (tool/run tool args)))
