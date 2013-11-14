@@ -45,8 +45,8 @@ sink produces the `nil` dseq."
 
 (defn sink-for
   "Local sink for writing tuples as written via `dsink`.  Must `.close` to
-flush, as if via `with-open`."
-  {:tag Closeable}
+flush, as via `with-open`."
+  {:tag `Closeable}
   [dsink]
   (let [job (cstep/apply! dsink), conf (conf/ig job), tac (mr/tac conf)
         ckey (.getOutputKeyClass job), cval (.getOutputValueClass job)

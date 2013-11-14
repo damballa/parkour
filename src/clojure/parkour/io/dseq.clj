@@ -2,24 +2,36 @@
   (:require [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (cstep :as cstep) (wrapper :as w)]
+            [parkour.mapreduce (source :as src)]
             [parkour.io.dseq (mapred :as mr1) (mapreduce :as mr2)]
             [parkour.util :refer [ignore-errors]])
-  (:import [java.io Writer]
+  (:import [java.io Closeable Writer]
            [clojure.lang IObj]))
 
 (defprotocol DSeqable
   "Protocol for producing distribute sequence."
   (-dseq [this] "Return distributed sequence for `this`."))
 
-(defn reducible
-  ([job]
-     (let [klass (or (conf/get-class job "mapreduce.inputformat.class" nil)
-                     (conf/get-class job "mapred.input.format.class" nil))]
-       (reducible job klass)))
-  ([job klass]
-     (let [rsf (cond (mr1/input-format? klass) mr1/reducible
-                     (mr2/input-format? klass) mr2/reducible)]
-       (rsf job klass))))
+(defn input-format
+  "Input format class for `job`, or `nil` if unspecified."
+  {:tag `Class}
+  [job]
+  (or (conf/get-class job "mapreduce.inputformat.class" nil)
+      (conf/get-class job "mapred.input.format.class" nil)))
+
+(defn source-for
+  "Local source for reading tuples from `dseq`.  Must `.close` to release
+resources, as via `with-open`.  If the `raw?` keyword argument is true, then the
+tuple source will not automatically unwrap values."
+  {:tag `Closeable}
+  [dseq & {:keys [raw?]}]
+  (let [job (cstep/apply! dseq), klass (input-format job)
+        tuple-source (cond (mr1/input-format? klass) mr1/tuple-source
+                           (mr2/input-format? klass) mr2/tuple-source)
+        source (tuple-source job klass)]
+    (if raw?
+      source
+      (src/unwrap-source source))))
 
 (deftype DSeq [meta step]
   Object
@@ -36,7 +48,9 @@
   ccp/CollReduce
   (coll-reduce [this f] (ccp/coll-reduce this f (f)))
   (coll-reduce [this f init]
-    (r/reduce f init (-> this cstep/apply! reducible)))
+    ;; TODO: Drop `:raw?` in 0.5.0
+    (with-open [source (source-for step :raw? true)]
+      (ccp/coll-reduce source f init)))
 
   w/Wrapper
   (unwrap [this] (r/map w/unwrap-all this))
