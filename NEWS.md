@@ -1,6 +1,6 @@
 # Parkour News – history of user-visible changes
 
-## 0.4.1 / ?
+## 0.4.1 / 2013-11-15
 
 - Fix bug in `reduced` handling of job tuple-source reductions.
 - Make tuple-source re-shape results `seq`able, allowing tasks to be written in
