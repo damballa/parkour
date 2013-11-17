@@ -59,6 +59,8 @@ Parkour’s documentation is divided into a number of separate sections:
   set of functionality fits into the whole.
 - [Serialization][serialization] – How Parkour integrates Clojure with Hadoop
   serialization mechanisms.
+- [Reducers vs seqs][reducers-vs-seqs] – Why Parkour’s default idiom uses
+  reducers, and when to use seqs instead.
 - [Testing][testing] – Patterns for testing Parkour MapReduce jobs.
 - [Deployment][deployment] – Running Parkour applications on a Hadoop cluster.
 - [Reference][api] – Generated API reference, via [codox][codox].
@@ -73,6 +75,7 @@ Distributed under the Apache License, Version 2.0.
 [motivation]: https://github.com/damballa/parkour/blob/master/doc/motivation.md
 [namespaces]: https://github.com/damballa/parkour/blob/master/doc/namespaces.md
 [serialization]: https://github.com/damballa/parkour/blob/master/doc/serialization.md
+[reducers-vs-seqs]: https://github.com/damballa/parkour/blob/master/doc/reducers-vs-seqs.md
 [testing]: https://github.com/damballa/parkour/blob/master/doc/testing.md
 [deployment]: https://github.com/damballa/parkour/blob/master/doc/deployment.md
 [api]: http://damballa.github.io/parkour/

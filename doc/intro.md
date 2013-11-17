@@ -33,7 +33,7 @@ already provided by Hadoop and by Clojure, introducing new abstractions only as
 necessary to bridge the gap between what Hadoop and Clojure provide.  The
 following are the key ideas Parkour introduces or re-purposes.
 
-### MapReduce via `reducers`
+### MapReduce via `reducers` (and lazy seqs)
 
 The Clojure 1.5 `clojure.core.reducers` standard library namespace narrows the
 idea of a “collection” to “something which may be `reduce`d.”  This abstraction
@@ -42,6 +42,12 @@ be represented as collections.  MapReduce tasks become functions over
 collections, and may bring to bear not only Clojure’s standard library of
 collection-manipulation operations, but any other functions implemented in terms
 of those operations.
+
+When necessary, Parkour also allows tasks to operate on inputs as lazy
+sequences.  See [reducers vs seqs][reducers-vs-seqs] for a discussion of the
+trade-offs involved.
+
+[reducers-vs-seqs]: https://github.com/damballa/parkour/blob/master/doc/reducers-vs-seqs.md
 
 ### Remote invocation via vars
 
