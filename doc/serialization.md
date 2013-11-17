@@ -22,8 +22,10 @@ Parkour makes this pattern concrete in the `parkour.wrapper` namespaces’s
 
 In task functions, by default, input tuples are `unwrap`ed to values and output
 tuples are `rewrap`ed to the configured task output types.  This behavior is
-optional, and may be disabled via `:parkour.mapreduce/raw` metadata on
-task-vars.  The protocol functions may also be called manually, and many
+optional, and may by skipped by specifying a non-unwrapping metadata
+`:parkour.mapreduce/adapter` function (such as `identity`) for task vars.  See
+the docstrings of `parkour.mapreduce/mapper!` and `parkour.mapreduce/reducer!`
+for more details.  The protocol functions may also be called manually, and many
 Parkour/Hadoop types are extended to do the obvious thing when `unwrap`ed.
 
 ## Specific serializations

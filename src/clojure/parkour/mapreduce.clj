@@ -9,7 +9,7 @@
             [parkour.mapreduce (source :as src) (sink :as snk)]
             [parkour.util :refer [returning ignore-errors]])
   (:import [java.io Writer]
-           [clojure.lang Var]
+           [clojure.lang IFn$OOLL Var]
            [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce TaskAttemptContext TaskAttemptID]
            [org.apache.hadoop.mapreduce Counters CounterGroup Counter]))
@@ -93,6 +93,45 @@ keyword indicating a built-in sinking function.  Supported keywords are `:none`,
   "Emit all tuples from `coll` to `sink`."
   [sink coll] ((snk/sink-fn coll) sink coll))
 
+(defn collfn
+  "Task function adapter for collection-function-like functions.  The adapted
+function `v` should accept conf-provided arguments followed by the (unwrapped)
+input tuple source, and should return a reducible collection of output tuples."
+  [v]
+  (fn [conf & args]
+    (fn [context]
+      (sink context (apply v (concat args [(w/unwrap context)]))))))
+
+(defn contextfn
+  "Task function adapter for functions accessing the job context.  The adapted
+function `v` should accept a configuration followed by any conf-provided
+arguments, and should return a function.  The returned function should accept
+the job context and an (unwrapped) input tuple source, and should return a
+reducible collection of output tuples."
+  [v]
+  (fn [conf & args]
+    (let [f (apply v conf args)]
+      (fn [context]
+        (sink context (f context (w/unwrap context)))))))
+
+(defn partfn
+  "Partitioner function adapter for value-based partitioners.  The adapted
+function `v` should accept a configuration followed by any conf-provided
+arguments, and should return a function.  The returned function should accept
+an (unwrapped) tuple key, (unwrapped) tuple value, and a partition-count; it
+should return an integer modulo the partition-count, and should optionally be
+primitive-hinted as OOLL."
+  [v]
+  (fn [& args]
+    (let [f (apply v args)]
+      (if (instance? IFn$OOLL f)
+        (fn ^long [key val ^long nparts]
+          (let [key (w/unwrap key), val (w/unwrap val)]
+            (.invokePrim ^IFn$OOLL f key val nparts)))
+        (fn ^long [key val ^long nparts]
+          (let [key (w/unwrap key), val (w/unwrap val)]
+            (f key val nparts)))))))
+
 (def ^:private job-factory-method?
   "True iff the `Job` class has a static factory method."
   (->> Job reflect/type-reflect :members (some #(= 'getInstance (:name %)))))
@@ -115,17 +154,16 @@ mechanism."
   (print-method (conf/diff job) w))
 
 (defn mapper!
-  "Allocate and return a new Parkour mapper class for `conf` as invoking `var`.
-The `var` will be called during task-setup with the job `Configuration` and any
-provided `args` (which must be EDN-serializable).  The `var` should return a
-function of two arguments, which will be invoked with the task context and a
-reducible collection of the `unwrap`ed input tuples.  It should return a
-reducible collection of the output tuples, which will be automatically wrapped
-to match the job-configured map ouput types.
+  "Allocate and return a new mapper class for `conf` as invoking `var`.
 
-If `var` has a truthy value for the `:parkour.mapreduce/raw` metadata key, then
-Parkour will invoke the `var`-returned function with only the task context, and
-will ignore any return value."
+Prior to use, the function referenced by `var` will be transformed by the
+function specified as the value of `var`'s `::mr/adapter` metadata, defaulting
+to `parkour.mapreduce/contextfn`.  During task-setup, the transformed function
+will be invoked with the job `Configuration` and any provided `args` (which must
+be EDN-serializable); it should return a function of one argument, which will be
+invoked with the task context to execute the task.
+
+See also: `collfn`, `contextfn`."
   [conf var & args]
   (assert (instance? Var var))
   (let [i (conf/get-int conf "parkour.mapper.next" 0)]
@@ -147,17 +185,16 @@ will ignore any return value."
     (Class/forName (format "parkour.hadoop.Reducers$_%d" i))))
 
 (defn reducer!
-  "Allocate and return a new Parkour reducer class for `conf` as invoking `var`.
-The `var` will be called during task-setup with the job `Configuration` and any
-provided `args` (which must be EDN-serializable).  The `var` should return a
-function of two arguments, which will be invoked with the task context and a
-reducible collection of the `unwrap`ed input tuples.  It should return a
-reducible collection of the output tuples, which will be automatically wrapped
-to match the job-configured map ouput types.
+  "Allocate and return a new reducer class for `conf` as invoking `var`.
 
-If `var` has a truthy value for the `:parkour.mapreduce/raw` metadata key, then
-Parkour will invoke the `var`-returned function with only the task context, and
-will ignore any return value."
+Prior to use, the function referenced by `var` will be transformed by the
+function specified as the value of `var`'s `::mr/adapter` metadata, defaulting
+to `parkour.mapreduce/contextfn`.  During task-setup, the transformed function
+will be invoked with the job `Configuration` and any provided `args` (which must
+be EDN-serializable); it should return a function of one argument, which will be
+invoked with the task context to execute the task.
+
+See also: `collfn`, `contextfn`."
   [conf var & args]
   (apply reducer!* :reduce conf var args))
 
@@ -168,17 +205,18 @@ which may impact e.g. output types."
   (apply reducer!* :combine conf var args))
 
 (defn partitioner!
-  "Allocate and return a new Parkour partitioner class for `conf` as invoking
-`var`.  The `var` will be called during task-setup with the job `Configuration`
-and any provided `args` (which must be EDN-serializable).  The `var` should
-return a function of three arguments: an `unwrap`ed map-output key, an
-`unwrap`ed map-output value, and an integral reduce-task count.  That function
-will called for each map-output tuple, must return an integral value mod the
-reduce-task count, and should be primitive-hinted as `OOLL`.
+  "Allocate and return a new partitioner class for `conf` as invoking `var`.
 
-If `var` has a truthy value for the `:parkour.mapreduce/raw` metadata key, then
-Parkour will invoke the `var`-returned partitioner function with the raw (not
-unwrapped) tuple key and value objects."
+Prior to use, the function referenced by `var` will be transformed by the
+function specified as the value of `var`'s `::mr/adapter` metadata, defaulting
+to `parkour.mapreduce/partfn`.  During task-setup, the transformed function will
+be invoked with the job `Configuration` and any provided `args` (which must be
+EDN-serializable); it should return a function of three arguments: a raw
+map-output key, a raw map-output value, and an integral reduce-task count.  That
+function will be called for each map-output tuple, must return an integral value
+mod the reduce-task count, and must be primitive-hinted as `OOLL`.
+
+See also: `partfn`."
   [conf var & args]
   (assert (instance? Var var))
   (conf/assoc! conf

@@ -24,29 +24,15 @@
   ([conf kind id]
      (step-v-args conf (str kind "." id))))
 
-(defn raw?
-  "True iff `v` is a raw task function-var."
-  [v] (-> v meta ::mr/raw))
-
-(defn task-transformer
-  "Adapter for basic collection-transformation task."
-  [f] (fn [context] (->> context w/unwrap (f context) (mr/sink context))))
-
-(defn task-partitioner
-  "Adapter for basic partitioning functions."
-  [f]
-  (if (instance? IFn$OOLL f)
-    (fn ^long [key val ^long nparts]
-      (let [key (w/unwrap key), val (w/unwrap val)]
-        (.invokePrim ^IFn$OOLL f key val nparts)))
-    (fn ^long [key val ^long nparts]
-      (let [key (w/unwrap key), val (w/unwrap val)]
-        (f key val nparts)))))
-
-(defn task-fn
-  "Return full task-function for function-var `v`, configuration `conf`, and
-arguments `args`.  Wrap with `wrap`, unless `v` is a raw task function."
-  [wrap v conf args] (cond-> (apply v conf args) (not (raw? v)) (wrap)))
+(defn adapt
+  "Apply adapter function specified by var `v` via `::mr/adapter` metadata --
+`default` if unspecified -- to the value of `v` and return resulting function."
+  [default v]
+  (let [m (meta v)
+        w (if (::mr/raw m)
+            identity
+            (::mr/adapter m default))]
+    (w @v)))
 
 (defn mapper-run
   [id context]
@@ -57,7 +43,10 @@ arguments `args`.  Wrap with `wrap`, unless `v` is a raw task function."
     (log/infof "mapper: split=%s, var=%s, args=%s"
                (pr-str split) (pr-str v) (pr-str args))
     (conf/with-default conf
-      ((task-fn task-transformer v conf args) context))))
+      (let [;; TODO: For 0.5.0, change default to `mr/collfn`
+            f (adapt mr/contextfn v)
+            g (apply f conf args)]
+        (g context)))))
 
 (defn reducer-run
   [id context]
@@ -67,11 +56,16 @@ arguments `args`.  Wrap with `wrap`, unless `v` is a raw task function."
         [v args] (step-v-args conf "reducer" id)]
     (log/infof "reducer: var=%s, args=%s" (pr-str v) (pr-str args))
     (conf/with-default conf
-      ((task-fn task-transformer v conf args) context))))
+      (let [;; TODO: For 0.5.0, change default to `mr/collfn`
+            f (adapt mr/contextfn v)
+            g (apply f conf args)]
+        (g context)))))
 
 (defn partitioner-set-conf
   [conf]
   (let [[v args] (step-v-args conf "partitioner")]
     (log/infof "partitioner: var=%s, args=%s" (pr-str v) (pr-str args))
     (conf/with-default conf
-      (task-fn task-partitioner v conf args))))
+      (let [;; TODO: For 0.5.0, change default to `(comp mr/partfn constantly)`
+            f (adapt mr/partfn v)]
+        (apply f conf args)))))
