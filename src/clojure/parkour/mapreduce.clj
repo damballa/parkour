@@ -158,9 +158,9 @@ mechanism."
 
 Prior to use, the function referenced by `var` will be transformed by the
 function specified as the value of `var`'s `::mr/adapter` metadata, defaulting
-to `parkour.mapreduce/contextfn`.  During task-setup, the transformed function
-will be invoked with the job `Configuration` and any provided `args` (which must
-be EDN-serializable); it should return a function of one argument, which will be
+to `parkour.mapreduce/collfn`.  During task-setup, the transformed function will
+be invoked with the job `Configuration` and any provided `args` (which must be
+EDN-serializable); it should return a function of one argument, which will be
 invoked with the task context to execute the task.
 
 See also: `collfn`, `contextfn`."
@@ -189,9 +189,9 @@ See also: `collfn`, `contextfn`."
 
 Prior to use, the function referenced by `var` will be transformed by the
 function specified as the value of `var`'s `::mr/adapter` metadata, defaulting
-to `parkour.mapreduce/contextfn`.  During task-setup, the transformed function
-will be invoked with the job `Configuration` and any provided `args` (which must
-be EDN-serializable); it should return a function of one argument, which will be
+to `parkour.mapreduce/collfn`.  During task-setup, the transformed function will
+be invoked with the job `Configuration` and any provided `args` (which must be
+EDN-serializable); it should return a function of one argument, which will be
 invoked with the task context to execute the task.
 
 See also: `collfn`, `contextfn`."
@@ -209,12 +209,13 @@ which may impact e.g. output types."
 
 Prior to use, the function referenced by `var` will be transformed by the
 function specified as the value of `var`'s `::mr/adapter` metadata, defaulting
-to `parkour.mapreduce/partfn`.  During task-setup, the transformed function will
-be invoked with the job `Configuration` and any provided `args` (which must be
-EDN-serializable); it should return a function of three arguments: a raw
-map-output key, a raw map-output value, and an integral reduce-task count.  That
-function will be called for each map-output tuple, must return an integral value
-mod the reduce-task count, and must be primitive-hinted as `OOLL`.
+to the `(comp parkour.mapreduce/partfn constantly)`.  During task-setup, the
+transformed function will be invoked with the job `Configuration` and any
+provided `args` (which must be EDN-serializable); it should return a function of
+three arguments: a raw map-output key, a raw map-output value, and an integral
+reduce-task count.  That function will be called for each map-output tuple, must
+return an integral value mod the reduce-task count, and must be primitive-hinted
+as `OOLL`.
 
 See also: `partfn`."
   [conf var & args]

@@ -4,8 +4,8 @@
 
 ### Breaking changes
 
-- The default map/reduce task function interface to uses the new `collfn`
-  adapter.  The previous interface may be specified via the `contextfn` adapter.
+- The default map/reduce task function interface uses the new `collfn` adapter.
+  The previous interface may be specified via the `contextfn` adapter.
 - Local reduction of dseqs yields unwrapped values.  Raw values may be accessed
   via `source-for` with the `:raw?` option.
 
