@@ -26,9 +26,9 @@
   src/TupleSource
   (key [_] (.getCurrentKey rr))
   (val [_] (.getCurrentValue rr))
-  (-next-keyval [_]
+  (next-keyval [this]
     (if (and rr (or (.nextKeyValue rr) (returning false (.close rr))))
-      true
+      this
       (if-not (empty? splits)
         (let [split (first splits), tac (mr/tac job)]
           (set! splits (rest splits))

@@ -6,6 +6,7 @@
             [parkour (conf :as conf) (wrapper :as w)])
   (:import [clojure.lang Seqable]
            [java.io Closeable]
+           [java.util Collection]
            [org.apache.hadoop.conf Configurable]
            [org.apache.hadoop.mapreduce MapContext ReduceContext]
            [org.apache.hadoop.mapreduce TaskInputOutputContext]))
@@ -19,20 +20,16 @@ of such tuples."
     "Current tuple's value.")
   (vals [this]
     "Current key's sequence of associated values.")
-  (-next-keyval [this]
+  (next-keyval [this]
     "Source updated to next key/value tuple, implementation.")
-  (-next-key [this]
+  (next-key [this]
     "Source updated to next distinct key, implementation.")
   (-close [source]
     "Close the source, cleaning up any associated resources."))
 
-(defn next-keyval
-  "Source updated to next key/value tuple."
-  [source] (if (-next-keyval source) source))
-
-(defn next-key
-  "Source updated to next distinct key."
-  [source] (if (-next-key source) source))
+(defn source?
+  "True iff `x` is a tuple source."
+  [x] (satisfies? TupleSource x))
 
 (defn keyval
   "Pair of current tuple's key and value."
@@ -106,19 +103,36 @@ iteration function `nextf` and extraction function `dataf`."
     Seqable
     (seq [_] (source-seq nextf dataf source))))
 
+(defn seq-source
+  [coll]
+  (if-let [coll (seq coll)]
+    (reify TupleSource
+      (key [_] (nth (first coll) 0))
+      (val [_] (nth (first coll) 1))
+      (next-keyval [_] (seq-source (rest coll)))
+      (-close [_]))))
+
 (extend-protocol TupleSource
+  nil
+  (next-keyval [_] nil)
+  (-close [_])
+
+  Collection
+  (next-keyval [this] (seq-source this))
+  (-close [_])
+
   MapContext
   (key [this] (.getCurrentKey this))
   (val [this] (.getCurrentValue this))
-  (-next-keyval [this] (when (.nextKeyValue this) this))
+  (next-keyval [this] (if (.nextKeyValue this) this))
   (-close [_])
 
   ReduceContext
   (key [this] (.getCurrentKey this))
   (val [this] (.getCurrentValue this))
   (vals [this] (.getValues this))
-  (-next-keyval [this] (.nextKeyValue this))
-  (-next-key [this] (.nextKey this))
+  (next-keyval [this] (if (.nextKeyValue this) this))
+  (next-key [this] (if (.nextKey this) this))
   (-close [_]))
 
 (extend-protocol ccp/CollReduce
@@ -138,8 +152,8 @@ iteration function `nextf` and extraction function `dataf`."
     (key [_] (w/unwrap (key source)))
     (val [_] (w/unwrap (val source)))
     (vals [_] (mapping w/unwrap (vals source)))
-    (-next-keyval [this] (-next-keyval source))
-    (-next-key [this] (-next-key source))
+    (next-keyval [this] (if (next-keyval source) this))
+    (next-key [this] (if (next-key source) this))
     (-close [_] (-close source))
 
     Closeable

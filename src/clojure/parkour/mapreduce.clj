@@ -16,15 +16,33 @@
 
 (defn keys
   "Produce keys only from the tuples in `context`."
-  [context] (src/reducer src/next-keyval src/key context))
+  [context]
+  (case (-> context meta ::snk/sink-as)
+    :keys context
+    :vals (src/mapping (constantly nil) context)
+    #_else (if-not (src/source? context)
+             (src/mapping #(nth % 0) context)
+             (src/reducer src/next-keyval src/key context))))
 
 (defn vals
   "Produce values only from the tuples in `context`."
-  [context] (src/reducer src/next-keyval src/val context))
+  [context]
+  (case (-> context meta ::snk/sink-as)
+    :keys (src/mapping (constantly nil) context)
+    :vals context
+    #_else (if-not (src/source? context)
+             (src/mapping #(nth % 1) context)
+             (src/reducer src/next-keyval src/val context))))
 
 (defn keyvals
   "Produce pairs of keys and values from the tuples in `context`."
-  [context] (src/reducer src/next-keyval src/keyval context))
+  [context]
+  (case (-> context meta ::snk/sink-as)
+    :keys (src/mapping #(-> [% nil]) context)
+    :vals (src/mapping #(-> [nil %]) context)
+    #_else (if-not (src/source? context)
+             context
+             (src/reducer src/next-keyval src/keyval context))))
 
 (defn keygroups
   "Produce distinct keys from the tuples in `context`."
