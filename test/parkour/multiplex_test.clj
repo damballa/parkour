@@ -13,7 +13,7 @@
         multi (mux/dseq text avro)]
     (is (= {[:text "apple"]  3, [:text "banana"]  2, [:text "carrot"]  1,
             [:avro "applez"] 3, [:avro "bananaz"] 2, [:avro "carrotz"] 1}
-           (->> (r/map w/unwrap-all multi)
+           (->> multi
                 (r/map (fn [[k v]] (if v [:text v] [:avro k])))
                 (into [])
                 (frequencies))))))
@@ -24,7 +24,7 @@
         multi (mux/dseq (mux/dseq text) (mux/dseq avro))]
     (is (= {[:text "apple"]  3, [:text "banana"]  2, [:text "carrot"]  1,
             [:avro "applez"] 3, [:avro "bananaz"] 2, [:avro "carrotz"] 1}
-           (->> (r/map w/unwrap-all multi)
+           (->> multi
                 (r/map (fn [[k v]] (if v [:text v] [:avro k])))
                 (into [])
                 (frequencies))))))

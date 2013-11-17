@@ -7,18 +7,16 @@
   (:import [org.apache.hadoop.io Text LongWritable]))
 
 (defn mapper
-  [conf]
-  (fn [context input]
-    (->> (mr/vals input)
-         (r/mapcat #(str/split % #"\s+"))
-         (r/map #(-> [% 1])))))
+  [input]
+  (->> (mr/vals input)
+       (r/mapcat #(str/split % #"\s+"))
+       (r/map #(-> [% 1]))))
 
 (defn reducer
-  [conf]
-  (fn [context input]
-    (->> (mr/keyvalgroups input)
-         (r/map (fn [[word counts]]
-                  [word (r/reduce + 0 counts)])))))
+  [input]
+  (->> (mr/keyvalgroups input)
+       (r/map (fn [[word counts]]
+                [word (r/reduce + 0 counts)]))))
 
 (defn word-count
   [conf dseq dsink]
@@ -36,9 +34,7 @@
   (let [[outpath & inpaths] args
         input (apply text/dseq inpaths)
         output (seqf/dsink [Text LongWritable] outpath)]
-    (->> (word-count conf input output)
-         w/unwrap (into {})
-         prn)))
+    (->> (word-count conf input output) (into {}) prn)))
 
 (defn -main
   [& args] (System/exit (tool/run tool args)))

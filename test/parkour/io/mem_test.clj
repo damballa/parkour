@@ -12,7 +12,7 @@
     (is (= records (->> records mem/dseq w/unwrap (into []))))))
 
 (defn map-identity
-  [conf] (fn [context input] input))
+  [input] input)
 
 (deftest test-job-input
   (let [records [["foo" 9] ["bar" 8] ["baz" 7] ["quux" 6]]

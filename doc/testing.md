@@ -28,7 +28,7 @@ dseq, which may be used as input for a job or job graph.
         dsink (seqf/dsink [Text LongWritable] outpath)
         [result] (word-count (conf/ig) dseq dsink)]
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
-           (->> result w/unwrap (into {}))))))
+           (into {} result)))))
 ```
 
 ### mem/dseq
@@ -48,7 +48,7 @@ input formats.
         dsink (seqf/dsink [Text LongWritable] outpath)
         [result] (word-count (conf/ig) dseq dsink)]
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
-           (->> result w/unwrap (into {}))))))
+           (into {} result)))))
 ```
 
 ## Partitioners

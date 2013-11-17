@@ -12,18 +12,16 @@
   (:import [org.apache.hadoop.io Text LongWritable]))
 
 (defn word-count-mapper
-  [conf]
-  (fn [_ input]
-    (->> input mr/vals
-         (r/mapcat #(str/split % #"\s+"))
-         (r/map #(-> [% 1])))))
+  [input]
+  (->> input mr/vals
+       (r/mapcat #(str/split % #"\s+"))
+       (r/map #(-> [% 1]))))
 
 (defn word-count-reducer
-  [conf]
-  (fn [_ input]
-    (->> input mr/keyvalgroups
-         (r/map (fn [[word counts]]
-                  [word (r/reduce + 0 counts)])))))
+  [input]
+  (->> input mr/keyvalgroups
+       (r/map (fn [[word counts]]
+                [word (r/reduce + 0 counts)]))))
 
 (defn word-count
   [conf dseq dsink]
@@ -46,7 +44,7 @@
     (is (= 6 (-> (->> result mr/counters-map vals (apply merge))
                  (get "MAP_OUTPUT_RECORDS"))))
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
-           (->> result w/unwrap (into {}))))))
+           (into {} result)))))
 
 (deftest test-word-count-local
   (let [inpath (doto (fs/path "tmp/word-count-input") fs/path-delete)
@@ -89,27 +87,24 @@
             {:name "right", :type "string"}]})
 
 (defn trivial-join-mapper
-  [conf tag]
-  (fn [_ input]
-    (->> input mr/vals
-         (r/map (fn [line]
-                  (let [[key val] (str/split line #"\s")]
-                    [[(Long/parseLong key) tag] val]))))))
+  [tag input]
+  (->> input mr/vals
+       (r/map (fn [line]
+                (let [[key val] (str/split line #"\s")]
+                  [[(Long/parseLong key) tag] val])))))
 
 (defn trivial-join-partitioner
-  [conf]
-  (fn ^long [[key] _ ^long nparts]
-    (-> key hash (mod nparts))))
+  ^long [[key] _ ^long nparts]
+  (-> key hash (mod nparts)))
 
 (defn trivial-join-reducer
-  [conf]
-  (fn [context input]
-    (->> input mr/keyvalgroups
-         (r/mapcat (fn [[[id] vals]]
-                     (let [vals (into [] vals)
-                           left (first vals)]
-                       (r/map #(-> [id left %]) (rest vals)))))
-         (mr/sink-as :keys))))
+  [input]
+  (->> input mr/keyvalgroups
+       (r/mapcat (fn [[[id] vals]]
+                   (let [vals (into [] vals)
+                         left (first vals)]
+                     (r/map #(-> [id left %]) (rest vals)))))
+       (mr/sink-as :keys)))
 
 (defn trivial-join
   [conf left right dsink]
@@ -142,22 +137,20 @@
                 sort)))))
 
 (defn multiple-outputs-mapper
-  [conf]
-  (fn [_ input]
-    (->> input mr/vals
-         (r/mapcat #(str/split % #"[ \t]+"))
-         (r/map #(-> [% 1])))))
+  [input]
+  (->> input mr/vals
+       (r/mapcat #(str/split % #"[ \t]+"))
+       (r/map #(-> [% 1]))))
 
 (defn multiple-outputs-reducer
-  [conf]
-  (fn [_ input]
-    (->> input mr/keyvalgroups
-         (r/map (fn [[word counts]]
-                  [word (r/reduce + 0 counts)]))
-         (r/map (fn [[word count]]
-                  (let [oname (if (even? count) :even :odd)]
-                    [oname word count])))
-         (mr/sink-as dux/named-keyvals))))
+  [input]
+  (->> input mr/keyvalgroups
+       (r/map (fn [[word counts]]
+                [word (r/reduce + 0 counts)]))
+       (r/map (fn [[word count]]
+                (let [oname (if (even? count) :even :odd)]
+                  [oname word count])))
+       (mr/sink-as dux/named-keyvals)))
 
 (defn multiple-outputs
   [conf dseq even odd]

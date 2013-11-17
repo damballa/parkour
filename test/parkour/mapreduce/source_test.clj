@@ -17,15 +17,14 @@
     (rseq base-data)))
 
 (defn reducer
-  [conf shapef mapf transf]
+  [shapef mapf transf input]
   (let [shapef (resolve shapef)
         mapf (resolve mapf)
         transf (resolve transf)]
-    (fn [context input]
-      (->> (shapef input)
-           (mapf transf)
-           (r/map pr-str)
-           (mr/sink-as :keys)))))
+    (->> (shapef input)
+         (mapf transf)
+         (r/map pr-str)
+         (mr/sink-as :keys))))
 
 (defn run-test-source
   [shapef mapf transf]

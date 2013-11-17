@@ -9,23 +9,26 @@
             [parkour.test-helpers :as th]))
 
 (defn word-count-mapper
-  {::mr/adapter mr/collfn}
-  [input]
-  (->> (mr/vals input)
-       (mapcat #(str/split % #"\s+"))
-       (map #(-> [% 1]))))
+  {::mr/adapter mr/contextfn}
+  [conf]
+  (fn [context input]
+    (->> (mr/vals input)
+         (mapcat #(str/split % #"\s+"))
+         (map #(-> [% 1])))))
 
 (defn word-count-reducer
-  {::mr/adapter mr/collfn}
-  [input]
-  (->> (mr/keyvalgroups input)
-       (map (fn [[word counts]]
-              [word (reduce + 0 counts)]))))
+  {::mr/adapter mr/contextfn}
+  [conf]
+  (fn [context input]
+    (->> (mr/keyvalgroups input)
+         (map (fn [[word counts]]
+                [word (reduce + 0 counts)])))))
 
 (defn word-count-partitioner
-  {::mr/adapter (comp mr/partfn constantly)}
-  ^long [key val ^long nparts]
-  (-> ^String key (.charAt 0) int (mod nparts)))
+  {::mr/adapter mr/partfn}
+  [conf]
+  (fn ^long [key val ^long nparts]
+    (-> ^String key (.charAt 0) int (mod nparts))))
 
 (deftest test-task-collfn
   (let [inpath (fs/path "dev-resources/word-count-input.txt")

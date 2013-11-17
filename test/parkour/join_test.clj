@@ -15,29 +15,26 @@
            [parkour.hadoop Mux$Mapper]))
 
 (defn mapper
-  [conf tag]
-  (fn [_ input]
-    (->> (mr/vals input)
-         (r/map (fn [line]
-                  (let [[key val] (str/split line #"\s")]
-                    [[(Long/parseLong key) tag] val]))))))
+  [tag input]
+  (->> (mr/vals input)
+       (r/map (fn [line]
+                (let [[key val] (str/split line #"\s")]
+                  [[(Long/parseLong key) tag] val])))))
 
 (defn partitioner
-  [conf]
-  (fn ^long [[key] _ ^long nparts]
-    (-> key hash (mod nparts))))
+  ^long [[key] _ ^long nparts]
+  (-> key hash (mod nparts)))
 
 (defn reducer
-  [conf]
-  (fn [_ input]
-    (->> (mr/keykeyvalgroups input)
-         (r/mapcat (fn [[[id] keyvals]]
-                     (let [kv-tag (comp second first), kv-val second
-                           vals (pr/group-by+ kv-tag kv-val keyvals)
-                           left (get vals 0), right (get vals 1)]
-                       (for [left left, right right]
-                         [id left right]))))
-         (mr/sink-as :keys))))
+  [input]
+  (->> (mr/keykeyvalgroups input)
+       (r/mapcat (fn [[[id] keyvals]]
+                   (let [kv-tag (comp second first), kv-val second
+                         vals (pr/group-by+ kv-tag kv-val keyvals)
+                         left (get vals 0), right (get vals 1)]
+                     (for [left left, right right]
+                       [id left right]))))
+       (mr/sink-as :keys)))
 
 (defn run-join
   [leftpath rightpath outpath]

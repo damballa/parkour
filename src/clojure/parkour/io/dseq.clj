@@ -48,12 +48,8 @@ tuple source will not automatically unwrap values."
   ccp/CollReduce
   (coll-reduce [this f] (ccp/coll-reduce this f (f)))
   (coll-reduce [this f init]
-    ;; TODO: Drop `:raw?` in 0.5.0
-    (with-open [source (source-for step :raw? true)]
+    (with-open [source (source-for step)]
       (ccp/coll-reduce source f init)))
-
-  w/Wrapper
-  (unwrap [this] (r/map w/unwrap-all this))
 
   DSeqable
   (-dseq [this] this))

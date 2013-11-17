@@ -14,8 +14,9 @@ The `parkour.conf` namespace contains functions for manipulating Hadoop
 `Configuration` objects as bash-in-place mutable maps.  It provides type-aware
 string conversion on parameter-set, type-specific functions for parameter
 access, and automatic conversion for the wrapped `Configuration`s of objects
-such as `Job`s and `Configurable`s.  It also provides a tagged literal form for
-`Configuration`s as a map of differences from the default.
+such as `Job`s and `Configurable`s.  It also provides a dynamically-scoped base
+default `Configuration`, and a tagged literal form for `Configuration`s as a map
+of differences from the default.
 
 ```clj
 (require '[parkour.conf :as conf])
@@ -118,24 +119,28 @@ then return functions (or other objects) which implement the functionality of
 the bound class.  The interfaces for these functions are class-specific, and
 documented in the docstrings of the associated binding functions.
 
+Because this interface can be unwieldy, Parkour transforms most var-bound
+objects via “adapter functions.”  Each var-type mapping has a type-specific
+default adapter; alternative adapters may be provided by the user via the value
+of the var’s `:parkour.mapreduce/adapter` metadata.
+
 The namespace also provides functions for efficiently reshaping both task input
 and output collections, and for writing output tuples to the task context.
 Unlike the Java raw MapReduce interfaces, Parkour provides access to each
-individual input tuple in both map and reduce tasks.  The input reshaping
-functions allow access to key/value tuples, just keys or values, or – in reduce
-tasks – any combination of distinct grouping keys and reshaped sub-collections
-of grouped tuples.
+individual input tuple in both map and reduce tasks, as collections of these
+tuples.  The input reshaping functions allow access to key/value tuples, just
+keys or values, or – in reduce tasks – any combination of distinct grouping keys
+and reshaped sub-collections of grouped tuples.
 
 ```clj
 (require '[clojure.core.reducers :as r])
 (require '[parkour.mapreduce :as mr])
 
 (defn replacer
-  [conf val]
-  (fn [context input]
-    (->> (mr/keys context)
-         (r/map (fn [key] [key val]))
-         (mr/sink-as :keyvals))))
+  [val input]
+  (->> (mr/keys input)
+       (r/map (fn [key] [key val]))
+       (mr/sink-as :keyvals)))
 
 (defn run-replacer
   [val]
@@ -200,7 +205,11 @@ underlying job-configuration methods.
 
 In addition to acting as the configuration steps they wrap, distributed
 sequences also act as locally-reducible collections.  This provides seamless
-local access to the input or output of any Hadoop job.
+local access to the input or output of any Hadoop job.  Distributed sequences
+may be directly reduced as unwrapped tuples, or opened with the
+`dseq/source-for` function.  The `source-for` function takes an optional `:raw?`
+keyword-argument which allows direct access to the raw Hadoop wrapper type
+instances, and its return value is `seq`able as well as `reduce`-able.
 
 The `parkour.io.dsink` namespace provides the `dsink` function for reifying a
 job-output configuration step as a “distributed sink.”  As with dseqs, dsinks
@@ -247,7 +256,7 @@ de/muxing classes like `AvroMultipleOutputs`.
 (require '[parkour.io.text :as text])
 
 (->> (text/dseq "project.clj")
-     (r/map (comp str second))
+     (r/map second)
      (r/map #(subs % 0 32))
      (r/take 1)
      (into []))
@@ -314,7 +323,8 @@ node dseqs, and on failure throws an exception.
       (pg/combine #'reducer)
       (pg/reduce #'reducer)
       (pg/sink dsink)
-      (pg/execute conf "word-count")))
+      (pg/execute conf "word-count")
+      first))
 ```
 
 [abracad]: https://github.com/damballa/abracad/

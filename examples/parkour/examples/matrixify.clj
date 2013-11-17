@@ -15,18 +15,18 @@ to rows, `dst` nodes to column, and `weight`s to matrix values."
 
 (defn parse-mapper
   "Parse text input lines into (source, dest, weight) graph edges."
-  [conf]
-  (fn [context input]
-    (->> (mr/vals input)
-         (r/map (fn [line]
-                  (let [[row col val] (str/split line #"\s+")
-                        val (Double/parseDouble val)]
-                    [col [row val]])))
-         (mr/sink-as :keyvals))))
+  [input]
+  (->> (mr/vals input)
+       (r/map (fn [line]
+                (let [[row col val] (str/split line #"\s+")
+                      val (Double/parseDouble val)]
+                  [col [row val]])))
+       (mr/sink-as :keyvals)))
 
 (defn dim-count-reducer
   "Perform a parallel count, indexing each key within the reduce task, emitting
 data with parallel index (reducer, offset) tuple and final reducer count."
+  {::mr/adapter mr/contextfn}
   [conf]
   (fn [context input]
     (let [red (conf/get-long conf "mapred.task.partition" -1)
@@ -55,12 +55,11 @@ data with parallel index (reducer, offset) tuple and final reducer count."
 
 (defn absind-mapper
   "Convert inputs to absolute (row, col, val) matrix entries."
-  [conf c-offsets r-offsets]
-  (fn [context input]
-    (->> (mr/keyvals input)
-         (r/map (fn [[col [row val]]]
-                  [(absind r-offsets row) (absind c-offsets col) val]))
-         (mr/sink-as :keys))))
+  [c-offsets r-offsets input]
+  (->> (mr/keyvals input)
+       (r/map (fn [[col [row val]]]
+                [(absind r-offsets row) (absind c-offsets col) val]))
+       (mr/sink-as :keys)))
 
 ;; Avro schemas
 (def name-value (avro/tuple-schema [:string :double]))
@@ -105,8 +104,8 @@ returning dseq on final matrix entries."
   (let [[workdir & inpaths] args
         indseq (apply text/dseq inpaths)]
     (->> (matrixify conf workdir indseq)
-         (r/map (comp w/unwrap first))
-         (reduce (fn [_ entry] (println (str/join "\t" entry)))
+         (reduce (fn [_ [entry _]]
+                   (println (str/join "\t" entry)))
                  nil))))
 
 (defn -main

@@ -16,17 +16,15 @@
            [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]))
 
 (defn wc-mapper
-  [conf]
-  (fn [_ input]
-    (->> (mr/vals input)
-         (r/mapcat #(str/split % #"\s"))
-         (r/map #(-> [% 1])))))
+  [input]
+  (->> (mr/vals input)
+       (r/mapcat #(str/split % #"\s"))
+       (r/map #(-> [% 1]))))
 
 (defn wc-reducer
-  [conf]
-  (fn [_ input]
-    (->> (mr/keyvalgroups input)
-         (r/map (pr/mjuxt identity (partial r/reduce +))))))
+  [input]
+  (->> (mr/keyvalgroups input)
+       (r/map (pr/mjuxt identity (partial r/reduce +)))))
 
 (defn run-word-count
   [inpath outpath]
@@ -56,17 +54,15 @@
 
 
 (defn wd-mapper
-  [conf]
-  (fn [_ input]
-    (->> (mr/vals input)
-         (r/mapcat #(str/split % #"\s"))
-         (mr/sink-as :keys))))
+  [input]
+  (->> (mr/vals input)
+       (r/mapcat #(str/split % #"\s"))
+       (mr/sink-as :keys)))
 
 (defn wd-reducer
-  [conf]
-  (fn [_ input]
-    (->> (mr/keygroups input)
-         (mr/sink-as :keys))))
+  [input]
+  (->> (mr/keygroups input)
+       (mr/sink-as :keys)))
 
 (defn run-word-distinct
   [inpath outpath]

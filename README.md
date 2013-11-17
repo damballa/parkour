@@ -10,7 +10,7 @@ Parkour is available on Clojars.  Add this `:dependency` to your Leiningen
 `project.clj`:
 
 ```clj
-[com.damballa/parkour "0.4.1"]
+[com.damballa/parkour "0.5.0"]
 ```
 
 ## Usage
@@ -24,27 +24,27 @@ here is the classic “word count” example, in Parkour:
 
 ```clj
 (defn mapper
-  [conf]
-  (fn [context input]
-    (->> (mr/vals input)
-         (r/mapcat #(str/split % #"\s+"))
-         (r/map #(-> [% 1])))))
+  [input]
+  (->> (mr/vals input)
+       (r/mapcat #(str/split % #"\s+"))
+       (r/map #(-> [% 1]))))
 
 (defn reducer
-  [conf]
-  (fn [context input]
-    (->> (mr/keyvalgroups input)
-         (r/map (fn [[word counts]]
-                  [word (r/reduce + 0 counts)])))))
+  [input]
+  (->> (mr/keyvalgroups input)
+       (r/map (fn [[word counts]]
+                [word (r/reduce + 0 counts)]))))
 
 (defn word-count
-  [dseq dsink]
+  [conf dseq dsink]
   (-> (pg/input dseq)
       (pg/map #'mapper)
       (pg/partition [Text LongWritable])
       (pg/combine #'reducer)
       (pg/reduce #'reducer)
-      (pg/output dsink)))
+      (pg/output dsink)
+      (pg/execute conf "word-count")
+      first))
 ```
 
 ## Documentation

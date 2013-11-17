@@ -15,7 +15,7 @@ example:
   ...
   :dependencies [...
                  [org.codehaus.jsr166-mirror/jsr166y "1.7.0"]
-                 [com.damballa/parkour "0.4.1"]
+                 [com.damballa/parkour "0.5.0"]
                  ...]
 
   :profiles {...
@@ -130,18 +130,16 @@ Here’s the complete classic “word count” example, written using Parkour:
   (:import [org.apache.hadoop.io Text LongWritable]))
 
 (defn mapper
-  [conf]
-  (fn [context input]
-    (->> (mr/vals input)
-         (r/mapcat #(str/split % #"\s+"))
-         (r/map #(-> [% 1])))))
+  [input]
+  (->> (mr/vals input)
+       (r/mapcat #(str/split % #"\s+"))
+       (r/map #(-> [% 1]))))
 
 (defn reducer
-  [conf]
-  (fn [context input]
-    (->> (mr/keyvalgroups input)
-         (r/map (fn [[word counts]]
-                  [word (r/reduce + 0 counts)])))))
+  [input]
+  (->> (mr/keyvalgroups input)
+       (r/map (fn [[word counts]]
+                [word (r/reduce + 0 counts)]))))
 
 (defn word-count
   [conf dseq dsink]
@@ -159,9 +157,7 @@ Here’s the complete classic “word count” example, written using Parkour:
   (let [[outpath & inpaths] args
         input (apply text/dseq inpaths)
         output (seqf/dsink [Text LongWritable] outpath)]
-    (->> (word-count conf input output)
-         w/unwrap (into {})
-         prn)))
+    (->> (word-count conf input output) (into {}) prn)))
 
 (defn -main
   [& args] (System/exit (tool/run tool args)))
@@ -169,25 +165,40 @@ Here’s the complete classic “word count” example, written using Parkour:
 
 Let’s walk through some important features of this example.
 
-### Task vars
+### Task vars & adapters
 
 The remote task vars (the arguments to the `map`, `combine`, and `reduce` calls)
-have complete control over execution of their associated tasks.  The task vars
-are higher-order functions which accept the job configuration plus any explicit
-serialized parameters as arguments and return a task function.
+have complete control over execution of their associated tasks.  The underlying
+interface Parkour exposes models the Hadoop `Mapper` and `Reducer` classes as
+higher-order function, with construction/configuration invoking the initial
+function, then task-execution invoking the function returned by the former.
+
+Most tasks don’t need this complexity, so Parkour allows vars to specify via
+metadata an “adapter function” for transforming the var’s value to the
+underlying interface.  The default adapter function allows idiomatic Clojure
+collection functions to be used as tasks, but others allow direct access to the
+job `Configuration` and `JobContext`.  For example, `identity` as an adapter
+function allows total control over raw task execution via the fundamental
+Parkour-Hadoop interface.
+
+### Inputs as collections
 
 In the default Hadoop Java interface, Hadoop calls a user-supplied method for
-each input tuple.  Parkour instead calls the task function with the task context
-and the entire set of local input tuples as a single reducible collection, and
-expects a reducible output collection as the result.
+each input tuple.  Parkour instead calls the task function with the entire set
+of local input tuples as a single reducible collection, and expects a reducible
+output collection as the result.
 
 The input collections are directly reducible as vectors of key/value pairs, but
 the `parkour.mapreduce` namespace contains functions to efficiently reshape the
 task-inputs, including `vals` to access just the input values and (reduce-side)
 `keyvalgroups` to access grouping keys and grouped sub-collections of values.
+This model also allows access to more esoteric shapes generally not considered
+available from the raw Java interface, such as `keykeygroups`.
+
 Parkour also defaults to emitting the result collection as key/value pairs, but
 `pakour.mapreduce` contains a `sink-as` function for specifying alternative
-shapes for task output.
+shapes for task output.  The `sink` function allows explicit sinking to context
+objects or other sinks, when desired.
 
 ### Automatic wrapping & unwrapping
 
@@ -206,9 +217,10 @@ with Hadoop’s serialization containers.
 
 ### Results
 
-The return value of the `execute` function is a vector of dseqs for the graph
-leaf node results.  These dseqs may be consumed locally as in the example, or
-used as inputs for additional jobs.  When locally `reduce`d, dseqs yield
-key-value vectors of the raw Hadoop wrapper objects produced by the backing
-Hadoop input format.  The wrapper objects – or the dseqs themselves – may be
-`unwrap`ed to directly access the contained values.
+The return value of the `execute` function is a vector of dseqs for the job
+graph leaf node results.  These dseqs may be consumed locally as in the example,
+or used as inputs for additional jobs.  When locally `reduce`d, dseqs yield
+key-value vectors of the `unwrap`ed values of the objects produced by the
+backing Hadoop input format.  The `parkour.io.dseq/source-for` function can
+provide direct access to the raw wrapper objects, as well as allowing dseqs to
+be realized as lazy sequences instead of reducers.

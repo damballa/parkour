@@ -43,8 +43,7 @@
     (log/infof "mapper: split=%s, var=%s, args=%s"
                (pr-str split) (pr-str v) (pr-str args))
     (conf/with-default conf
-      (let [;; TODO: For 0.5.0, change default to `mr/collfn`
-            f (adapt mr/contextfn v)
+      (let [f (adapt mr/collfn v)
             g (apply f conf args)]
         (g context)))))
 
@@ -56,8 +55,7 @@
         [v args] (step-v-args conf "reducer" id)]
     (log/infof "reducer: var=%s, args=%s" (pr-str v) (pr-str args))
     (conf/with-default conf
-      (let [;; TODO: For 0.5.0, change default to `mr/collfn`
-            f (adapt mr/contextfn v)
+      (let [f (adapt mr/collfn v)
             g (apply f conf args)]
         (g context)))))
 
@@ -66,6 +64,5 @@
   (let [[v args] (step-v-args conf "partitioner")]
     (log/infof "partitioner: var=%s, args=%s" (pr-str v) (pr-str args))
     (conf/with-default conf
-      (let [;; TODO: For 0.5.0, change default to `(comp mr/partfn constantly)`
-            f (adapt mr/partfn v)]
+      (let [f (adapt (comp mr/partfn constantly) v)]
         (apply f conf args)))))
