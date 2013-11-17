@@ -65,6 +65,14 @@ Parkour’s documentation is divided into a number of separate sections:
 - [Deployment][deployment] – Running Parkour applications on a Hadoop cluster.
 - [Reference][api] – Generated API reference, via [codox][codox].
 
+## Contributing
+
+There is a [Parkour mailing list][mailing-list] hosted by
+[Librelist](http://librelist.com/) for announcements and discussion.  To join
+the mailing list, just email parkour@librelist.org; your first message to that
+address will subscribe you without being posted.  Please report issues on the
+[GitHub issue tracker][issues].  And of course, pull requests welcome!
+
 ## License
 
 Copyright © 2013 Marshall Bockrath-Vandegrift & Damballa, Inc.
@@ -80,3 +88,5 @@ Distributed under the Apache License, Version 2.0.
 [deployment]: https://github.com/damballa/parkour/blob/master/doc/deployment.md
 [api]: http://damballa.github.io/parkour/
 [codox]: https://github.com/weavejester/codox
+[mailing-list]: http://librelist.com/browser/parkour/
+[issues]: https://github.com/damballa/parkour/issues
