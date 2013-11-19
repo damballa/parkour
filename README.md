@@ -56,6 +56,8 @@ Parkour’s documentation is divided into a number of separate sections:
   achieve, with comparison to other libraries and frameworks.
 - [Namespaces][namespaces] – A tour of Parkour’s namespaces, explaining how each
   set of functionality fits into the whole.
+- [MapReduce in depth][mr-detailed] – An in-depth examination of the interfaces
+  Parkour uses to run your code in MapReduce jobs.
 - [Serialization][serialization] – How Parkour integrates Clojure with Hadoop
   serialization mechanisms.
 - [Reducers vs seqs][reducers-vs-seqs] – Why Parkour’s default idiom uses
@@ -81,6 +83,7 @@ Distributed under the Apache License, Version 2.0.
 [intro]: https://github.com/damballa/parkour/blob/master/doc/intro.md
 [motivation]: https://github.com/damballa/parkour/blob/master/doc/motivation.md
 [namespaces]: https://github.com/damballa/parkour/blob/master/doc/namespaces.md
+[mr-detailed]: https://github.com/damballa/parkour/blob/master/doc/mr-detailed.md
 [serialization]: https://github.com/damballa/parkour/blob/master/doc/serialization.md
 [reducers-vs-seqs]: https://github.com/damballa/parkour/blob/master/doc/reducers-vs-seqs.md
 [testing]: https://github.com/damballa/parkour/blob/master/doc/testing.md
