@@ -45,8 +45,9 @@ data with parallel index (reducer, offset) tuple and final reducer count."
 (defn offsets
   "Build map of offsets from dseq of counts."
   [dseq]
-  (->> (r/map w/unwrap-all dseq) (into []) (sort-by first)
-       (reductions (fn [[_ t] [i n]] [(inc i) (+ t n)]) [0 0])
+  (->> dseq (into []) (sort-by first)
+       (reductions (fn [[_ t] [i n]]
+                     [(inc i) (+ t n)]) [0 0])
        (into {})))
 
 (defn absind
