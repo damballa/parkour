@@ -101,32 +101,31 @@ return value should be a reducible collection, which is used as the task output.
 The task input parameter acts as a reducible collection over the task key-value
 input tuples.  That collection may be directly reduced, or “reshaped” into a
 reducible and seqable collection containing a particular “shape” of the original
-key-value data.  The following reshaping functions are available in both map and
+key-value data.  These reshaping functions all reside in the `parkour.mapreduce`
+namespace.  The following reshaping functions are available in both map and
 reduce/combine tasks:
 
-- `parkour.mapreduce/keyvals` – “Re-shape” as vectors of key-vals pairs.  Nearly
-  the identity transformation, but does allow the resulting collection to be
-  seqable as well.  This is the standard `Mapper` input shape.
-- `parkour.mapreduce/keys` – Just the keys from each key-value pair.
-- `parkour.mapreduce/vals` – Just the values from each key-value pair.
+- `keyvals` – “Re-shape” as vectors of key-vals pairs.  Nearly the identity
+  transformation, but does allow the resulting collection to be seqable as well.
+  This is the standard `Mapper` input shape.
+- `keys` – Just the keys from each key-value pair.
+- `vals` – Just the values from each key-value pair.
 
 The following reshaping functions are available only in reduce/combine tasks:
 
-- `parkour.mapreduce/keyvalgroups` – Vector pairs of the first instance of each
-  distinct grouping key and a sub-collection of all the values associated with
-  that grouping key.  This is the standard `Reducer` input shape.
-- `parkour.mapreduce/keygroups` – Just the first instance of each distinct
+- `keyvalgroups` – Vector pairs of the first instance of each distinct grouping
+  key and a sub-collection of all the values associated with that grouping key.
+  This is the standard `Reducer` input shape.
+- `keygroups` – Just the first instance of each distinct grouping key.
+- `valgroups` – Just the sub-collections of values associated with each distinct
   grouping key.
-- `parkour.mapreduce/valgroups` – Just the sub-collections of values associated
-  with each distinct grouping key.
-- `parkour.mapreduce/keykeyvalgroups` – Vector pairs of the first instance of
-  each distinct grouping key and a sub-collection all the vector pairs of
-  specific keys and values associated with that grouping key.
-- `parkour.mapreduce/keykeygroups` – Vector pairs of the first instance of each
-  distinct grouping key and a sub-collection all specific keys associated with
-  that grouping key.
-- `parkour.mapreduce/keysgroups` – Just the sub-collections all specific keys
-  associated with each distinct grouping key.
+- `keykeyvalgroups` – Vector pairs of the first instance of each distinct
+  grouping key and a sub-collection all the vector pairs of specific keys and
+  values associated with that grouping key.
+- `keykeygroups` – Vector pairs of the first instance of each distinct grouping
+  key and a sub-collection all specific keys associated with that grouping key.
+- `keysgroups` – Just the sub-collections all specific keys associated with each
+  distinct grouping key.
 
 ### Output sinks
 
