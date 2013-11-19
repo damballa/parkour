@@ -1,5 +1,9 @@
 # Parkour News – history of user-visible changes
 
+## 0.5.1 / ?
+
+- Fix broken ability to specify Avro grouping schema via `shuffle` config step.
+
 ## 0.5.0 / 2013-11-17
 
 ### Breaking changes

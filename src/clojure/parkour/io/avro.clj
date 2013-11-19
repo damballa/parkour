@@ -69,7 +69,7 @@ optional value schema `vs`."
        (.setMapOutputValueClass NullWritable)))
   ([^Job job ks vs]
      (if (nil? vs)
-       (set-map-output ks)
+       (set-map-output job ks)
        (doto job
          (set-data-model)
          (AvroJob/setMapOutputKeySchema (avro/parse-schema ks))

@@ -9,7 +9,7 @@
   :javac-options ["-target" "1.6" "-source" "1.6"]
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.logging "0.2.6"]
-                 [com.damballa/abracad "0.4.7"]
+                 [com.damballa/abracad "0.4.8"]
                  [org.apache.avro/avro "1.7.5"]
                  [org.apache.avro/avro-mapred "1.7.5"
                   :exclusions [org.apache.avro/avro-ipc]]]
