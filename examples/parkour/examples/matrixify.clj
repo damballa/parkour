@@ -47,7 +47,8 @@ data with parallel index (reducer, offset) tuple and final reducer count."
   [dseq]
   (->> dseq (into []) (sort-by first)
        (reductions (fn [[_ t] [i n]]
-                     [(inc i) (+ t n)]) [0 0])
+                     [(inc i) (+ t n)])
+                   [0 0])
        (into {})))
 
 (defn absind
