@@ -43,8 +43,7 @@ here is the classic “word count” example, in Parkour:
       (pg/combine #'reducer)
       (pg/reduce #'reducer)
       (pg/output dsink)
-      (pg/execute conf "word-count")
-      first))
+      (pg/execute conf "word-count")))
 ```
 
 ## Documentation
