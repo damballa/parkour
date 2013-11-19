@@ -16,7 +16,7 @@ specified as `:parkour.mapreduce/adapter` metadata on user-provided vars.
 Each of the Hadoop-invoked entry points Parkour exposes has its own specific
 interface and set of built-in adapters, which are described below.
 
-## `Mapper` and `Reducer`
+## Mapper and Reducer
 
 In Parkour, the var-bound functions standing in for `Mapper` and `Reducer`
 classes share exactly the same interface.  These functions implement the primary
@@ -37,7 +37,7 @@ functions, which work as their analogs above.
 For writing task functions, Parkour provides the following adapters and
 associated interfaces.
 
-#### `parkour.mapreduce/collfn` (default)
+#### mr/collfn (default)
 
 The default task function adapter allows one to write functions which look, act,
 and importantly _are_ exactly like standard Clojure collection functions.  With
@@ -54,7 +54,7 @@ task output tuples.
        (r/map #(-> [% 1]))))
 ```
 
-#### `identity`
+#### identity
 
 The base interface provides direct access to the job configuration, job context
 object, raw Hadoop serialization wrappers, and produces the actual task function
@@ -74,7 +74,7 @@ context to perform task execution, and its return value is ignored.
          (mr/sink (mr/wrap-sink context)))))
 ```
 
-#### `parkour.mapreduce/contextfn`
+#### mr/contextfn
 
 The `contextfn` adapter provides an intermediate step between the raw interface
 and the `collfn` interface.  The task input and output are automatically
@@ -145,15 +145,15 @@ keyword indicating a standard built-in sinking function:
   each tuple key.
 - `:none` – Consume input without actually sinking any tuples.
 
-Parkour applies the `parkour.mapreduce/sink` sink function to these annotated
-collection to write the output tuples, or one may call it explicitly in order to
-e.g. produce output from the reduction of a grouping sub-collection.
+Parkour applies the `parkour.mapreduce/sink` function to these annotated
+collection to write the output tuples.  One may also call it explicitly in order
+to e.g. produce output from the reduction of a grouping sub-collection.
 
 The output shape annotations also allow composition of task functions for the
 above shapes – `(mr/keys (mr/sink-as :keys coll))` is a no-op, and `(mr/keys
 (mr/sink-as :keyvals coll))` is (almost) the same as `(map first coll)`.
 
-## `Partitioner`
+## Partitioner
 
 Parkour partitioner functions follow essentially the same interface as the
 `Partitioner#getPartition()` method, with handful of adapter variations.  A
@@ -166,7 +166,7 @@ any number of additional var arguments to serialize via the job configuration.
 
 Parkour provides the following partitioner function adapters.
 
-#### `(comp parkour.mapreduce/partfn constantly)` (default)
+#### (comp mr/partfn constantly) (default)
 
 The default partitioner adapter allows writing unparameterized partitioner
 functions which act on unwrapped tuple keys and values.  The function will be
@@ -180,7 +180,7 @@ the reducer count, and should be primitive type-hinted as `OOLL`.
   (-> ^String key (.charAt 0) int (mod nparts)))
 ```
 
-#### `identity`
+#### identity
 
 The raw interface is a higher-order function interface, where the partitioner
 var function is invoked with the job configuration plus any
@@ -196,7 +196,7 @@ key and value, but is otherwise as above.
     (-> key str (.charAt 0) int (mod nparts))))
 ```
 
-#### `parkour.mapreduce/partfn`
+#### mr/partfn
 
 A compromise between the default and raw interfaces.  With this adapter, the
 provided var is invoked as a higher-order function as in the raw interface, but
