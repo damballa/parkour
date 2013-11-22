@@ -295,6 +295,10 @@ dynamic scope."
       (finally
         (-> (Runtime/getRuntime) (.removeShutdownHook hook#))))))
 
+(defn ^:private job-running?
+  "True iff `job` is current running."
+  [^Job job] (ignore-errors (not (.isComplete job))))
+
 (defn ^:private abort-fn
   "Function for terminating `job`, killing it and cleaning up output path(s)."
   {:tag `Runnable}
@@ -303,7 +307,7 @@ dynamic scope."
         fs-paths (mapv (juxt (partial fs/path-fs job) identity)
                        (dsink/output-paths job))]
     (fn []
-      (when-not (.isComplete job)
+      (when (job-running? job)
         (log/warn "Stopping job" jname)
         (ignore-errors (.killJob job)))
       (doseq [[fs path] fs-paths]
