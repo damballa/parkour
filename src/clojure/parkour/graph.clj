@@ -15,7 +15,7 @@
            [org.apache.hadoop.mapreduce.lib.partition HashPartitioner]))
 
 (defn ^:private graph-future
-  "Return future result of applying function `f` to the values held by futures
+  "Future result of applying function `f` to the values held by futures
 `inputs`.  Attempts to cancel all inputs upon any failures."
   [f inputs]
   (future
@@ -26,33 +26,37 @@
           (->> inputs (cc/map future-cancel) dorun))
         (throw t)))))
 
-(defn ^:private run-parallel*
-  "Build a graph of futures for the data-flow described by the map `graph`.
-The `results` map holds calculated result futures, and `output` is the key of
+(defn ^:private graph-delay
+  "Delay result of applying function `f` to the values held by delays `inputs`."
+  [f inputs] (delay (apply f (cc/map deref inputs))))
+
+(defn ^:private run-graph*
+  "Build execution graph for the data-flow described by the map `graph`.
+The `results` map holds calculated result reference, and `output` is the key of
 the desired result.  Returns a tuple of updated `(results, result)`."
-  [graph results output]
+  [runner graph results output]
   (if-let [result (results output)]
     [results result]
     (let [[inputs f] (graph output)]
       (let [[results inputs]
             , (cc/reduce (fn [[results inputs] input]
                            (let [[results input]
-                                 , (run-parallel* graph results input)]
+                                 , (run-graph* runner graph results input)]
                              [results (conj inputs input)]))
                          [results []] inputs)
-            result (graph-future f inputs)
+            result (runner f inputs)
             results (assoc results output result)]
         [results result]))))
 
-(defn run-parallel
-  "Execute in parallel the data-flow graph described by `graph`.  Each key in
-`graph` identifies a particular entry.  Each value is a tuple of `(inputs, f)`,
-where `inputs` is a sequence of other `graph` keys and `f` is a function
-calculating that entry's result given `inputs`.  Returns a vector of the result
-entries for the keys in the collection `outputs`."
-  [graph outputs]
+(defn run-graph
+  "Execute the data-flow graph described by `graph` using the function executor
+`runner`.  Each key in `graph` identifies a particular entry.  Each value is a
+tuple of `(inputs, f)`, where `inputs` is a sequence of other `graph` keys and
+`f` is a function calculating that entry's result given `inputs`.  Returns a
+vector of the result entries for the keys in the collection `outputs`."
+  [runner graph outputs]
   (let [graph (assoc graph ::output [outputs vector])
-        [_ outputs] (run-parallel* graph {} ::output)]
+        [_ outputs] (run-graph* runner graph {} ::output)]
     (try
       (deref outputs)
       (catch ExecutionException e
@@ -398,6 +402,10 @@ of the nodes-vector and a vector of the leaf-node job-IDs."
   "Job name for `i`th job of `n` produced from var-name `base`."
   [base n i] (format "%s[%d/%d]" base (inc i) n))
 
+(defn local-runner?
+  "True iff `conf` specifies the local job runner."
+  [conf] (= "local" (get conf "mapred.job.tracker" "local")))
+
 (defn execute
   "Execute Hadoop jobs for the job graph `graph`, which should be a job graph
 leaf node or vector of leaf nodes.  Jobs are configured starting with base
@@ -411,5 +419,6 @@ the distributed sequences produced by the job graph leaves."
                    (r/map (fn [{:keys [jid requires], :as node}]
                             (let [f (node-fn node conf (job-name jid))]
                               [jid [requires f]])))
-                   (into {}))]
-    (run-parallel graph tails)))
+                   (into {}))
+        runner (if (local-runner? conf) graph-delay graph-future)]
+    (run-graph runner graph tails)))

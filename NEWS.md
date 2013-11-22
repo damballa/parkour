@@ -3,6 +3,7 @@
 ## 0.5.1 / ?
 
 - Fix broken ability to specify Avro grouping schema via `shuffle` config step.
+- Run local jobs in serial to work around MAPREDUCE-5367.
 
 ## 0.5.0 / 2013-11-17
 
