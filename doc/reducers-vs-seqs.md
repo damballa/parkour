@@ -39,11 +39,12 @@ Reducers do however also have some drawbacks lazy sequences do not:
   having no existing reducer counterpart.
 - Inexpressible operations.  Without JVM-level support for continuations or
   coroutines, some operations possible with lazy sequences cannot be expressed
-  in terms of reducers.  In particular, functions such as `partition` cannot be
-  implemented for reducers without making generally unacceptable trade-offs such
-  as cross-thread shipment of each collection value.  Most functions which to
-  perform multiple partial reduces over user-level partitionings of the input
-  tuples will need to use lazy sequences.
+  in terms of reducers.  In particular, any functions which require lazy
+  realization of individual elements cannot be implemented for reducers without
+  making generally unacceptable trade-offs such as cross-thread shipment of each
+  collection value.  Most functions which need to perform multiple partial
+  reduces over user-level partitionings of the input tuples will need to use
+  lazy sequences.
 
 I believe the weight of the trade-offs supports using reducers whenever
 possible, but lazy sequences are available when not.
