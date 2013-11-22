@@ -53,7 +53,7 @@
         conf (doto (conf/ig context)
                (conf/assoc! "parkour.step" step))
         [v args] (step-v-args conf "reducer" id)]
-    (log/infof "reducer: var=%s, args=%s" (pr-str v) (pr-str args))
+    (log/infof "%sr: var=%s, args=%s" (name step) (pr-str v) (pr-str args))
     (conf/with-default conf
       (let [f (adapt mr/collfn v)
             g (apply f conf args)]
