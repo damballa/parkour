@@ -49,3 +49,18 @@ configuration.  Leiningen integration for automatic uberjar re-building, fast
 uberjar re-builds.  Use project configuration to specify job JAR.  Helper
 integration for extracting and running over subset of data, as per Pig
 ILLUSTRATE.  Allow in-REPL testing by rebinding to local configurations.
+
+* Error messages
+
+** Errors on repeated reduction (?)
+
+Attempting to reduce a task input collection multiple times is probably almost
+always a mistake.  Right now reduction of an exhausted input collection acts as
+reduction on an empty collection.  Perhaps it should raise an exception instead?
+
+* Allow repeated reduction of inputs
+
+Alternative to erroring on repeated reduction.  We could re-initialize the input
+record-reader (and context) for the original input split, allowing the same data
+to be subsequently re-processed.  Not certain this is a useful feature, but is
+an interesting idea.

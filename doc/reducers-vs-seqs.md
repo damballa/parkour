@@ -45,6 +45,12 @@ Reducers do however also have some drawbacks lazy sequences do not:
   collection value.  Most functions which need to perform multiple partial
   reduces over user-level partitionings of the input tuples will need to use
   lazy sequences.
+- Single-pass only.  Although generally not advisable anyway, Parkour’s `reduce`
+  for MapReduce task input does provide no means for reducing multiple times
+  over the collection.  As per the backing Hadoop implementation, reduction
+  mutates the input tuple stream, consuming tuples as they are processed.
+  Subsequent reduction of a fully-reduced input will act as if reducing an empty
+  collection.
 
 I believe the weight of the trade-offs supports using reducers whenever
 possible, but lazy sequences are available when not.
