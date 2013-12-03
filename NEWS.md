@@ -1,5 +1,9 @@
 # Parkour News – history of user-visible changes
 
+## 0.5.2 / ?
+
+- Restore parallel execution for cluster jobs.
+
 ## 0.5.1 / 2013-12-03
 
 - Fix broken ability to specify Avro grouping schema via `shuffle` config step.

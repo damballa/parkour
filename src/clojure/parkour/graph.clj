@@ -404,7 +404,7 @@ of the nodes-vector and a vector of the leaf-node job-IDs."
 
 (defn local-runner?
   "True iff `conf` specifies the local job runner."
-  [conf] (= "local" (get conf "mapred.job.tracker" "local")))
+  [conf] (= "local" (conf/get conf "mapred.job.tracker" "local")))
 
 (defn execute
   "Execute Hadoop jobs for the job graph `graph`, which should be a job graph
