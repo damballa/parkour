@@ -5,6 +5,7 @@
 - Fix broken ability to specify Avro grouping schema via `shuffle` config step.
 - Run local jobs in serial to work around MAPREDUCE-5367.
 - Work-around allowing Avro multiple files per named output.
+- Expose extended version of configuration test-helper.
 
 ## 0.5.0 / 2013-11-17
 
