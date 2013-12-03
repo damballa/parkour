@@ -70,8 +70,11 @@ multiplex distributed sequence of all component sinks' sequences."
   @(.getOutputCommitter context))
 
 (defn ^:private set-output-name
-  "Re-implementation of `FileOutputFormat/setOutputName`."
-  [job base] (conf/assoc! job "mapreduce.output.basename" base))
+  "Set all known named output bases for `job` to `base`."
+  [job base]
+  (conf/assoc! job
+    "mapreduce.output.basename" base
+    "avro.mo.config.namedOutput" base))
 
 (defn ^:private get-counter
   "Get dux counter for output `oname`."
