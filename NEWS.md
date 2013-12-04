@@ -1,6 +1,6 @@
 # Parkour News – history of user-visible changes
 
-## 0.5.2 / ?
+## 0.5.2 / 2013-12-04
 
 - Restore parallel execution for cluster jobs.
 - Fix NPE caused by `nil`-dseq dsinks.
