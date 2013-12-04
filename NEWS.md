@@ -3,6 +3,7 @@
 ## 0.5.2 / ?
 
 - Restore parallel execution for cluster jobs.
+- Fix NPE caused by `nil`-dseq dsinks.
 
 ## 0.5.1 / 2013-12-03
 
