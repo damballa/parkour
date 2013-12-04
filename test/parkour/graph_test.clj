@@ -174,3 +174,13 @@
         [even odd] (multiple-outputs (th/config) dseq even odd)]
     (is (= {"banana" 2} (into {} (r/map w/unwrap-all even))))
     (is (= {"apple" 3, "carrot" 1} (into {} (r/map w/unwrap-all odd))))))
+
+(deftest test-nil-dseq-dsink
+  (let [inpath (io/resource "word-count-input.txt")
+        outpath (fs/path "tmp/word-count-output")
+        outfs (fs/path-fs outpath)
+        _ (.delete outfs outpath true)
+        dseq (text/dseq inpath)
+        dsink [(seqf/dsink [Text LongWritable] outpath)]
+        [result] (word-count (th/config) dseq dsink)]
+    (is (= nil result))))

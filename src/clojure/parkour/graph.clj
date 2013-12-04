@@ -352,7 +352,8 @@ base configuration `conf` and job name `jname`."
 (defmethod node-fn :input
   [node conf jname]
   (fn [^Job job]
-    (-> node :config first (vary-meta assoc ::mr/counters (.getCounters job)))))
+    (if-let [dseq (-> node :config first)]
+      (vary-meta dseq assoc ::mr/counters (.getCounters job)))))
 
 (defmethod node-fn :default
   [node conf jname]
