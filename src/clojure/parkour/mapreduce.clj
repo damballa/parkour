@@ -148,6 +148,12 @@ mechanism."
   ([] (make-job (conf/ig)))
   ([conf] (make-job (conf/clone conf))))
 
+;; The "mapred-{default,site}.xml" default resources are added to
+;; `Configuration`s by the `JobConf` class static initializer.  Create (and
+;; discard) one `Job` to ensure that static initializer -- or any future
+;; resource-adding mechanism -- gets invoked.
+(job)
+
 (defmethod print-method Job
   [job ^Writer w]
   (.write w "#hadoop.mapreduce/job ")
