@@ -23,40 +23,40 @@ extension of `clojure.java.io/Coercions`."
   (let [w (vary-meta w assoc :tag `Writer)]
     `(do ~@(map (fn [x] `(. ~w write ~(if (string? x) x `(str ~x)))) forms))))
 
+(defn path?
+  "True iff `x` is a Path."
+  [x] (instance? Path x))
+
 (defn path
   "Coerce argument(s) to a Path, resolving successive arguments against base."
   {:tag `Path}
-  ([x] (-path x))
-  ([x y] (Path. (-path x) (str y)))
+  ([x] (if (path? x) x (-path x)))
+  ([x y] (Path. (path x) (str y)))
   ([x y & more] (apply path (path x y) more)))
 
 (defn path-array
   "Array of `Path`s for each entry in seq `ps`."
-  {:tag `"[Lorg.apache.hadoop.fs.Path;"}
+  {:tag "[Lorg.apache.hadoop.fs.Path;"}
   [ps] (into-array Path (map path ps)))
 
 (defmethod print-method Path [x w] (write-all w "#hadoop.fs/path \"" x "\""))
 (defmethod print-dup Path [x w] (write-all w "#hadoop.fs/path \"" x "\""))
 
-(defn path?
-  "True iff `x` is a Path."
-  [x] (instance? Path x))
+(defn uri?
+  "True iff `x` is a URI."
+  [x] (instance? URI x))
 
 (defn uri
   "Coerce argument(s) to a URI, resolving successive arguments against base."
   {:tag `URI}
-  ([x] (-uri x))
+  ([x] (if (uri? x) x (-uri x)))
   ([x y]
-     (let [x (-uri x)]
+     (let [x (uri x)]
        (-> x (.resolve (str (.getPath x) "/")) (.resolve (str y)))))
   ([x y & more] (apply uri (uri x y) more)))
 
 (defmethod print-method URI [x w] (write-all w "#java.net/uri \"" x "\""))
 (defmethod print-dup URI [x w] (write-all w "#java.net/uri \"" x "\""))
-
-(defn uri?
-  "True iff `x` is a URI."
-  [x] (instance? URI x))
 
 (defn path-fs
   "Hadoop filesystem for the path `p`."
@@ -102,21 +102,21 @@ extension of `clojure.java.io/Coercions`."
 
 (defn path-glob
   "Expand path glob `p` to set of matching paths."
-  ([p] (path-glob (path-fs p) p))
+  ([p] (let [p (path p)] (path-glob (path-fs p) p)))
   ([fs p]
      (->> (.globStatus ^FileSystem fs (path p))
           (map #(.getPath ^FileStatus %)))))
 
 (defn path-list
   "List the entries in the directory at path `p`."
-  ([p] (path-list (path-fs p) p))
+  ([p] (let [p (path p)] (path-list (path-fs p) p)))
   ([fs p]
      (->> (.listStatus ^FileSystem fs (path p))
           (map #(.getPath ^FileStatus %) ))))
 
 (defn path-delete
   "Recursively delete files at path `p`."
-  ([p] (path-delete (path-fs p) p))
+  ([p] (let [p (path p)] (path-delete (path-fs p) p)))
   ([fs p] (.delete ^FileSystem fs (path p) true)))
 
 (defn path-exists?
@@ -129,7 +129,7 @@ extension of `clojure.java.io/Coercions`."
 
 (defn path-map
   "Return map of file basename to full path for all files in `dir`."
-  ([dir] (path-map (path-fs dir) dir))
+  ([dir] (let [dir (path dir)] (path-map (path-fs dir) dir)))
   ([fs dir]
      (let [dir (path dir)]
        (->> (.listStatus ^FileSystem fs dir)
@@ -156,7 +156,7 @@ supported scheme and via `io/input-stream` when not."
 
 (defn path-create
   "Create an output stream on `p` for `fs`, or default `fs` if not provided."
-  ([p] (path-create (path-fs p) p))
+  ([p] (let [p (path p)] (path-create (path-fs p) p)))
   ([fs p] (.create ^FileSystem fs (path p))))
 
 (extend Path
