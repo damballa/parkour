@@ -218,7 +218,7 @@ filesystem.  May be overridden in configuration via the property
   [conf] (path (temp-root conf) (run-id)))
 
 (def ^:private cancel-doe-method?
-  "True iff the `Job` class has a static factory method."
+  "True iff the `FileSystem` class has a static factory method."
   (->> FileSystem reflect/type-reflect :members
        (some #(= 'cancelDeleteOnExit (:name %)))))
 
