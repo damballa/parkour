@@ -1,5 +1,9 @@
 # Parkour News – history of user-visible changes
 
+## 0.5.3 / ?
+
+- Add `fs/path-exists?` function.
+
 ## 0.5.2 / 2013-12-04
 
 - Restore parallel execution for cluster jobs.

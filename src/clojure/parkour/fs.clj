@@ -119,6 +119,10 @@ extension of `clojure.java.io/Coercions`."
   ([p] (path-delete (path-fs p) p))
   ([fs p] (.delete ^FileSystem fs (path p) true)))
 
+(defn path-exists?
+  ([p] (let [p (path p)] (path-exists? (path-fs p) p)))
+  ([fs p] (.exists ^FileSystem fs (path p))))
+
 (defn hidden?
   "True iff `p` is an HDFS-hidden ('_'-prefixed) file."
   [p] (-> p path .getName (.startsWith "_")))
