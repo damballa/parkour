@@ -25,7 +25,8 @@
                     parkour.remote.dux
                     parkour.remote.mem
                     parkour.remote.mux
-                    parkour.util]
+                    parkour.util
+                    parkour.util.shutdown]
           :output-dir "tmp/codox"}
   :aliases {"test-all" ["with-profile" ~(str "+hadoop-0-20-205:"
                                              "+hadoop-1-0-3:"

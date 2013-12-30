@@ -8,6 +8,7 @@
                      (wrapper :as w) (mapreduce :as mr) (reducers :as pr)]
             [parkour.io (dseq :as dseq) (dsink :as dsink)
                         (mux :as mux) (dux :as dux)]
+            [parkour.util.shutdown :as shutdown]
             [parkour.util :refer [ignore-errors returning doto-let mpartial]])
   (:import [java.util.concurrent ExecutionException]
            [clojure.lang Var]
@@ -288,35 +289,34 @@ and named `jname`."
     (cstep/apply! (cstep/base jname))
     (cstep/apply! (:config node))))
 
-(defmacro ^:private with-shutdown-hook
-  "Execute `body` with function `f` as a registered shutdown hook for `body`'s
-dynamic scope."
-  [f & body]
-  `(let [hook# (Thread. ~f)]
-    (try
-      (-> (Runtime/getRuntime) (.addShutdownHook hook#))
-      ~@body
-      (finally
-        (-> (Runtime/getRuntime) (.removeShutdownHook hook#))))))
-
 (defn ^:private job-running?
-  "True iff `job` is current running."
-  [^Job job] (ignore-errors (not (.isComplete job))))
+  "True iff `job` is currently running."
+  [^Job job] (boolean (ignore-errors (not (.isComplete job)))))
+
+(defn ^:private job-ran?
+  "True iff `job` ran or is currently running."
+  [^Job job] (boolean (ignore-errors (.isComplete job) true)))
 
 (defn ^:private abort-fn
   "Function for terminating `job`, killing it and cleaning up output path(s)."
   {:tag `Runnable}
   [^Job job]
   (let [jname (.getJobName job)
-        fs-paths (mapv (juxt (partial fs/path-fs job) identity)
-                       (dsink/output-paths job))]
+        fs-paths (->> (dsink/output-paths job)
+                      (r/map (juxt (partial fs/path-fs job) identity))
+                      (r/remove (partial apply fs/path-exists?))
+                      (into []))]
     (fn []
       (when (job-running? job)
         (log/warn "Stopping job" jname)
-        (ignore-errors (.killJob job)))
-      (doseq [[fs path] fs-paths]
-        (log/warn "Cleaning up path" (str path))
-        (ignore-errors (fs/path-delete fs path))))))
+        (ignore-errors
+         (.killJob job)
+         (while (not (.isComplete job))
+           (Thread/sleep 100))))
+      (when (job-ran? job)
+        (doseq [[fs path] fs-paths]
+          (log/warn "Cleaning up path" (str path))
+          (ignore-errors (fs/path-delete fs path)))))))
 
 (defn run-job
   "Run `job` and wait synchronously for it to complete.  Kills the job on
@@ -326,7 +326,7 @@ not swallow `InterruptedException`."
   (let [interval (conf/get-int job "jobclient.completion.poll.interval" 5000)
         jname (.getJobName job)
         abort (abort-fn job)]
-    (with-shutdown-hook abort
+    (shutdown/with-hook abort
       (try
         (log/info "Launching job" jname)
         (.submit job)

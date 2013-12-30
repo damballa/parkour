@@ -3,6 +3,7 @@
 ## 0.5.3 / ?
 
 - Add `fs/path-exists?` function.
+- Stop deleting job output paths when they already exist.
 
 ## 0.5.2 / 2013-12-04
 
