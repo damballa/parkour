@@ -4,6 +4,8 @@
 
 - Add `fs/path-exists?` function.
 - Stop deleting job output paths when they already exist.
+- Drop support for Hadoop version 0.20.205.
+- Add explicit `dux/{map,combine}-output` sink functions.
 
 ## 0.5.2 / 2013-12-04
 

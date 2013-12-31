@@ -67,14 +67,12 @@
 
 (defn record-writer*
   {:tag `IRecordWriter}
-  [^TaskAttemptContext context jobs rws]
+  [^TaskAttemptContext context]
   (reify IRecordWriter
-    (write [_ key val] #_pass)
-    (close [_ context]
-      (let [taid (.getTaskAttemptID context), rws (prev-reset! rws nil)]
-        (doseq [[name rws'] rws, :let [tac (-> jobs (get name) (mr/tac taid))]
-                rw (->> rws' vals (map (comp w/unwrap deref)))]
-          (.close ^RecordWriter rw ^TaskAttemptContext tac))))))
+    (write [_ key val]
+      (throw (ex-info "Dux output tuple written to non-named output"
+                      {:key key, :val val})))
+    (close [_ context] #_pass)))
 
 (defn record-writer
   {:tag `RecordWriter}
@@ -87,8 +85,7 @@
         ofs (map-vals subof jobs)
         rws (atom {}), rwtaid (atom nil)]
     (reify IOutputFormat
-      (getRecordWriter [_ context]
-        (record-writer context jobs rws))
+      (getRecordWriter [_ context] (record-writer context))
       (checkOutputSpecs [_ context]
         (doseq [[name job] jobs, :let [of (get ofs name)]]
           (.checkOutputSpecs ^OutputFormat of ^Job job)))

@@ -114,7 +114,7 @@ the original class."
   "Sinking function for wrapping a sink then emitting via function `emit`."
   [emit] (fn [sink coll] (cc/reduce emit (wrap-sink sink) coll)))
 
-(def ^:private sink-fn*
+(def ^:private sink-fns
   "Map from sink-type keyword to sinking function."
   {:none sink-none
    :keyvals (sink-emit-wrapped emit-keyval),
@@ -125,11 +125,14 @@ the original class."
    :vals-raw (sink-emit-raw emit-val),
    })
 
+(defn sink-fn*
+  "Tuple-emitting function for keyword or function `f`."
+  [f]
+  (doto (get sink-fns f f)
+    (as-> f (when (keyword? f)
+              (throw (ex-info (str "Unknown built-in sink `:" f "`")
+                              {:f f}))))))
+
 (defn sink-fn
   "Tuple-emitting function for `coll`."
-  [coll]
-  (let [f (-> coll meta (get ::sink-as :keyvals))
-        f (get sink-fn* f f)]
-    (returning f
-      (when (keyword? f)
-        (throw (ex-info (str "Unknown built-in sink `:" f "`") {:f f}))))))
+  [coll] (-> coll meta (get ::sink-as :keyvals) sink-fn*))

@@ -28,8 +28,7 @@
                     parkour.util
                     parkour.util.shutdown]
           :output-dir "tmp/codox"}
-  :aliases {"test-all" ["with-profile" ~(str "+hadoop-0-20-205:"
-                                             "+hadoop-1-0-3:"
+  :aliases {"test-all" ["with-profile" ~(str "+hadoop-1-0-3:"
                                              "+hadoop-1-2-1:"
                                              "+hadoop-cdh3:"
                                              "+hadoop-cdh4:"
@@ -58,8 +57,6 @@
                       :exclusions [org.codehaus.janino/janino
                                    org.apache.hadoop/hadoop-core]]]}]
              :test {:resource-paths ["test-resources"]}
-             :hadoop-0-20-205 {:dependencies
-                               [[org.apache.hadoop/hadoop-core "0.20.205.0"]]}
              :hadoop-1-0-3 {:dependencies
                             [[org.apache.hadoop/hadoop-core "1.0.3"]]}
              :hadoop-1-2-1 {:dependencies
