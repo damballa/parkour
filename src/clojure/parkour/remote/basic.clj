@@ -40,8 +40,8 @@
                (conf/assoc! "parkour.step" "map"))
         [v args] (step-v-args conf "mapper" id)
         split (.getInputSplit ^MapContext context)]
-    (log/infof "mapper: split=%s, var=%s, args=%s"
-               (pr-str split) (pr-str v) (pr-str args))
+    (log/infof "mapper: var=%s, args=%s, split=%s"
+               (pr-str v) (pr-str args) (pr-str split))
     (conf/with-default conf
       (let [f (adapt mr/collfn v)
             g (apply f conf args)]
