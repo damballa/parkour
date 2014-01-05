@@ -157,17 +157,22 @@ format only) file basename `base`."
   ([f oname]
      (fn [context coll]
        (with-close-rws context
-         (let [sink (get-sink context oname)]
+         (let [sink (if (identical? ::mr/map-output oname)
+                      (mr/wrap-sink context)
+                      (get-sink context oname))]
            (reduce (fn [_ t]
                      (f sink t))
                    nil coll)))))
   ([f context coll]
-     (with-close-rws context
-       (reduce (fn [_ [oname k v :as x]]
-                 (let [t (if (= 2 (count x)) k [k v])
-                       sink (get-sink context oname)]
-                   (f sink t)))
-               nil coll))))
+     (let [wcontext (mr/wrap-sink context)]
+       (with-close-rws context
+         (reduce (fn [_ [oname k v :as x]]
+                   (let [t (if (= 2 (count x)) k [k v])
+                         sink (if (identical? ::mr/map-output oname)
+                                wcontext
+                                (get-sink context oname))]
+                     (f sink t)))
+                 nil coll)))))
 
 (def ^{:arglists '([oname] [context coll])}
   named-keyvals
