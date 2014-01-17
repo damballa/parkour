@@ -31,7 +31,7 @@ extension of `clojure.java.io/Coercions`."
   "Coerce argument(s) to a Path, resolving successive arguments against base."
   {:tag `Path}
   ([x] (if (path? x) x (-path x)))
-  ([x y] (Path. (path x) (str y)))
+  ([x y] (Path. ^Path (path x) (str y)))
   ([x y & more] (apply path (path x y) more)))
 
 (defn path-array
@@ -51,7 +51,7 @@ extension of `clojure.java.io/Coercions`."
   {:tag `URI}
   ([x] (if (uri? x) x (-uri x)))
   ([x y]
-     (let [x (uri x)]
+     (let [^URI x (uri x)]
        (-> x (.resolve (str (.getPath x) "/")) (.resolve (str y)))))
   ([x y & more] (apply uri (uri x y) more)))
 
