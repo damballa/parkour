@@ -7,6 +7,7 @@
 - Drop support for Hadoop version 0.20.205.
 - Properly close `dux` record writers when leaving task scope.
 - Add explicit `dux/{map,combine}-output` sink functions.
+- Delete output paths for in-progress jobs when interrupted.
 
 ## 0.5.2 / 2013-12-04
 

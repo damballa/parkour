@@ -1,12 +1,14 @@
 (ns parkour.util.shutdown
   {:private true}
-  (:require [parkour.util :refer [returning]]))
+  (:require [parkour.util :refer [returning]])
+  (:import [java.util.concurrent LinkedBlockingDeque]))
 
-(def ^:private hooks
-  (atom #{}))
+(def ^:private ^LinkedBlockingDeque
+  hooks
+  (LinkedBlockingDeque.))
 
 (defn ^:private run-hooks
-  [] (dorun (map #(%) @hooks)))
+  [] (dorun (map #(%) hooks)))
 
 (defonce ^:private ^Thread hook-thread
   (doto (Thread. #'run-hooks)
@@ -14,11 +16,11 @@
 
 (defn add-hook
   "Arrange to run function `f` during JVM shutdown."
-  [f] (returning true (swap! hooks conj f)))
+  [f] (returning true (.addFirst hooks f)))
 
 (defn remove-hook
   "Remove arrangements made to run function `f` during JVM shutdown."
-  [f] (returning true (swap! hooks disj f)))
+  [f] (returning true (.remove hooks f)))
 
 (defmacro with-hook
   "Execute `body` with function `f` as a registered shutdown hook for `body`'s
