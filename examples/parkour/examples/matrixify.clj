@@ -5,10 +5,10 @@ whitespace-separated `src`, `dst`, and `weight` edges.  Translates `src` nodes
 to rows, `dst` nodes to column, and `weight`s to matrix values."
   (:require [clojure.string :as str]
             [clojure.core.reducers :as r]
-            [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
-                     (mapreduce :as mr) (graph :as pg) (tool :as tool)]
+            [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
+             ,       (graph :as pg) (tool :as tool)]
             [parkour.io (dseq :as dseq) (text :as text) (avro :as mra)
-                        (dux :as dux)]
+             ,          (dux :as dux)]
             [parkour.util :refer [returning]]
             [abracad.avro :as avro])
   (:import [org.apache.hadoop.mapreduce Mapper]))

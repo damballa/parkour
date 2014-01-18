@@ -124,8 +124,8 @@ Here’s the complete classic “word count” example, written using Parkour:
 (ns parkour.examples.word-count
   (:require [clojure.string :as str]
             [clojure.core.reducers :as r]
-            [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)
-                     (graph :as pg) (tool :as tool)]
+            [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
+             ,       (graph :as pg) (tool :as tool)]
             [parkour.io (text :as text) (seqf :as seqf)])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
@@ -142,22 +142,23 @@ Here’s the complete classic “word count” example, written using Parkour:
                 [word (r/reduce + 0 counts)]))))
 
 (defn word-count
-  [conf dseq dsink]
-  (-> (pg/input dseq)
-      (pg/map #'mapper)
-      (pg/partition [Text LongWritable])
-      (pg/combine #'reducer)
-      (pg/reduce #'reducer)
-      (pg/output dsink)
-      (pg/execute conf "word-count")
-      first))
+  [conf workdir lines]
+  (let [wc-path (fs/path workdir "word-count")
+        wc-dsink (seqf/dsink [Text LongWritable] wc-path)]
+    (-> (pg/input lines)
+        (pg/map #'mapper)
+        (pg/partition [Text LongWritable])
+        (pg/combine #'reducer)
+        (pg/reduce #'reducer)
+        (pg/output wc-dsink)
+        (pg/execute conf "word-count")
+        first)))
 
 (defn tool
   [conf & args]
-  (let [[outpath & inpaths] args
-        input (apply text/dseq inpaths)
-        output (seqf/dsink [Text LongWritable] outpath)]
-    (->> (word-count conf input output) (into {}) prn)))
+  (let [[workdir & inpaths] args
+        lines (apply text/dseq inpaths)]
+    (->> (word-count conf workdir lines) (into {}) prn)))
 
 (defn -main
   [& args] (System/exit (tool/run tool args)))
