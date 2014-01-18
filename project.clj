@@ -12,7 +12,8 @@
                  [com.damballa/abracad "0.4.8"]
                  [org.apache.avro/avro "1.7.5"]
                  [org.apache.avro/avro-mapred "1.7.5"
-                  :exclusions [org.apache.avro/avro-ipc]]]
+                  :exclusions [org.apache.avro/avro-ipc]]
+                 [pjstadig/scopes "0.3.0"]]
   :plugins [[codox/codox "0.6.6"]]
   :codox {:src-dir-uri "https://github.com/damballa/parkour/blob/master/"
           :src-linenum-anchor-prefix "L"

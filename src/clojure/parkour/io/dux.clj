@@ -1,6 +1,7 @@
 (ns parkour.io.dux
   (:require [clojure.edn :as edn]
             [clojure.core.reducers :as r]
+            [pjstadig.scopes :as s]
             [parkour (conf :as conf) (wrapper :as w) (cstep :as cstep)
                      (mapreduce :as mr)]
             [parkour.mapreduce (sink :as snk)]
@@ -93,17 +94,18 @@ basename `base`."
         tac (mr/tac conf context), c (get-counter context oname)
         ckey (.getOutputKeyClass job), cval (.getOutputValueClass job)
         rw (.getRecordWriter ^OutputFormat of tac)]
-    (snk/wrap-sink
-     (reify
-       Configurable (getConf [_] conf)
-       w/Wrapper (unwrap [_] rw)
-       snk/TupleSink
-       (-key-class [_] ckey)
-       (-val-class [_] cval)
-       (-close [_] (.close rw context))
-       (-emit-keyval [_ key val]
-         (.write rw key val)
-         (.increment c 1))))))
+    (->> (reify
+           Configurable (getConf [_] conf)
+           w/Wrapper (unwrap [_] rw)
+           snk/TupleSink
+           (-key-class [_] ckey)
+           (-val-class [_] cval)
+           (-close [_] (.close rw context))
+           (-emit-keyval [_ key val]
+             (.write rw key val)
+             (.increment c 1)))
+         (snk/wrap-sink)
+         (s/scoped!))))
 
 (defn get-sink
   "Get sink for named output `oname` and optional (file output format only) file
@@ -127,26 +129,9 @@ format only) file basename `base`."
   ([context oname base key val]
      (-> context (get-sink oname base) (snk/emit-keyval key val))))
 
-(defn ^:private close-rws
-  [^TaskAttemptContext context]
-  (let [[jobs _ rws] (dux-state context)
-        taid (.getTaskAttemptID context)
-        rws (prev-reset! rws nil)]
-    (doseq [[name rws'] rws, :let [tac (-> jobs (get name) (mr/tac taid))]
-            rw (->> rws' vals (map (comp w/unwrap deref)))]
-      (.close ^RecordWriter rw ^TaskAttemptContext tac))))
-
-(defmacro ^:private with-close-rws
-  [context & body]
-  `(try ~@body (finally (close-rws ~context))))
-
 (defn map-output
   "Sink as (reducer-bound) base map output, as `mr/sink-as` kind `kind`."
-  [kind]
-  (let [f (snk/sink-fn* kind)]
-    (fn [context coll]
-      (with-close-rws context
-        (f context coll)))))
+  [kind] kind)
 
 (defn combine-output
   "Sink as (reducer-bound) base combiner output, as `mr/sink-as` kind `kind`."
@@ -156,23 +141,21 @@ format only) file basename `base`."
   "Base function for `named-`* functions."
   ([f oname]
      (fn [context coll]
-       (with-close-rws context
-         (let [sink (if (identical? ::mr/map-output oname)
-                      (mr/wrap-sink context)
-                      (get-sink context oname))]
-           (reduce (fn [_ t]
-                     (f sink t))
-                   nil coll)))))
+       (let [sink (if (identical? ::mr/map-output oname)
+                    (mr/wrap-sink context)
+                    (get-sink context oname))]
+         (reduce (fn [_ t]
+                   (f sink t))
+                 nil coll))))
   ([f context coll]
      (let [wcontext (mr/wrap-sink context)]
-       (with-close-rws context
-         (reduce (fn [_ [oname k v :as x]]
-                   (let [t (if (= 2 (count x)) k [k v])
-                         sink (if (identical? ::mr/map-output oname)
-                                wcontext
-                                (get-sink context oname))]
-                     (f sink t)))
-                 nil coll)))))
+       (reduce (fn [_ [oname k v :as x]]
+                 (let [t (if (= 2 (count x)) k [k v])
+                       sink (if (identical? ::mr/map-output oname)
+                              wcontext
+                              (get-sink context oname))]
+                   (f sink t)))
+               nil coll))))
 
 (def ^{:arglists '([oname] [context coll])}
   named-keyvals
@@ -196,19 +179,17 @@ element of two-element tuples."
   "Base function for `prefix-`* functions."
   ([f oname]
      (fn [context coll]
-       (with-close-rws context
-         (reduce (fn [_ [base k v :as x]]
-                   (let [t (if (= 2 (count x)) k [k v])
-                         sink (get-sink context oname base)]
-                     (f sink t)))
-                 nil coll))))
-  ([f context coll]
-     (with-close-rws context
-       (reduce (fn [_ [oname base k v :as x]]
-                 (let [t (if (= 3 (count x)) k [k v])
+       (reduce (fn [_ [base k v :as x]]
+                 (let [t (if (= 2 (count x)) k [k v])
                        sink (get-sink context oname base)]
                    (f sink t)))
-               nil coll))))
+               nil coll)))
+  ([f context coll]
+     (reduce (fn [_ [oname base k v :as x]]
+               (let [t (if (= 3 (count x)) k [k v])
+                     sink (get-sink context oname base)]
+                 (f sink t)))
+             nil coll)))
 
 (def ^{:arglists '([oname])}
   prefix-keyvals
