@@ -118,7 +118,7 @@ basename `base`."
                   add-rw (fn [rws]
                            (if rws
                              (if-let [rw (get-in rws rwkey)]
-                               rw
+                               rws
                                (assoc-in rws rwkey (delay (new-rw))))))]
               (-> rws (swap! add-rw) (get-in rwkey)))))))
 
