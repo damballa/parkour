@@ -1,6 +1,6 @@
 # Parkour News – history of user-visible changes
 
-## 0.5.3 / ?
+## 0.5.3 / 2014-01-18
 
 - Add `fs/path-exists?` function.
 - Stop deleting job output paths when they already exist.
