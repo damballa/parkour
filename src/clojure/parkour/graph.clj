@@ -306,17 +306,18 @@ and named `jname`."
                       (r/map (juxt (partial fs/path-fs job) identity))
                       (r/remove (partial apply fs/path-exists?))
                       (into []))]
-    (fn []
-      (when (job-running? job)
-        (log/warn "Stopping job" jname)
-        (ignore-errors
-         (.killJob job)
-         (while (not (.isComplete job))
-           (Thread/sleep 100))))
-      (when (job-ran? job)
-        (doseq [[fs path] fs-paths]
-          (log/warn "Cleaning up path" (str path))
-          (ignore-errors (fs/path-delete fs path)))))))
+    (->> (delay
+          (when (job-running? job)
+            (log/warn "Stopping job" jname)
+            (ignore-errors
+             (.killJob job)
+             (while (not (.isComplete job))
+               (Thread/sleep 100))))
+          (when (job-ran? job)
+            (doseq [[fs path] fs-paths]
+              (log/warn "Cleaning up path" (str path))
+              (ignore-errors (fs/path-delete fs path)))))
+         (partial deref))))
 
 (defn run-job
   "Run `job` and wait synchronously for it to complete.  Kills the job on
