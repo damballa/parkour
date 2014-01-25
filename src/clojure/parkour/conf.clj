@@ -7,16 +7,8 @@
   (:import [java.io Writer]
            [java.util List Map Set]
            [org.apache.hadoop.conf Configuration Configurable]
-           [org.apache.hadoop.fs FileSystem Path]
+           [org.apache.hadoop.fs Path]
            [org.apache.hadoop.mapreduce Job JobContext]))
-
-(defn ^:private fs-shutdown
-  "Parkour-managed replacement file systems shutdown hook."
-  [] (FileSystem/closeAll))
-
-;; Move filesystem shutdown to Parkour-controlled shutdown hook
-(Configuration/addDefaultResource "parkour-hadoop.xml")
-(shutdown/add-hook #'fs-shutdown)
 
 (def ^:dynamic ^:private ^Configuration *default*
   "Base configuration, used as template for fresh configurations."

@@ -1,26 +1,18 @@
 (ns parkour.util.shutdown
   {:private true}
-  (:require [parkour.util :refer [returning]])
-  (:import [java.util.concurrent LinkedBlockingDeque]))
+  (:require [parkour.util :refer [returning compile-if]]))
 
-(def ^:private ^LinkedBlockingDeque
-  hooks
-  (LinkedBlockingDeque.))
-
-(defn ^:private run-hooks
-  [] (dorun (map #(%) hooks)))
-
-(defonce ^:private ^Thread hook-thread
-  (doto (Thread. #'run-hooks)
-    (as-> t (-> (Runtime/getRuntime) (.addShutdownHook t)))))
+(compile-if org.apache.hadoop.util.ShutdownHookManager
+  (require '[parkour.util.shutdown.hadoop2 :as impl])
+  (require '[parkour.util.shutdown.hadoop1 :as impl]))
 
 (defn add-hook
   "Arrange to run function `f` during JVM shutdown."
-  [f] (returning true (.addFirst hooks f)))
+  [f] (returning true (impl/add-hook f)))
 
 (defn remove-hook
   "Remove arrangements made to run function `f` during JVM shutdown."
-  [f] (returning true (.remove hooks f)))
+  [f] (returning true (impl/remove-hook f)))
 
 (defmacro with-hook
   "Execute `body` with function `f` as a registered shutdown hook for `body`'s
