@@ -3,7 +3,8 @@
             [parkour.util :refer [returning]])
   (:import [clojure.lang APersistentMap APersistentVector IFn]
            [org.apache.hadoop.conf Configuration]
-           [org.apache.hadoop.mapreduce Job]))
+           [org.apache.hadoop.mapreduce Job]
+           [parkour.hadoop Mappers]))
 
 (defprotocol ConfigStep
   "Protocol for objects which add a job configuration step."
@@ -32,7 +33,7 @@ parameters and values; a vector of other steps; or anything implementing the
   (fn [^Job job]
     (doto job
       (.setJobName jname)
-      (.setJarByClass parkour.hadoop.Mappers)
+      (cond-> (nil? (.getJar job)) (.setJarByClass Mappers))
       (conf/assoc! #_job
         "mapreduce.task.classpath.user.precedence" true
         "mapreduce.job.user.classpath.first" true
