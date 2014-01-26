@@ -1,7 +1,10 @@
 (ns parkour.fs-test
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
-            [parkour (conf :as conf) (fs :as fs)]))
+            [parkour (conf :as conf) (fs :as fs)]
+            [parkour.test-helpers :as th]))
+
+(use-fixtures :once th/config-fixture)
 
 (deftest test-path
   (let [p #hadoop.fs/path "foo"]

@@ -14,6 +14,8 @@
            [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]
            [parkour.hadoop Mux$Mapper]))
 
+(use-fixtures :once th/config-fixture)
+
 (defn mapper
   [tag input]
   (->> (mr/vals input)

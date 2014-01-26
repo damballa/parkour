@@ -3,7 +3,10 @@
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr)]
-            [parkour.io (dsink :as dsink) (cascading :as casc)]))
+            [parkour.io (dsink :as dsink) (cascading :as casc)]
+            [parkour.test-helpers :as th]))
+
+(use-fixtures :once th/config-fixture)
 
 (deftest test-roundtrip
   (let [records [["foo" 9] ["bar" 8] ["baz" 7] ["quux" 6]],

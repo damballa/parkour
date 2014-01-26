@@ -11,6 +11,8 @@
             [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
+(use-fixtures :once th/config-fixture)
+
 (defn word-count-mapper
   [input]
   (->> input mr/vals

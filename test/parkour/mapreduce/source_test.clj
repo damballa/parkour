@@ -8,6 +8,8 @@
   (:import [org.apache.hadoop.io Text LongWritable NullWritable]
            [org.apache.hadoop.mapreduce Mapper]))
 
+(use-fixtures :once th/config-fixture)
+
 (def base-data
   [["a" 1] ["a" 2] ["b" 3] ["c" 4] ["c" 5] ["c" 6] ["d" 7]])
 

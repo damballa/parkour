@@ -15,6 +15,8 @@
              TextInputFormat FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.output FileOutputFormat]))
 
+(use-fixtures :once th/config-fixture)
+
 (defn wc-mapper
   [input]
   (->> (mr/vals input)

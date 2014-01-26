@@ -9,6 +9,8 @@
             [parkour.io (dsink :as dsink) (avro :as mra)]
             [parkour.test-helpers :as th]))
 
+(use-fixtures :once th/config-fixture)
+
 (deftest test-input
   (let [records ["foo" "bar" "baz" "quux"], schema (avro/parse-schema :string)
         p (fs/path "tmp/avro"), f (io/file p "0.avro")]

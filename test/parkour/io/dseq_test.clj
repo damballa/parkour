@@ -3,10 +3,14 @@
             [clojure.string :as str]
             [clojure.java.io :as io]
             [clojure.core.reducers :as r]
-            [parkour (fs :as fs) (mapreduce :as mr) (wrapper :as w)]
-            [parkour.io (dseq :as dseq) (text :as text)])
+            [parkour (fs :as fs) (mapreduce :as mr) (wrapper :as w)
+                     (conf :as conf)]
+            [parkour.io (dseq :as dseq) (text :as text)]
+            [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.io Text]
            [org.apache.hadoop.mapred JobConf]))
+
+(use-fixtures :once th/config-fixture)
 
 (defn mr1-add-path
   [c p]
@@ -38,7 +42,7 @@
 
 (deftest test-mapred
   (run-test-reducible
-   (doto (JobConf.)
+   (doto (JobConf. (conf/ig))
      (.setInputFormat TextInputFormat1)
      (mr1-add-path input-path))))
 

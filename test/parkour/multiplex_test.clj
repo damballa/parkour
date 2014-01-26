@@ -5,7 +5,10 @@
                      (wrapper :as w) (graph :as pg)]
             [parkour.io (dseq :as dseq) (mux :as mux)
                         (text :as text) (avro :as mravro)]
-            [parkour.util :refer [mpartial]]))
+            [parkour.util :refer [mpartial]]
+            [parkour.test-helpers :as th]))
+
+(use-fixtures :once th/config-fixture)
 
 (deftest test-input
   (let [text (text/dseq "dev-resources/word-count-input.txt")

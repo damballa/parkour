@@ -11,3 +11,13 @@ execution."
        "fs.default.name" "file:///"
        "mapred.job.tracker" "local"
        "jobclient.completion.poll.interval" 100)))
+
+(defn config-fixture
+  "A clojure.test fixture function for running tests under the local-mode test
+configuration."
+  [f] (conf/with-default (config) (f)))
+
+(defmacro with-config
+  "Execute `body` forms with the default configuration set to a local-mode test
+configuration."
+  [& body] `(conf/with-default (config) ~@body))

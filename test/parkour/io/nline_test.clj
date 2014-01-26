@@ -6,7 +6,10 @@
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr)]
             [parkour.io (dsink :as dsink)]
-            [parkour.util :refer [compile-when]]))
+            [parkour.util :refer [compile-when]]
+            [parkour.test-helpers :as th]))
+
+(use-fixtures :once th/config-fixture)
 
 (compile-when org.apache.hadoop.mapreduce.lib.input.NLineInputFormat
   (require '[parkour.io (nline :as nline)])

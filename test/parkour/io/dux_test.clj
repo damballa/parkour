@@ -11,6 +11,8 @@
             [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.io Text LongWritable NullWritable]))
 
+(use-fixtures :once th/config-fixture)
+
 (defn first-letter-mapper
   [input]
   (->> (mr/vals input)

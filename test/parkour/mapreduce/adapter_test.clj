@@ -8,6 +8,8 @@
             [parkour.io (text :as text) (avro :as mra)]
             [parkour.test-helpers :as th]))
 
+(use-fixtures :once th/config-fixture)
+
 (defn word-count-mapper
   {::mr/adapter mr/contextfn}
   [conf]

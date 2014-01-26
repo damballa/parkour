@@ -5,7 +5,10 @@
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr)]
-            [parkour.io (dsink :as dsink) (text :as text)]))
+            [parkour.io (dsink :as dsink) (text :as text)]
+            [parkour.test-helpers :as th]))
+
+(use-fixtures :once th/config-fixture)
 
 (deftest test-input
   (let [lines ["foo" "bar" "baz" "quux"], p (fs/path "tmp/text")]

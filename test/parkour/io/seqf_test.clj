@@ -3,8 +3,11 @@
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr)]
-            [parkour.io (dsink :as dsink) (seqf :as seqf)])
+            [parkour.io (dsink :as dsink) (seqf :as seqf)]
+            [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.io LongWritable Text]))
+
+(use-fixtures :once th/config-fixture)
 
 ;; Just do a round-trip test for now, because I don't feel like fighting with
 ;; the Java sequence file API.

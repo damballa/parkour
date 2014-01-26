@@ -7,6 +7,8 @@
             [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
+(use-fixtures :once th/config-fixture)
+
 (deftest test-input
   (let [records [["foo" 9] ["bar" 8] ["baz" 7] ["quux" 6]]]
     (is (= records (->> records mem/dseq w/unwrap (into []))))))
