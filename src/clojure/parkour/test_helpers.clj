@@ -7,9 +7,14 @@ execution."
   ([] (config (conf/ig)))
   ([conf]
      (conf/assoc! conf
+       "hadoop.security.authentication" "simple"
        "fs.defaultFS" "file:///"
        "fs.default.name" "file:///"
        "mapred.job.tracker" "local"
+       "mapred.local.dir" "${hadoop.tmp.dir}/mapred/local"
+       "mapred.system.dir" "${hadoop.tmp.dir}/mapred/system"
+       "mapreduce.jobtracker.staging.root.dir" "${hadoop.tmp.dir}/mapred/staging"
+       "mapred.temp.dir" "${hadoop.tmp.dir}/mapred/temp"
        "jobclient.completion.poll.interval" 100)))
 
 (defn config-fixture
