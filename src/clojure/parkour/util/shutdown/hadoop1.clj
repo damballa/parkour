@@ -32,8 +32,8 @@
 (defonce ^:private ^Thread hook-thread
   (let [fs-cache (field-get FileSystem "CACHE")]
     (locking fs-cache
-      (let [m ^Map (field-get FileSystem$Cache "map" fs-cache)
-            t' ^Thread (or (ignore-errors
+      (let [^Map m (field-get FileSystem$Cache "map" fs-cache)
+            ^Thread t' (or (ignore-errors
                             (field-get FileSystem "clientFinalizer"))
                            (field-get FileSystem$Cache "clientFinalizer"
                                       fs-cache))
