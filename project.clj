@@ -55,7 +55,7 @@
              :java6 {:dependencies
                      [[org.codehaus.jsr166-mirror/jsr166y "1.7.0"]]}
              :examples {:source-paths ["examples"]}
-             :uberjar [:examples :java6]
+             :jobjar [:examples :java6]
              :dev [:examples
                    :conjars ;; For cascading-* *
                    {:dependencies
