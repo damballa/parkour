@@ -173,3 +173,23 @@ the `body` expressions."
   [conf ^Writer w]
   (.write w "#hadoop.conf/configuration ")
   (print-method (diff conf) w))
+
+(defn local-jt!
+  "Modify `conf` to use the local (in-process) job tracker."
+  ([] (local-jt! (configuration)))
+  ([conf]
+     (assoc! (configuration conf)
+       "mapred.job.tracker" "local"
+       "jobclient.completion.poll.interval" 100
+       "mapred.local.dir" "${hadoop.tmp.dir}/mapred/local"
+       "mapred.system.dir" "${hadoop.tmp.dir}/mapred/system"
+       "mapreduce.jobtracker.staging.root.dir" "${hadoop.tmp.dir}/mapred/staging"
+       "mapred.temp.dir" "${hadoop.tmp.dir}/mapred/temp")))
+
+(defn local-fs!
+  "Modify `conf` to use the local filesystem as the default FS."
+  ([] (local-fs! (configuration)))
+  ([conf]
+     (assoc! (configuration conf)
+       "fs.defaultFS" "file:///"
+       "fs.default.name" "file:///")))
