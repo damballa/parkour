@@ -42,19 +42,20 @@
                                              "-hadoop-stable,+hadoop-cdh4:"
                                              "-hadoop-stable,+hadoop-2-2-0")
                         ,              "test"]}
-  :profiles {:default [:base :system :user :provided :java6 :hadoop-stable :dev]
-             :conjars {:repositories
+  :profiles {:conjars {:repositories
                        [["conjars" "http://conjars.org/repo/"]]}
              :cloudera {:repositories
                         [["cloudera" ~(str "https://repository.cloudera.com"
                                            "/artifactory/cloudera-repos/")]]}
-             :provided {:dependencies
-                        [[org.slf4j/slf4j-api "1.6.1"]
-                         [org.slf4j/slf4j-log4j12 "1.6.1"]
-                         [log4j "1.2.17"]]}
+             :provided [:hadoop-stable :slf4j-log4j :java6]
+             :slf4j-log4j {:dependencies
+                           [[org.slf4j/slf4j-api "1.6.1"]
+                            [org.slf4j/slf4j-log4j12 "1.6.1"]
+                            [log4j "1.2.17"]]}
              :java6 {:dependencies
                      [[org.codehaus.jsr166-mirror/jsr166y "1.7.0"]]}
              :examples {:source-paths ["examples"]}
+             :uberjar [:examples :java6]
              :dev [:examples
                    :conjars ;; For cascading-* *
                    {:dependencies
