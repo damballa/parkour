@@ -65,10 +65,10 @@ directly from a cluster-connected REPL.
 
 Leveraging [Alembic][alembic], Parkour can use an in-process (but
 classpath-isolated) instance of Leiningen to build a job JAR and collect
-dependencies.  You must specify separately `alembic` as a dependency in your
-`user` or `dev` profile if you aren’t already.  With Alembic available, the
-`parkour.repl/launch!` function allows execution of any function with a job JAR
-built and a Hadoop configuration ready to deploy it.
+dependencies.  If you are not already doing so, you must separately specify
+`alembic` as a dependency in your `user` or `dev` profile.  With Alembic
+available, the `parkour.repl/launch!` function allows execution of any function
+with a job JAR built and a Hadoop configuration ready to deploy it.
 
     > (launch! {"mapred.reduce.tasks" 1} word-count "outpath/0"
                (text/dseq "hdfs-giant-text-file.txt"))
