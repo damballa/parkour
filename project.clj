@@ -55,12 +55,13 @@
              :java6 {:dependencies
                      [[org.codehaus.jsr166-mirror/jsr166y "1.7.0"]]}
              :examples {:source-paths ["examples"]}
-             :hadoop-cluster [:java6 :avro-cdh4 :hadoop-system]
-             :jobjar [:examples :java6]
+             :hadoop-user [:java6 :avro-cdh4]
+             :jobjar [:hadoop-user :examples]
              :dev [:examples
                    :conjars ;; For cascading-* *
                    {:dependencies
-                    [[cascading/cascading-hadoop "2.2.0"
+                    [[alembic "0.2.1"]
+                     [cascading/cascading-hadoop "2.2.0"
                       :exclusions [org.codehaus.janino/janino]]]}]
              :test {:resource-paths ["test-resources"]}
              :hadoop-stable [:hadoop-1-2-1]

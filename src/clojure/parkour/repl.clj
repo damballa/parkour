@@ -2,39 +2,18 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
             [clojure.tools.nrepl :as nrepl]
+            [alembic.still :as alembic]
+            [classlojure.core :as classlojure]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)]
             [parkour.util :refer [returning]])
   (:import [java.io File Closeable]
            [org.apache.hadoop.filecache DistributedCache]))
 
-(defn ^:private lein-home
-  "Locate and return path of Leiningen home directory."
-  []
-  (as-> (System/getenv "LEIN_HOME") home
-        (or (and home (io/file home))
-            (io/file (System/getProperty "user.home") ".lein"))
-        (.getAbsolutePath ^File home)))
-
-(defn ^:private lein-repl-port
-  "Read and return Leiningen nREPL server port."
-  []
-  (try
-    (-> (lein-home) (io/file "repl-port") slurp Long/parseLong)
-    (catch Exception e
-      (throw (ex-info "Couldn't read port from ~/.lein/repl-port." {} e)))))
-
-(defn ^:private project-file-path
-  "Absolute path of the (CWD) project file."
-  [] (-> "project.clj" io/file .getAbsolutePath))
-
-(defn ^:private lein*
-  "Evaluate `form` against Leiningen nREPL server."
+(defn ^:private alembic-eval
+  "Evaluate `form` against Alemic's embedded Leiningen instance."
   [form]
-  (with-open [conn ^Closeable (nrepl/connect :port (lein-repl-port))]
-    (-> (nrepl/client conn 60000)
-        (nrepl/message {:op "eval", :code (pr-str form)})
-        nrepl/response-values
-        first)))
+  (-> (:alembic-classloader @alembic/the-still)
+      (classlojure/eval-in form)))
 
 (defn ^:private jobjar-forms
   "Generate forms necessary to build job JAR via Leiningen nREPL server."
@@ -45,11 +24,9 @@
               'leiningen.with-profile
               'leiningen.jar)
      (let [project# (leiningen.core.project/read
-                     ~(project-file-path) [:default :jobjar])
-           deps-profiles# (leiningen.with-profile/profiles-in-group
-                           project# "-user,-provided,-dev,+jobjar")
-           deps-project# (leiningen.core.project/set-profiles
-                          project# deps-profiles#)]
+                     "project.clj" [:default :jobjar])
+           deps-project# (leiningen.core.project/unmerge-profiles
+                          project# [:default])]
        {:dep-paths (->> (leiningen.core.classpath/get-classpath deps-project#)
                         (filter #(.endsWith % ".jar")))
         :jobjar-path (get (leiningen.jar/jar project#) [:extension "jar"])})))
@@ -86,7 +63,7 @@ configuration from `conf` and configure it to use the project job JAR and
 dependencies.  Apply function `f` to the resulting configuration followed by
 `args` and return the result."
   [conf f & args]
-  (let [{:keys [jobjar-path dep-paths]} (lein* (jobjar-forms))
+  (let [{:keys [jobjar-path dep-paths]} (alembic-eval (jobjar-forms))
         conf (doto (conf/ig conf)
                (conf/assoc! "mapred.jar" jobjar-path)
                (cache-jars! dep-paths))]
