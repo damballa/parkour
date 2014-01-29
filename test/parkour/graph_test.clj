@@ -7,7 +7,7 @@
                      (conf :as conf) (fs :as fs) (wrapper :as w)]
             [parkour.io (text :as text) (seqf :as seqf) (avro :as mra)
                         (dux :as dux) (dsink :as dsink) (mem :as mem)]
-            [parkour.util :refer [ignore-errors]]
+            [parkour.util :refer [ignore-errors returning]]
             [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.io Text LongWritable]))
 
@@ -15,9 +15,13 @@
 
 (defn word-count-mapper
   [input]
-  (->> input mr/vals
-       (r/mapcat #(str/split % #"\s+"))
-       (r/map #(-> [% 1]))))
+  (let [wc (.getCounter mr/*context* "word-count" "words")]
+    (->> input mr/vals
+         (r/mapcat #(str/split % #"\s+"))
+         (r/map (fn [word]
+                  (returning word
+                    (.increment wc 1))))
+         (r/map #(-> [% 1])))))
 
 (defn word-count-reducer
   [input]
@@ -45,6 +49,7 @@
         [result] (word-count (th/config) dseq dsink)]
     (is (= 6 (-> (->> result mr/counters-map vals (apply merge))
                  (get "MAP_OUTPUT_RECORDS"))))
+    (is (= 6 (-> result mr/counters-map (get-in ["word-count" "words"]))))
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
            (into {} result)))))
 

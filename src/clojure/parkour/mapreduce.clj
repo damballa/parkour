@@ -12,7 +12,13 @@
            [clojure.lang IFn$OOLL Var]
            [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce TaskAttemptContext TaskAttemptID]
+           [org.apache.hadoop.mapreduce TaskInputOutputContext]
            [org.apache.hadoop.mapreduce Counters CounterGroup Counter]))
+
+(def ^:dynamic ^TaskInputOutputContext
+  *context*
+  "The task context.  Only bound during the dynamic scope of a task."
+  nil)
 
 (defn keys
   "Produce keys only from the tuples in `context`."
