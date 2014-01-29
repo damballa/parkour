@@ -18,15 +18,14 @@
 (use-fixtures :once th/config-fixture)
 
 (defn wc-mapper
+  {::mr/source-as :vals, ::sink-as :keyvals}
   [input]
-  (->> (mr/vals input)
-       (r/mapcat #(str/split % #"\s"))
+  (->> (r/mapcat #(str/split % #"\s") input)
        (r/map #(-> [% 1]))))
 
 (defn wc-reducer
-  [input]
-  (->> (mr/keyvalgroups input)
-       (r/map (pr/mjuxt identity (partial r/reduce +)))))
+  {::mr/source-as :keyvalgroups, ::mr/sink-as :keyvals}
+  [input] (r/map (pr/mjuxt identity (partial r/reduce +)) input))
 
 (defn run-word-count
   [inpath outpath]

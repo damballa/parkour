@@ -33,7 +33,7 @@
         w (if (::mr/raw m)
             identity
             (::mr/adapter m default))]
-    (w @v)))
+    (w (with-meta @v m))))
 
 (defn mapper-run
   [id context]

@@ -79,6 +79,35 @@ keys from the tuples in `context`."
 from the tuples in `context`."
 [context] (src/reducer src/next-key src/keys context))
 
+(def ^:private source-fns
+  "Map of keywords to built-in source-shaping functions."
+  {:keys keys
+   :vals vals
+   :keyvals keyvals
+   :keygroups keygroups
+   :valgroups valgroups
+   :keyvalgroups keyvalgroups
+   :keykeyvalgroups keykeyvalgroups
+   :keykeygroups keykeygroups
+   :keysgroups keysgroups
+   })
+
+(defn ^:private source-fn
+  "Source-shaping function for keyword or function `f`."
+  [f]
+  (doto (get source-fns f f)
+    (as-> f (when (keyword? f)
+              (throw (ex-info (str "Unknown built-in source `:" f "`")
+                              {:f f}))))))
+
+(defn source-as
+  "Shape `source` to the collection shape `kind`.  The `kind` may either be a
+source-shaping function of one argument or a keyword indicating a built-in
+source-shaping function.  Supported keywords are: `:keys`, `:vals`, `:keyvals`,
+`:keygroups`, `:valgroups`, :keyvalgroups`, `:keykeyvalgroups`,
+`:keykeygroups`, and `:keysgroups`."
+  [kind source] ((source-fn kind) source))
+
 (defn wrap-sink
   "Return new tuple sink which wraps keys and values as the types `ckey` and
 `cval` respectively, which should be compatible with the key and value type of
@@ -102,11 +131,21 @@ keyword indicating a built-in sinking function.  Supported keywords are `:none`,
 (defn collfn
   "Task function adapter for collection-function-like functions.  The adapted
 function `v` should accept conf-provided arguments followed by the (unwrapped)
-input tuple source, and should return a reducible collection of output tuples."
+input tuple source, and should return a reducible collection of output tuples.
+
+Experimental: if `v` has metadata for the `::mr/source-as` or `::mr/sink-as`
+keys, the function input and/or output will be re-shaped as specified via the
+associated metadata value."
   [v]
-  (fn [conf & args]
-    (fn [context]
-      (sink context (apply v (concat args [(w/unwrap context)]))))))
+  (let [m (meta v)
+        source-as (or (some->> m ::source-as (partial source-as)) identity)
+        sink-as (or (some->> m ::sink-as (partial sink-as)) identity)]
+    (fn [conf & args]
+      (fn [context]
+        (let [input (source-as (w/unwrap context))
+              args (conj (vec args) input)
+              output (sink-as (apply v args))]
+          (sink context output))))))
 
 (defn contextfn
   "Task function adapter for functions accessing the job context.  The adapted
