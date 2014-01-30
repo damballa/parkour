@@ -174,13 +174,15 @@ the `body` expressions."
   (.write w "#hadoop.conf/configuration ")
   (print-method (diff conf) w))
 
-(defn local-jt!
+(defn local-mr!
   "Modify `conf` to use the local (in-process) job tracker."
-  ([] (local-jt! (configuration)))
+  ([] (local-mr! (configuration)))
   ([conf]
      (assoc! (configuration conf)
+       "mapreduce.framework.name" "local"
        "mapred.job.tracker" "local"
        "jobclient.completion.poll.interval" 100
+       "hadoop.tmp.dir" "/tmp/hadoop-${user.name}"
        "mapred.local.dir" "${hadoop.tmp.dir}/mapred/local"
        "mapred.system.dir" "${hadoop.tmp.dir}/mapred/system"
        "mapreduce.jobtracker.staging.root.dir" "${hadoop.tmp.dir}/mapred/staging"

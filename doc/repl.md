@@ -22,7 +22,8 @@ they are non-final in your local development copy of the configuration.
 
 The parameters are:
 
-- `mapred.job.tracker`
+- `mapred.job.tracker` / `mapreduce.framework.name`
+- `hadoop.tmp.dir`
 - `mapred.local.dir`
 - `mapred.system.dir`
 - `mapreduce.jobtracker.staging.root.dir`
@@ -45,7 +46,7 @@ with full access to the live cluster HDFS or other data sources.  This combines
 the quick turn-around of local-mode execution with the ability to see the
 results of jobs on real data.
 
-The `parkour.conf/local-jt!` function will create or modify a configuration for
+The `parkour.conf/local-mr!` function will create or modify a configuration for
 local execution, while preserving HDFS configuration.  Most datasets will be too
 large to process locally in their entirety — after all, why otherwise would you
 be processing them with Hadoop in the first place?  To solve that problem, the
@@ -55,7 +56,7 @@ which allows jobs to run over only small random samples of their input data.
 Together, local processing of small samples of real data supports the rapid
 iteration which can make REPL-based development so effective.
 
-    > (word-count (conf/local-jt!) "file:tmp/outpath/0"
+    > (word-count (conf/local-mr!) "file:tmp/outpath/0"
                   (sample/dseq (text/dseq "hdfs-giant-text-file.txt")))
 
 ## REPL-launched remote jobs

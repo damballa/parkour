@@ -7,7 +7,7 @@ execution."
   ([] (config (conf/ig)))
   ([conf]
      (doto conf
-       (conf/local-jt!)
+       (conf/local-mr!)
        (conf/local-fs!)
        (conf/assoc! #_conf
          "hadoop.security.authentication" "simple"))))
