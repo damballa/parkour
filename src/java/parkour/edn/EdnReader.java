@@ -666,7 +666,7 @@ public static List readDelimitedList(char delim, PushbackReader r, boolean isRec
             (r instanceof LineNumberingPushbackReader) ?
             ((LineNumberingPushbackReader) r).getLineNumber() : -1;
 
-    ArrayList a = new ArrayList();
+    ArrayList<Object> a = new ArrayList<Object>();
 
     for(; ;)
         {
