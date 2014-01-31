@@ -251,9 +251,12 @@ temporary directory path, created via the optional `conf`."
 
 (defn ^:private split-fragment
   [^URI uri]
-  (let [fragment (.getFragment uri), uri-s (str uri), n (count uri-s)
-        base (subs uri-s 0 (- n (count fragment) 1))]
-    [fragment (URI. base)]))
+  (let [fragment (.getFragment uri)]
+    (if-not fragment
+      [uri uri]
+      (let [uri-s (str uri), n (count uri-s)
+            base (subs uri-s 0 (- n (count fragment) 1))]
+        [fragment (URI. base)]))))
 
 (defn distcache-files
   "Retrieve map of existing distcache entries from `conf`."
@@ -270,7 +273,9 @@ URIs into the distributed cache configuration."
                (DistributedCache/createSymlink))]
     (->> (into (distcache-files conf) uri-map)
          (map (fn [[local remote]]
-                (.resolve (uri remote) (str "#" local))))
+                (if (identical? local remote)
+                  remote
+                  (.resolve (uri remote) (str "#" local)))))
          (str/join ",")
          (conf/assoc! conf "mapred.cache.files"))))
 
