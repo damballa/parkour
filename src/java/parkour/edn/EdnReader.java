@@ -60,6 +60,7 @@ static
     dispatchMacros['{'] = new SetReader();
     dispatchMacros['<'] = new UnreadableReader();
     dispatchMacros['_'] = new DiscardReader();
+    dispatchMacros['\''] = new VarReader();
     }
 
 static boolean nonConstituent(int ch){
@@ -735,5 +736,21 @@ public static class TaggedReader extends AFn{
     }
 
 }
+
+public static class VarReader extends AFn {
+    static final IFn REQUIRE = RT.var("clojure.core", "require");
+
+    public Object invoke(Object reader, Object firstCchar, Object opts) {
+        PushbackReader r = (PushbackReader) reader;
+        Object name = read(r, true, null, false, opts);
+        if (!(name instanceof Symbol))
+            throw new RuntimeException("Var must be a symbol");
+        Symbol sym = (Symbol)name;
+        Symbol ns = Symbol.intern(sym.getNamespace());
+        Symbol n = Symbol.intern(sym.getName());
+        REQUIRE.invoke(ns);
+        return Var.intern(ns, n);
+    }
 }
 
+}
