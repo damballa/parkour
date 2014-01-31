@@ -8,7 +8,7 @@
  *   You must not remove this notice, or any other, from this software.
  **/
 
-package clojure.lang;
+package parkour.edn;
 
 import java.io.IOException;
 import java.io.PushbackReader;
@@ -20,7 +20,14 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+// Bad, but not as bad as individually importing all of `clojure.lang`.
+import clojure.lang.*;
+
 public class EdnReader{
+
+final static Keyword TAG_KEY = Keyword.intern(null, "tag");
+final static Keyword LINE_KEY = Keyword.intern(null, "line");
+final static Keyword COLUMN_KEY = Keyword.intern(null, "column");
 
 static IFn[] macros = new IFn[256];
 static IFn[] dispatchMacros = new IFn[256];
@@ -515,7 +522,7 @@ public static class MetaReader extends AFn{
             }
         Object meta = read(r, true, null, true, opts);
         if(meta instanceof Symbol || meta instanceof String)
-            meta = RT.map(RT.TAG_KEY, meta);
+            meta = RT.map(TAG_KEY, meta);
         else if (meta instanceof Keyword)
             meta = RT.map(meta, RT.T);
         else if(!(meta instanceof IPersistentMap))
@@ -526,7 +533,7 @@ public static class MetaReader extends AFn{
             {
             if(line != -1 && o instanceof ISeq)
                 {
-                meta = ((IPersistentMap) meta).assoc(RT.LINE_KEY, line).assoc(RT.COLUMN_KEY, column);
+                meta = ((IPersistentMap) meta).assoc(LINE_KEY, line).assoc(COLUMN_KEY, column);
                 }
             if(o instanceof IReference)
                 {
@@ -606,7 +613,7 @@ public static class ListReader extends AFn{
 //      IObj s = (IObj) RT.seq(list);
 //      if(line != -1)
 //          {
-//          return s.withMeta(RT.map(RT.LINE_KEY, line, RT.COLUMN_KEY, column));
+//          return s.withMeta(RT.map(LINE_KEY, line, COLUMN_KEY, column));
 //          }
 //      else
             return s;
