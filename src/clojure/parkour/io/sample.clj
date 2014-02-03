@@ -14,7 +14,7 @@
 (defn dseq
   "Distributed sequence which samples from distributed sequence `step`, as
 optionally configured by the map `options`.  Available options are:
-  `:size` -- Sample split size (default 65536);
+  `:size` -- Sample split size (default 131072);
   `:splits` -- Number of splits to sample (default 5);
   `:seed` -- Seed for random sampling process (default 1)."
   ([step] (dseq {} step))
