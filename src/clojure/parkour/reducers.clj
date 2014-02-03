@@ -41,9 +41,10 @@ each partition with `f` and optional initial value `init` as per
                                  [k (f init x) (f1 acc1 acc)])))
                            [::init init init1]
                            coll)]
-           (if (identical? ::init prev)
-             acc1
-             (f1 acc1 acc)))))))
+           (cond (reduced? acc1) @acc1
+                 (identical? ::init prev) acc1
+                 :else (let [acc1 (f1 acc1 acc)]
+                         (cond-> acc1 (reduced? acc1) deref))))))))
 
 (defn group-by+
   "Return a map of the values of applying `f` to each item in `coll` to vectors
