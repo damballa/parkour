@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [map-indexed reductions distinct])
   (:require [clojure.core.reducers :as r]
             [clojure.core.protocols :as ccp]
-            [parkour.util :refer [returning]]))
+            [parkour.util :refer [returning]])
+  (:import [java.util Random]))
 
 (defn map-indexed
   "Reducers version of `map-indexed`."
@@ -105,3 +106,18 @@ vector of the results."
 (defn distinct
   "Remove adjacent duplicate values from `coll`."
   [coll] (distinct-by identity coll))
+
+(defn sample-reservoir
+  "Take reservoir sample of size `n` from `coll`, optionally using `Random`
+instance `r`.  Must reduce entirety of `coll` prior to returning results, which
+will be in random order.  Entire sample will be realized in memory."
+  ([n coll] (sample-reservoir (Random.) n coll))
+  ([r n coll]
+     (first
+      (reduce (fn [[sample i] x]
+                (if (< i n)
+                  [(conj sample x) (inc i)]
+                  (let [i (inc i), j (.nextInt ^Random r i),
+                        sample (if (< j n) (assoc sample j x) sample)]
+                    [sample i])))
+              [[] 0] coll))))

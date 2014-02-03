@@ -10,6 +10,6 @@
 
 (deftest test-basic
   (is (= 2 (->> (text/dseq "dev-resources/word-count-input.txt")
-                (sample/dseq {:size 5 :n 2})
+                (sample/dseq {:size 7 :n 2})
                 (into [])
                 count))))
