@@ -1,5 +1,15 @@
 # Parkour News – history of user-visible changes
 
+## 0.5.4 / ?
+
+- Ensure job-failure clean-up runs only once.
+- Only set job JAR in basic cstep when still unset.
+- Working local-mode tests under an active cluster configuration.
+- Build job JARs and launch remote jobs from the REPL.
+- Support experimental collfn ::{source,sink}-as metadata.
+- Round-trip fragment-less distcache URIs through fs/distcache!.
+- Added sampling dseq.
+
 ## 0.5.3 / 2014-01-18
 
 - Add `fs/path-exists?` function.

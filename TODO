@@ -41,15 +41,6 @@ Probably a separate project.  Suggested by ztellman, potentially a Leiningen
 plugin, mechanism for easily spinning up EMR clusters and launching Parkour
 jobs.
 
-* Cluster-REPL integration
-
-Probably also a separate project, but potentially with helper hooks.  Like
-pdns-lab, but as an all-in-one package.  Launch nREPL server under cluster
-configuration.  Leiningen integration for automatic uberjar re-building, fast
-uberjar re-builds.  Use project configuration to specify job JAR.  Helper
-integration for extracting and running over subset of data, as per Pig
-ILLUSTRATE.  Allow in-REPL testing by rebinding to local configurations.
-
 * Error messages
 
 ** Errors on repeated reduction (?)
@@ -64,3 +55,28 @@ Alternative to erroring on repeated reduction.  We could re-initialize the input
 record-reader (and context) for the original input split, allowing the same data
 to be subsequently re-processed.  Not certain this is a useful feature, but is
 an interesting idea.
+
+* Extended configuration serialization
+
+Provide an interface which ultimately allows objects to ship themselves via the
+distributed cache when they are serialized into a configuration.
+
+* n-record dseq
+
+A dseq which acts like NLineInputFormat, but wraps an arbitrary existing
+InputFormat, distributing only <n> records per mapper (or distributing available
+records across <m> mappers).
+
+* jobconf dseq
+
+A dseq which distributes input records via the job configuration.  Should
+probably use extended configuration serialization.
+
+* dseq input path access
+
+Provide a multimethod for accessing a dseq's input paths.
+
+* Provide mapreduce utility namespace
+
+Provide a namespace of common mapreduce operations, such as a =first-p=
+partitioner, a =sum-r= reducer, etc.
