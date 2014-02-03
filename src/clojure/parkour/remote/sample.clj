@@ -11,10 +11,10 @@
     (getSplits [_ context]
       (let [klass (conf/get-class context "parkour.sample.class" nil)
             inform ^InputFormat (w/new-instance context klass)
-            n (conf/get-long context "parkour.sample.n" 5)
+            nsplits (conf/get-long context "parkour.sample.splits" 5)
             seed (conf/get-long context "parkour.sample.seed" 1)
             rnd (Random. seed)]
-        (pr/sample-reservoir rnd n (.getSplits inform context))))
+        (pr/sample-reservoir rnd nsplits (.getSplits inform context))))
     (createRecordReader [_ split context]
       (let [klass (conf/get-class context "parkour.sample.class" nil)
             inform ^InputFormat (w/new-instance context klass)]

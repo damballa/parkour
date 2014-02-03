@@ -7,7 +7,7 @@
 (def ^:private defaults
   "Default values for sample dseq options."
   {:size 131072,
-   :n 5,
+   :splits 5,
    :seed 1,
    })
 
@@ -15,11 +15,11 @@
   "Distributed sequence which samples from distributed sequence `step`, as
 optionally configured by the map `options`.  Available options are:
   `:size` -- Sample split size (default 65536);
-  `:n` -- Number of splits to sample (default 5);
+  `:splits` -- Number of splits to sample (default 5);
   `:seed` -- Seed for random sampling process (default 1)."
   ([step] (dseq {} step))
   ([options step]
-     (let [{:keys [n size seed]} (merge defaults options)]
+     (let [{:keys [splits size seed]} (merge defaults options)]
        (dseq/dseq
         (fn [^Job job]
           (doto job
@@ -27,6 +27,6 @@ optionally configured by the map `options`.  Available options are:
             (conf/assoc! #_job
               "mapred.max.split.size" size
               "parkour.sample.class" (.getInputFormatClass job)
-              "parkour.sample.n" n
+              "parkour.sample.splits" splits
               "parkour.sample.seed" seed)
             (.setInputFormatClass Sample$InputFormat)))))))
