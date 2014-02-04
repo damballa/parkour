@@ -1,3 +1,9 @@
+* Documentation
+
+** Multiple input/output documentation
+** Examples
+*** Reduce-side join
+
 * More execution options
 
 Parkour currently inherits Hadoop’s default job-failure behavior when a job’s
