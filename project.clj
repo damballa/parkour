@@ -36,18 +36,20 @@
                     parkour.util.shutdown.hadoop1
                     parkour.util.shutdown.hadoop2]
           :output-dir "tmp/codox"}
-  :aliases {"test-all" ["with-profile" ~(str "-hadoop-stable,+hadoop-1-0-3:"
-                                             "-hadoop-stable,+hadoop-1-2-1:"
-                                             "-hadoop-stable,+hadoop-cdh3:"
-                                             "-hadoop-stable,+hadoop-cdh4:"
-                                             "-hadoop-stable,+hadoop-2-2-0")
-                        ,              "test"]}
-  :profiles {:conjars {:repositories
+  :aliases {"stable"["with-profile" "-default,+default*,+hadoop-stable"]
+            "all" ["with-profile" ~(str "-default,+default*,+hadoop-1-0-3:"
+                                        "-default,+default*,+hadoop-1-2-1:"
+                                        "-default,+default*,+hadoop-cdh3:"
+                                        "-default,+default*,+hadoop-cdh4:"
+                                        "-default,+default*,+hadoop-2-2-0")]}
+  :profiles {:default* [:base :system :user :provided :dev]
+             :default [:default* :hadoop-stable]
+             :conjars {:repositories
                        [["conjars" "http://conjars.org/repo/"]]}
              :cloudera {:repositories
                         [["cloudera" ~(str "https://repository.cloudera.com"
                                            "/artifactory/cloudera-repos/")]]}
-             :provided [:hadoop-stable :slf4j-log4j :java6]
+             :provided [:slf4j-log4j :java6]
              :slf4j-log4j {:dependencies
                            [[org.slf4j/slf4j-api "1.6.1"]
                             [org.slf4j/slf4j-log4j12 "1.6.1"]
