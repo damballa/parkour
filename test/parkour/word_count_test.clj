@@ -46,11 +46,15 @@
   (let [inpath (io/resource "word-count-input.txt")
         outpath (fs/path "tmp/word-count-output")
         outfs (fs/path-fs outpath)
-        _ (.delete outfs outpath true)]
-    (is (= true (run-word-count inpath outpath)))
+        _ (.delete outfs outpath true)
+        success? (run-word-count inpath outpath)
+        outfile (->> (fs/path outpath "part-*")
+                     (fs/path-glob outfs)
+                     first io/file)]
+    (is (= true success?))
+    (is (not (nil? outfile)))
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
-           (with-open [adf (->> (fs/path outpath "part-*") (fs/path-glob outfs)
-                                first io/file avro/data-file-reader)]
+           (with-open [adf (avro/data-file-reader outfile)]
              (->> adf seq (into {})))))))
 
 
@@ -84,9 +88,13 @@
   (let [inpath (io/resource "word-count-input.txt")
         outpath (fs/path "tmp/word-distinct-output")
         outfs (fs/path-fs outpath)
-        _ (.delete outfs outpath true)]
-    (is (= true (run-word-distinct inpath outpath)))
+        _ (.delete outfs outpath true)
+        success? (run-word-distinct inpath outpath)
+        outfile (->> (fs/path outpath "part-*")
+                     (fs/path-glob outfs)
+                     first io/file)]
+    (is (= true success?))
+    (is (not (nil? outfile)))
     (is (= ["apple" "banana" "carrot"]
-           (with-open [adf (->> (fs/path outpath "part-*") (fs/path-glob outfs)
-                                first io/file avro/data-file-reader)]
+           (with-open [adf (avro/data-file-reader outfile)]
              (->> adf seq (into [])))))))
