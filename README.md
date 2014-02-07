@@ -1,5 +1,7 @@
 # Parkour
 
+[![Build Status](https://secure.travis-ci.org/damballa/parkour.png)](http://travis-ci.org/damballa/parkour)
+
 Hadoop MapReduce in idiomatic Clojure.  Parkour takes your Clojure code’s
 functional gymnastics and sends it free-running across the urban environment of
 your Hadoop cluster.
