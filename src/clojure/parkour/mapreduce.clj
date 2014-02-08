@@ -20,6 +20,17 @@
   "The task context.  Only bound during the dynamic scope of a task."
   nil)
 
+(def ^:internal task-ex
+  "Atom holding any exception thrown during local execution.  Intended only for
+internal use within Parkour."
+  (atom nil))
+
+(defn local-runner?
+  "True iff `conf` specifies the local job runner."
+  [conf]
+  (or (= "local" (conf/get conf "mapred.job.tracker" "local"))
+      (= "local" (conf/get conf "mapreduce.framework.name" "local"))))
+
 (defn keys
   "Produce keys only from the tuples in `context`."
   [context]

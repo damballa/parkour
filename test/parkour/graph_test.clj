@@ -191,3 +191,21 @@
         dsink [(seqf/dsink [Text LongWritable] outpath)]
         [result] (word-count (th/config) dseq dsink)]
     (is (= nil result))))
+
+(defn bad-mapper
+  [input] (throw (ex-info "Exception expected" {:from-task? true})))
+
+(deftest test-local-task-exceptions
+  (let [inpath (io/resource "word-count-input.txt")
+        outpath (doto "tmp/exception" fs/path-delete)
+        dseq (text/dseq inpath)
+        dsink (seqf/dsink [Text LongWritable] outpath)
+        graph (-> (pg/input dseq)
+                  (pg/map #'bad-mapper)
+                  (pg/output dsink))
+        info (try
+               (returning {:from-task? false}
+                 (pg/execute graph (th/config) "exception"))
+               (catch Exception e
+                 (-> e .getCause ex-data)))]
+    (is (:from-task? info))))

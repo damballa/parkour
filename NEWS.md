@@ -9,6 +9,7 @@
 - Support experimental collfn ::{source,sink}-as metadata.
 - Round-trip fragment-less distcache URIs through fs/distcache!.
 - Added sampling dseq.
+- Include any local task exception in job failure cause chain.
 
 ## 0.5.3 / 2014-01-18
 

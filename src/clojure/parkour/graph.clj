@@ -9,7 +9,8 @@
             [parkour.io (dseq :as dseq) (dsink :as dsink)
                         (mux :as mux) (dux :as dux)]
             [parkour.util.shutdown :as shutdown]
-            [parkour.util :refer [ignore-errors returning doto-let mpartial]])
+            [parkour.util :refer
+             [ignore-errors returning doto-let mpartial prev-reset!]])
   (:import [java.util.concurrent ExecutionException]
            [clojure.lang Var]
            [org.apache.hadoop.mapreduce Job]
@@ -361,7 +362,10 @@ base configuration `conf` and job name `jname`."
   (fn [& args]
     (doto-let [job (node-job node conf jname)]
       (when-not (run-job job)
-        (throw (ex-info (str "Job " jname " failed.") {:jname jname}))))))
+        (let [cause (prev-reset! mr/task-ex nil)
+              args (cond-> [(str "Job " jname " failed.") {:jname jname}]
+                           (not (nil? cause)) (conj cause))]
+          (throw (apply ex-info args)))))))
 
 (defn ^:private node-id
   "Application-unique node-identifier of node `node`."
@@ -404,10 +408,6 @@ of the nodes-vector and a vector of the leaf-node job-IDs."
   "Job name for `i`th job of `n` produced from var-name `base`."
   [base n i] (format "%s[%d/%d]" base (inc i) n))
 
-(defn local-runner?
-  "True iff `conf` specifies the local job runner."
-  [conf] (= "local" (conf/get conf "mapred.job.tracker" "local")))
-
 (defn execute
   "Execute Hadoop jobs for the job graph `graph`, which should be a job graph
 leaf node or vector of leaf nodes.  Jobs are configured starting with base
@@ -422,5 +422,5 @@ the distributed sequences produced by the job graph leaves."
                             (let [f (node-fn node conf (job-name jid))]
                               [jid [requires f]])))
                    (into {}))
-        runner (if (local-runner? conf) graph-delay graph-future)]
+        runner (if (mr/local-runner? conf) graph-delay graph-future)]
     (run-graph runner graph tails)))
