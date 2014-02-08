@@ -7,12 +7,12 @@ functional gymnastics and sends it free-running across the urban environment of
 your Hadoop cluster.
 
 Parkour is a Clojure library for writing distributed programs in the MapReduce
-pattern and which run on the Hadoop MapReduce platform.  Parkour does its best
-to avoid being yet another “framework” – if you know Hadoop, and you know
-Clojure, then you’re most of the way to knowing Parkour.  By combining
-functional programming, direct access to Hadoop features, and interactive
-iteration on live data, Parkour supports rapid development of highly efficient
-Hadoop MapReduce applications.
+pattern which run on the Hadoop MapReduce platform.  Parkour does its best to
+avoid being yet another “framework” – if you know Hadoop, and you know Clojure,
+then you’re most of the way to knowing Parkour.  By combining functional
+programming, direct access to Hadoop features, and interactive iteration on live
+data, Parkour supports rapid development of highly efficient Hadoop MapReduce
+applications.
 
 ## Installation
 
