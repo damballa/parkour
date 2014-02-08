@@ -16,7 +16,7 @@
                org.apache.avro/avro-ipc]
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.logging "0.2.6"]
-                 [com.damballa/abracad "0.4.8"]
+                 [com.damballa/abracad "0.4.9"]
                  [org.apache.avro/avro "1.7.5"]
                  [pjstadig/scopes "0.3.0"]]
   :plugins [[codox/codox "0.6.6"]]
