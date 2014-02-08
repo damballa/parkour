@@ -132,10 +132,9 @@ keyword indicating a built-in sinking function.  Supported keywords are `:none`,
   "Task function adapter for collection-function-like functions.  The adapted
 function `v` should accept conf-provided arguments followed by the (unwrapped)
 input tuple source, and should return a reducible collection of output tuples.
-
-Experimental: if `v` has metadata for the `::mr/source-as` or `::mr/sink-as`
-keys, the function input and/or output will be re-shaped as specified via the
-associated metadata value."
+If `v` has metadata for the `::mr/source-as` or `::mr/sink-as` keys, the
+function input and/or output will be re-shaped as specified via the associated
+metadata value."
   [v]
   (let [m (meta v)
         source-as (or (some->> m ::source-as (partial source-as)) identity)
