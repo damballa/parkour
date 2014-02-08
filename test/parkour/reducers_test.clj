@@ -10,12 +10,17 @@
                 (pr/reduce-by identity conj [])
                 (into []))))
     (is (= [[1 1 1]]
-           (->> [1 1 1 2 2 2 3 3 3]
+           (->> [1 1 1 2 2 2 3 3 3 4 4 4]
                 (pr/reduce-by identity conj [])
                 (r/take 1)
                 (into []))))
     (is (= [[1 1 1] [2 2 2]]
-           (->> [1 1 1 2 2 2 3 3 3]
+           (->> [1 1 1 2 2 2 3 3 3 4 4 4]
+                (r/take 6)
+                (pr/reduce-by identity conj [])
+                (into []))))
+    (is (= [[1 1 1] [2 2 2]]
+           (->> [1 1 1 2 2 2 3 3 3 4 4 4]
                 (pr/reduce-by identity conj [])
                 (r/take 2)
                 (into []))))))

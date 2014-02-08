@@ -39,7 +39,10 @@ each partition with `f` and optional initial value `init` as per
                              (let [k (keyfn x)]
                                (if (or (= k prev) (identical? prev ::init))
                                  [k (f acc x) acc1]
-                                 [k (f init x) (f1 acc1 acc)])))
+                                 (let [acc1 (f1 acc1 acc)]
+                                   (if (reduced? acc1)
+                                     (reduced [nil nil acc1])
+                                     [k (f init x) acc1])))))
                            [::init init init1]
                            coll)]
            (cond (reduced? acc1) @acc1
