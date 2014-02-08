@@ -19,7 +19,7 @@
   "Evaluate `body` forms.  If the result of evaluation is an integral value,
 return it.  If the result is non-integral, return 0.  If evaluation throws an
 exception, return -1."
-  [& body] `(integral* (fn* ^:once [] ~@body)))
+  [& body] `(integral* (^:once fn* [] ~@body)))
 
 (deftype ParkourTool [^:unsynchronized-mutable ^Configuration conf, f]
   Configurable

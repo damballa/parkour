@@ -248,7 +248,7 @@ filesystem.  May be overridden in configuration via the property
 temporary directory path, created via the optional `conf`."
   [[temp-dir conf] & body]
   `(with-temp-dir* ~conf
-     (fn* ^:once [d#] (let [~temp-dir d#] ~@body))))
+     (^:once fn* [d#] (let [~temp-dir d#] ~@body))))
 
 (defn ^:private split-fragment
   [^URI uri]
@@ -307,4 +307,4 @@ default Hadoop filesystem, optionally specified by `conf`.  Evaluate
 to new temporary paths."
   [[name uri-map conf] & body]
   `(with-copies* ~conf ~uri-map
-     (fn* ^:once [m#] (let [~name m#] ~@body))))
+     (^:once fn* [m#] (let [~name m#] ~@body))))
