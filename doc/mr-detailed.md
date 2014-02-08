@@ -32,6 +32,23 @@ automatically deserializes and provides to the task var during task execution.
 Tasks may be added to job nodes via the `parkour.graph/{map,reduce,combine}`
 functions, which work as their analogs above.
 
+### Task environment
+
+During task execution, Parkour configures several aspects of the dynamic
+environment during the dynamic scope of each task:
+
+- _Hadoop configuration_ – Parkour binds the default Hadoop configuration (as
+  returned by the `conf/ig` function) to that of the running task.
+- _Hadoop task context_ – Parkour binds the `parkour.mapreduce/*context*`
+  dynamic var to the Hadoop task context of the active task.  This allows simple
+  access to e.g. counters even in otherwise pure-functional task functions.
+- _Resource scope_ – Parkour uses the [pjstadig/scopes][scopes] library to
+  establish a resource scope for the extent of each task.  Task functions may
+  depend on this in order to arrange for clean-up of acquired resources upon
+  task completion.
+
+[scopes]: https://github.com/pjstadig/scopes
+
 ### Adapters
 
 For writing task functions, Parkour provides the following adapters and
@@ -44,12 +61,15 @@ and importantly _are_ exactly like standard Clojure collection functions.  With
 this adapter, Parkour invokes the task function directly with any
 configuration-serialized task arguments followed by the reducible/seqable input
 collection.  The return value should be a reducible collection containing the
-task output tuples.
+task output tuples.  Metadata on the var may specify a re-shaping of the task
+input and output collections via the `::mr/source-as` and ``::mr/sink-as` keys
+respectively.
 
 ```clj
 (defn word-count-m
+  {::mr/source-as :vals}
   [input]
-  (->> (mr/vals input)
+  (->> input
        (r/mapcat #(str/split % #"\s+"))
        (r/map #(-> [% 1]))))
 ```
@@ -99,11 +119,22 @@ return value should be a reducible collection, which is used as the task output.
 ### Input sources
 
 The task input parameter acts as a reducible collection over the task key-value
-input tuples.  That collection may be directly reduced, or “reshaped” into a
-reducible and seqable collection containing a particular “shape” of the original
-key-value data.  These reshaping functions all reside in the `parkour.mapreduce`
-namespace.  The following reshaping functions are available in both map and
-reduce/combine tasks:
+input tuples.  That collection may be directly reduced, or may be “reshaped”
+into a reducible and seqable collection containing a particular “shape” of the
+original key-value data.
+
+Tasks may specify a particular input shape in any of three ways: by directly
+calling one of Parkour’s input reshaping functions on the input collection; by
+calling the `mr/source-as` function with a shape keyword or function; or by
+using the `collfn` adapter and specifying a shape keyword or function as the
+value of the `::mr/source-as` key in their var metadata.
+
+The reshaping functions all reside in the `parkour.mapreduce` namespace.  The
+associated shape keywords are simply the keyword version of the function base
+name e.g. `keyvals` -> `:keyvals`.
+
+The following reshaping functions are available in both map and reduce/combine
+tasks:
 
 - `keyvals` – “Re-shape” as vectors of key-vals pairs.  Nearly the identity
   transformation, but does allow the resulting collection to be seqable as well.
@@ -132,10 +163,14 @@ The following reshaping functions are available only in reduce/combine tasks:
 Task outputs are delivered to a “sink” – usually (and usually implicitly) the
 job context.  Many of the task adapter interfaces use the task function return
 value as a collection to sink for task output.  These collections may be
-metadata-annotated to indicate their “output shape” using the
-`parkour.mapreduce/sink-as` function.  The shape argument to `sink-as` may be a
-user-supplied function of two arguments performing the actual sinking, or a
-keyword indicating a standard built-in sinking function:
+metadata-annotated to indicate their “output shape.”  Task may specify the
+output shape either by calling the `mr/sink-as` function on the result
+collection, or by using the `collfn` adapter and specifying `::mr/sink-as` in
+their var metadata.
+
+The shape argument to `sink-as` may be a user-supplied function of two arguments
+performing the actual sinking, or a keyword indicating a standard built-in
+sinking function:
 
 - `:keyvals` – Sink collection as pairs of tuple keys and values.
 - `:keys` – Sink collection values as output tuple keys, providing `nil` for

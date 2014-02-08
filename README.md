@@ -6,6 +6,14 @@ Hadoop MapReduce in idiomatic Clojure.  Parkour takes your Clojure code’s
 functional gymnastics and sends it free-running across the urban environment of
 your Hadoop cluster.
 
+Parkour is a Clojure library for writing distributed programs in the MapReduce
+pattern and which run on the Hadoop MapReduce platform.  Parkour does its best
+to avoid being yet another “framework” – if you know Hadoop, and you know
+Clojure, then you’re most of the way to knowing Parkour.  By combining
+functional programming, direct access to Hadoop features, and interactive
+iteration on live data, Parkour supports rapid development of highly efficient
+Hadoop MapReduce applications.
+
 ## Installation
 
 Parkour is available on Clojars.  Add this `:dependency` to your Leiningen
@@ -17,35 +25,36 @@ Parkour is available on Clojars.  Add this `:dependency` to your Leiningen
 
 ## Usage
 
-Parkour is a Clojure library for writing Hadoop MapReduce jobs.  It tries to
-avoid being a “framework” – if you know Hadoop, and you know Clojure, then
-you’re most of the way to knowing Parkour.
-
 The [Parkour introduction][intro] contains an overview of the key concepts, but
 here is the classic “word count” example, in Parkour:
 
 ```clj
 (defn mapper
+  {::mr/source-as :vals}
   [input]
-  (->> (mr/vals input)
+  (->> input
        (r/mapcat #(str/split % #"\s+"))
        (r/map #(-> [% 1]))))
 
 (defn reducer
+  {::mr/source-as :keyvalgroups}
   [input]
-  (->> (mr/keyvalgroups input)
-       (r/map (fn [[word counts]]
-                [word (r/reduce + 0 counts)]))))
+  (r/map (fn [[word counts]]
+           [word (r/reduce + 0 counts)])
+         input))
 
 (defn word-count
-  [conf dseq dsink]
-  (-> (pg/input dseq)
-      (pg/map #'mapper)
-      (pg/partition [Text LongWritable])
-      (pg/combine #'reducer)
-      (pg/reduce #'reducer)
-      (pg/output dsink)
-      (pg/execute conf "word-count")))
+  [conf workdir lines]
+  (let [wc-path (fs/path workdir "word-count")
+        wc-dsink (seqf/dsink [Text LongWritable] wc-path)]
+    (-> (pg/input lines)
+        (pg/map #'mapper)
+        (pg/partition [Text LongWritable])
+        (pg/combine #'reducer)
+        (pg/reduce #'reducer)
+        (pg/output wc-dsink)
+        (pg/execute conf "word-count")
+        first)))
 ```
 
 ## Documentation
@@ -58,6 +67,8 @@ Parkour’s documentation is divided into a number of separate sections:
   achieve, with comparison to other libraries and frameworks.
 - [Namespaces][namespaces] – A tour of Parkour’s namespaces, explaining how each
   set of functionality fits into the whole.
+- [REPL integration][repl] – A quick guide to using Parkour from a
+  cluster-connected REPL, for iterative development against live data.
 - [MapReduce in depth][mr-detailed] – An in-depth examination of the interfaces
   Parkour uses to run your code in MapReduce jobs.
 - [Serialization][serialization] – How Parkour integrates Clojure with Hadoop
@@ -85,6 +96,7 @@ Distributed under the Apache License, Version 2.0.
 [intro]: https://github.com/damballa/parkour/blob/master/doc/intro.md
 [motivation]: https://github.com/damballa/parkour/blob/master/doc/motivation.md
 [namespaces]: https://github.com/damballa/parkour/blob/master/doc/namespaces.md
+[repl]: https://github.com/damballa/parkour/blob/master/doc/repl.md
 [mr-detailed]: https://github.com/damballa/parkour/blob/master/doc/mr-detailed.md
 [serialization]: https://github.com/damballa/parkour/blob/master/doc/serialization.md
 [reducers-vs-seqs]: https://github.com/damballa/parkour/blob/master/doc/reducers-vs-seqs.md

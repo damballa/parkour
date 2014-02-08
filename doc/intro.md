@@ -130,16 +130,18 @@ Here’s the complete classic “word count” example, written using Parkour:
   (:import [org.apache.hadoop.io Text LongWritable]))
 
 (defn mapper
+  {::mr/source-as :vals}
   [input]
-  (->> (mr/vals input)
+  (->> input
        (r/mapcat #(str/split % #"\s+"))
        (r/map #(-> [% 1]))))
 
 (defn reducer
+  {::mr/source-as :keyvalgroups}
   [input]
-  (->> (mr/keyvalgroups input)
-       (r/map (fn [[word counts]]
-                [word (r/reduce + 0 counts)]))))
+  (r/map (fn [[word counts]]
+           [word (r/reduce + 0 counts)])
+         input))
 
 (defn word-count
   [conf workdir lines]
@@ -194,12 +196,14 @@ the `parkour.mapreduce` namespace contains functions to efficiently reshape the
 task-inputs, including `vals` to access just the input values and (reduce-side)
 `keyvalgroups` to access grouping keys and grouped sub-collections of values.
 This model also allows access to more esoteric shapes generally not considered
-available from the raw Java interface, such as `keykeygroups`.
+available from the raw Java interface, such as `keykeygroups`.  These functions
+may be invoked directly, or passed to the `collfn` adapter via `::mr/source-as`
+metadata as in the example.
 
 Parkour also defaults to emitting the result collection as key/value pairs, but
-`pakour.mapreduce` contains a `sink-as` function for specifying alternative
-shapes for task output.  The `sink` function allows explicit sinking to context
-objects or other sinks, when desired.
+`pakour.mapreduce` contains a `sink-as` function (and supports `collfn` adapter
+`::mr/sink-as` metadata) for specifying alternative shapes for task output.  The
+`sink` function allows explicit sinking to context objects or other sinks.
 
 ### Automatic wrapping & unwrapping
 

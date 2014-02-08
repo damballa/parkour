@@ -7,16 +7,18 @@
   (:import [org.apache.hadoop.io Text LongWritable]))
 
 (defn mapper
+  {::mr/source-as :vals}
   [input]
-  (->> (mr/vals input)
+  (->> input
        (r/mapcat #(str/split % #"\s+"))
        (r/map #(-> [% 1]))))
 
 (defn reducer
+  {::mr/source-as :keyvalgroups}
   [input]
-  (->> (mr/keyvalgroups input)
-       (r/map (fn [[word counts]]
-                [word (r/reduce + 0 counts)]))))
+  (r/map (fn [[word counts]]
+           [word (r/reduce + 0 counts)])
+         input))
 
 (defn word-count
   [conf workdir lines]
