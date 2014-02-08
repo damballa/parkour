@@ -247,7 +247,8 @@ filesystem.  May be overridden in configuration via the property
   "Run the forms in `body` with `temp-dir` bound to a Hadoop filesystem
 temporary directory path, created via the optional `conf`."
   [[temp-dir conf] & body]
-  `(with-temp-dir* ~conf (fn [~temp-dir] ~@body)))
+  `(with-temp-dir* ~conf
+     (fn* ^:once [d#] (let [~temp-dir d#] ~@body))))
 
 (defn ^:private split-fragment
   [^URI uri]
@@ -305,4 +306,5 @@ default Hadoop filesystem, optionally specified by `conf`.  Evaluate
 `body` forms with `name` bound to the map of original `uri-map` keys
 to new temporary paths."
   [[name uri-map conf] & body]
-  `(with-copies* ~conf ~uri-map (fn [~name] ~@body)))
+  `(with-copies* ~conf ~uri-map
+     (fn* ^:once [m#] (let [~name m#] ~@body))))

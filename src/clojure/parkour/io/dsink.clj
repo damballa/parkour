@@ -80,7 +80,7 @@ flush, as via `with-open`."
 (defmacro with-dseq
   "Evaluate `body` forms, write tuples from resulting collection to the local
 sink produced from `dsink`, and return `dsink`'s associated dseq."
-  [dsink & body] `(with-dseq* ~dsink (fn ^:once [] ~@body)))
+  [dsink & body] `(with-dseq* ~dsink (fn* ^:once [] ~@body)))
 
 (def output-paths* nil)
 (defmulti ^:internal output-paths*
