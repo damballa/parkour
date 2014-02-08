@@ -1,6 +1,6 @@
 # Parkour News – history of user-visible changes
 
-## 0.5.4 / ?
+## 0.5.4 / 2014-02-08
 
 - Ensure job-failure clean-up runs only once.
 - Only set job JAR in basic cstep when still unset.
