@@ -195,6 +195,21 @@ supported scheme and via `io/input-stream` when not."
   [input output opts]
   (with-open [output (io/output-stream output)]
     (do-copy input output opts)))
+(defmethod do-copy [URL Path]
+  [input output opts]
+  (with-open [input (io/input-stream input)
+              output (io/output-stream output)]
+    (do-copy input output opts)))
+(defmethod do-copy [URI Path]
+  [input output opts]
+  (with-open [input (io/input-stream input)
+              output (io/output-stream output)]
+    (do-copy input output opts)))
+
+(defmethod do-copy [Path Path]
+  [input output opts]
+  (with-open [output (io/output-stream output)]
+    (do-copy input output opts)))
 
 (def ^:dynamic *temp-dir*
   "Default path to system temporary directory on the default
