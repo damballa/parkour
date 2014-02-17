@@ -13,6 +13,7 @@
              [ignore-errors returning doto-let mpartial prev-reset!]])
   (:import [java.util.concurrent ExecutionException]
            [clojure.lang Var]
+           [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.partition HashPartitioner]))
 
@@ -175,16 +176,16 @@ Clojure var `var` and optional `args`."
 (defn shuffle
   "Base shuffle configuration; sets map output key & value types to
 the classes `ckey` and `cval` respectively."
-  [ckey cval]
-  (fn [^Job job]
-    (.setMapOutputKeyClass job ckey)
-    (.setMapOutputValueClass job cval)))
+  ([ckey] (shuffle ckey NullWritable))
+  ([ckey cval]
+     (fn [^Job job]
+       (.setMapOutputKeyClass job ckey)
+       (.setMapOutputValueClass job cval))))
 
 (defn ^:private shuffle-classes?
   "True iff `classes` is a vector of two classes."
   [classes]
   (and (vector? classes)
-       (= 2 (count classes))
        (every? class? classes)))
 
 (def ^:private partition* nil)
