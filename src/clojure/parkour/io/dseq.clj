@@ -60,7 +60,7 @@ tuple source will not automatically unwrap values."
 
 (defn dseq?
   "True iff `x` is a distributed sequence."
-  [x] (instance? DSeq true))
+  [x] (instance? DSeq x))
 
 (defn dseq
   "Return the distributed sequence represented by dseq-able object or
