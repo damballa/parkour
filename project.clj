@@ -17,7 +17,8 @@
   :dependencies [[org.clojure/tools.logging "0.2.6"]
                  [com.damballa/abracad "0.4.9"]
                  [org.apache.avro/avro "1.7.5"]
-                 [pjstadig/scopes "0.3.0"]]
+                 [pjstadig/scopes "0.3.0"]
+                 [transduce/transduce "0.1.1"]]
   :plugins [[codox/codox "0.6.6"]]
   :codox {:src-dir-uri "https://github.com/damballa/parkour/blob/master/"
           :src-linenum-anchor-prefix "L"

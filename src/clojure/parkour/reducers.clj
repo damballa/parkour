@@ -2,53 +2,49 @@
   (:refer-clojure :exclude [map-indexed reductions distinct])
   (:require [clojure.core.reducers :as r]
             [clojure.core.protocols :as ccp]
+            [transduce.reducers :as tr]
             [parkour.util :refer [returning]])
   (:import [java.util Random]))
 
 (defn map-indexed
   "Reducers version of `map-indexed`."
   [f coll]
-  (r/reducer coll
-    (fn [f1]
-      (let [i (atom -1)]
-        (fn [acc x] (f1 acc (f (swap! i inc) x)))))))
+  (tr/map-state (fn [i x]
+                  [(inc i) (f i x)])
+                0 coll))
 
 (defn reductions
   "Reducers version of `reductions`."
-  [f init coll]
-  (r/reducer coll
-    (fn [f1]
-      (let [sentinel (Object.), state (atom sentinel)]
-        (fn [acc x]
-          (f1 (if (identical? sentinel @state)
-                (f1 acc (reset! state init))
-                acc)
-              (swap! state f x)))))))
+  ([f coll] (reductions f (f) coll))
+  ([f init coll]
+     (let [sentinel (Object.)]
+       (->> (r/mapcat identity [coll [sentinel]])
+            (tr/map-state (fn [acc x]
+                            (if (identical? sentinel x)
+                              [nil acc]
+                              (let [acc' (f acc x)]
+                                [acc' acc])))
+                          init)))))
 
 (defn reduce-by
   "Partition `coll` with `keyfn` as per `partition-by`, then reduce
 each partition with `f` and optional initial value `init` as per
 `r/reduce`."
-  ([keyfn f coll] (reduce-by keyfn f (f) coll))
+  ([keyfn f coll]
+     (let [sentinel (Object.)]
+       (->> (r/mapcat identity [coll [sentinel]])
+            (tr/map-state (fn [[k acc] x]
+                            (if (identical? sentinel x)
+                              [nil acc]
+                              (let [k' (keyfn x)]
+                                (if (or (= k k') (identical? sentinel k))
+                                  [[k' (f acc x)] sentinel]
+                                  [[k' (f (f) x)] acc]))))
+                          [sentinel (f)])
+            (r/remove (partial identical? sentinel)))))
   ([keyfn f init coll]
-     (reify ccp/CollReduce
-       (coll-reduce [this f1] (ccp/coll-reduce this f1 (f1)))
-       (coll-reduce [_ f1 init1]
-         (let [[prev acc acc1]
-               , (r/reduce (fn [[prev acc acc1] x]
-                             (let [k (keyfn x)]
-                               (if (or (= k prev) (identical? prev ::init))
-                                 [k (f acc x) acc1]
-                                 (let [acc1 (f1 acc1 acc)]
-                                   (if (reduced? acc1)
-                                     (reduced [nil nil acc1])
-                                     [k (f init x) acc1])))))
-                           [::init init init1]
-                           coll)]
-           (cond (reduced? acc1) @acc1
-                 (identical? ::init prev) acc1
-                 :else (let [acc1 (f1 acc1 acc)]
-                         (cond-> acc1 (reduced? acc1) deref))))))))
+     (let [f (fn ([] init) ([acc x] (f acc x)))]
+       (reduce-by keyfn f coll))))
 
 (defn group-by+
   "Return a map of the values of applying `f` to each item in `coll` to vectors
@@ -96,15 +92,12 @@ vector of the results."
 (defn distinct-by
   "Remove adjacent duplicate values of `(f x)` for each `x` in `coll`."
   [f coll]
-  (r/reducer coll
-    (fn [f1]
-      (let [prev (atom ::initial)]
-        (fn [acc x]
-          (let [k (f x)]
-            (if (= @prev k)
-              acc
-              (returning (f1 acc x)
-                (reset! prev k)))))))))
+  (let [sentinel (Object.)]
+    (->> (r/mapcat identity [coll [sentinel]])
+         (tr/map-state (fn [x x']
+                         [x' (if (= x x') sentinel x')])
+                       sentinel)
+         (r/remove (partial identical? sentinel)))))
 
 (defn distinct
   "Remove adjacent duplicate values from `coll`."
