@@ -169,3 +169,83 @@ iteration function `nextf` and extraction function `dataf`."
 (extend-protocol w/Wrapper
   TaskInputOutputContext
   (unwrap [wobj] (unwrap-source wobj)))
+
+(defn shape-keys
+  "Produce keys only from the tuples in `context`."
+  [context]
+  (case (-> context meta :parkour.mapreduce.sink/sink-as)
+    :keys context
+    :vals (mapping (constantly nil) context)
+    #_else (if-not (source? context)
+             (mapping #(nth % 0) context)
+             (reducer next-keyval key context))))
+
+(defn shape-vals
+  "Produce values only from the tuples in `context`."
+  [context]
+  (case (-> context meta :parkour.mapreduce.sink/sink-as)
+    :keys (mapping (constantly nil) context)
+    :vals context
+    #_else (if-not (source? context)
+             (mapping #(nth % 1) context)
+             (reducer next-keyval val context))))
+
+(defn shape-keyvals
+  "Produce pairs of keys and values from the tuples in `context`."
+  [context]
+  (case (-> context meta :parkour.mapreduce.sink/sink-as)
+    :keys (mapping #(-> [% nil]) context)
+    :vals (mapping #(-> [nil %]) context)
+    #_else (if-not (source? context)
+             context
+             (reducer next-keyval keyval context))))
+
+(defn shape-keygroups
+  "Produce distinct keys from the tuples in `context`."
+  [context] (reducer next-key key context))
+
+(defn shape-valgroups
+  "Produce sequences of values associated with distinct grouping keys from the
+tuples in `context`."
+  [context] (reducer next-key vals context))
+
+(defn shape-keyvalgroups
+  "Produce pairs of distinct group keys and associated sequences of values from
+the tuples in `context`."
+  [context] (reducer next-key keyvals context))
+
+(defn shape-keykeyvalgroups
+  "Produce pairs of distinct grouping keys and associated sequences of specific
+keys and values from the tuples in `context`."
+  [context] (reducer next-key keykeyvals context))
+
+(defn shape-keykeygroups
+  "Produce pairs of distinct grouping keys and associated sequences of specific
+keys from the tuples in `context`."
+  [context] (reducer next-key keykeys context))
+
+(defn shape-keysgroups
+  "Produce sequences of specific keys associated with distinct grouping keys
+from the tuples in `context`."
+  [context] (reducer next-key keys context))
+
+(def source-fns
+  "Map of keywords to built-in source-shaping functions."
+  {:keys shape-keys
+   :vals shape-vals
+   :keyvals shape-keyvals
+   :keygroups shape-keygroups
+   :valgroups shape-valgroups
+   :keyvalgroups shape-keyvalgroups
+   :keykeyvalgroups shape-keykeyvalgroups
+   :keykeygroups shape-keykeygroups
+   :keysgroups shape-keysgroups
+   })
+
+(defn source-fn
+  "Source-shaping function for keyword or function `f`."
+  [f]
+  (doto (get source-fns f f)
+    (as-> f (when (keyword? f)
+              (throw (ex-info (str "Unknown built-in source `:" f "`")
+                              {:f f}))))))

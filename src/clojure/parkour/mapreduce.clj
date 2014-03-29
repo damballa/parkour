@@ -32,84 +32,45 @@ internal use within Parkour."
       (= "local" (conf/get conf "mapreduce.framework.name" "local"))))
 
 (defn keys
-  "Produce keys only from the tuples in `context`."
-  [context]
-  (case (-> context meta ::snk/sink-as)
-    :keys context
-    :vals (src/mapping (constantly nil) context)
-    #_else (if-not (src/source? context)
-             (src/mapping #(nth % 0) context)
-             (src/reducer src/next-keyval src/key context))))
+  "Produce keys only from the tuples in `context`.  Deprecated."
+  [context] (src/shape-keys context))
 
 (defn vals
-  "Produce values only from the tuples in `context`."
-  [context]
-  (case (-> context meta ::snk/sink-as)
-    :keys (src/mapping (constantly nil) context)
-    :vals context
-    #_else (if-not (src/source? context)
-             (src/mapping #(nth % 1) context)
-             (src/reducer src/next-keyval src/val context))))
+  "Produce values only from the tuples in `context`.  Deprecated."
+  [context] (src/shape-vals context))
 
 (defn keyvals
-  "Produce pairs of keys and values from the tuples in `context`."
-  [context]
-  (case (-> context meta ::snk/sink-as)
-    :keys (src/mapping #(-> [% nil]) context)
-    :vals (src/mapping #(-> [nil %]) context)
-    #_else (if-not (src/source? context)
-             context
-             (src/reducer src/next-keyval src/keyval context))))
+  "Produce pairs of keys and values from the tuples in `context`.  Deprecated."
+  [context] (src/shape-keyvals context))
 
 (defn keygroups
-  "Produce distinct keys from the tuples in `context`."
-  [context] (src/reducer src/next-key src/key context))
+  "Produce distinct keys from the tuples in `context`.  Deprecated."
+  [context] (src/shape-keygroups context))
 
 (defn valgroups
   "Produce sequences of values associated with distinct grouping keys from the
-tuples in `context`."
-  [context] (src/reducer src/next-key src/vals context))
+tuples in `context`.  Deprecated."
+  [context] (src/shape-valgroups context))
 
 (defn keyvalgroups
   "Produce pairs of distinct group keys and associated sequences of values from
-the tuples in `context`."
-  [context] (src/reducer src/next-key src/keyvals context))
+the tuples in `context`.  Deprecated."
+  [context] (src/shape-keyvalgroups context))
 
 (defn keykeyvalgroups
   "Produce pairs of distinct grouping keys and associated sequences of specific
-keys and values from the tuples in `context`."
-  [context] (src/reducer src/next-key src/keykeyvals context))
+keys and values from the tuples in `context`.  Deprecated."
+  [context] (src/shape-keykeyvalgroups context))
 
 (defn keykeygroups
   "Produce pairs of distinct grouping keys and associated sequences of specific
-keys from the tuples in `context`."
-  [context] (src/reducer src/next-key src/keykeys context))
+keys from the tuples in `context`.  Deprecated."
+  [context] (src/shape-keykeygroups context))
 
 (defn keysgroups
   "Produce sequences of specific keys associated with distinct grouping keys
-from the tuples in `context`."
-[context] (src/reducer src/next-key src/keys context))
-
-(def ^:private source-fns
-  "Map of keywords to built-in source-shaping functions."
-  {:keys keys
-   :vals vals
-   :keyvals keyvals
-   :keygroups keygroups
-   :valgroups valgroups
-   :keyvalgroups keyvalgroups
-   :keykeyvalgroups keykeyvalgroups
-   :keykeygroups keykeygroups
-   :keysgroups keysgroups
-   })
-
-(defn ^:private source-fn
-  "Source-shaping function for keyword or function `f`."
-  [f]
-  (doto (get source-fns f f)
-    (as-> f (when (keyword? f)
-              (throw (ex-info (str "Unknown built-in source `:" f "`")
-                              {:f f}))))))
+from the tuples in `context`.  Deprecated."
+  [context] (src/shape-keysgroups context))
 
 (defn source-as
   "Shape `source` to the collection shape `kind`.  The `kind` may either be a
@@ -117,7 +78,7 @@ source-shaping function of one argument or a keyword indicating a built-in
 source-shaping function.  Supported keywords are: `:keys`, `:vals`, `:keyvals`,
 `:keygroups`, `:valgroups`, :keyvalgroups`, `:keykeyvalgroups`,
 `:keykeygroups`, and `:keysgroups`."
-  [kind source] ((source-fn kind) source))
+  [kind source] ((src/source-fn kind) source))
 
 (defn wrap-sink
   "Return new tuple sink which wraps keys and values as the types `ckey` and
