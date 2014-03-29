@@ -1,5 +1,6 @@
 (ns parkour.io.mux
   (:require [clojure.edn :as edn]
+            [clojure.core.reducers :as r]
             [parkour (conf :as conf) (cstep :as cstep) (mapreduce :as mr)]
             [parkour.io (dseq :as dseq)]
             [parkour.util :refer [returning]])
@@ -50,3 +51,9 @@ job configuration `steps`."
   (dseq/dseq
    (fn [^Job job]
      (reduce add-substep job steps))))
+
+(defmethod dseq/input-paths* Mux$InputFormat
+  [^Job job]
+  (->> job get-subconfs
+       (r/mapcat #(dseq/input-paths (conf/merge! (mr/job job) %)))
+       (into [])))

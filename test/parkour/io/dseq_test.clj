@@ -81,3 +81,7 @@
   (with-open [source (dseq/source-for (multi-split-dseq))]
     (is (= ["apple" "banana" "carrot"]
            (->> source (map second) sort vec)))))
+
+(deftest test-input-paths
+  (is (= (map fs/path ["file:foo/bar" "file:baz/quux"])
+         (dseq/input-paths (text/dseq "foo/bar" "baz/quux")))))

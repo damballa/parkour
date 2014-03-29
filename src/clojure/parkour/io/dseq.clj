@@ -4,9 +4,11 @@
             [parkour (conf :as conf) (cstep :as cstep) (wrapper :as w)]
             [parkour.mapreduce (source :as src)]
             [parkour.io.dseq (mapred :as mr1) (mapreduce :as mr2)]
-            [parkour.util :refer [ignore-errors]])
+            [parkour.util :refer [ignore-errors coerce]])
   (:import [java.io Closeable Writer]
-           [clojure.lang IObj]))
+           [clojure.lang IObj]
+           [org.apache.hadoop.mapreduce Job]
+           [org.apache.hadoop.mapreduce.lib.input FileInputFormat]))
 
 (defprotocol DSeqable
   "Protocol for producing distribute sequence."
@@ -66,3 +68,19 @@ tuple source will not automatically unwrap values."
   "Return the distributed sequence represented by dseq-able object or
 job configuration step `obj`.  Result is a config step and reducible."
   [obj] (-dseq obj))
+
+(def input-paths* nil)
+(defmulti ^:internal input-paths*
+  "Internal implementation multimethod for `input-paths`."
+  {:arglists '([job])}
+  #(.getInputFormatClass ^Job %))
+
+(defn input-paths
+  "Vector of input-paths produced by job or configuration step `step`."
+  [step] (->> step (coerce Job cstep/apply!) input-paths*))
+
+(defmethod input-paths* :default
+  [_] [])
+
+(defmethod input-paths* FileInputFormat
+  [^Job job] (vec (FileInputFormat/getInputPaths job)))
