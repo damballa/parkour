@@ -4,7 +4,7 @@
             [clojure.reflect :as reflect]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (reducers :as pr)]
-            [parkour.util :refer [ignore-errors returning map-vals mpartial]])
+            [parkour.util :refer [ignore-errors returning map-vals]])
   (:import [java.net URI URL]
            [java.io File IOException InputStream OutputStream Reader Writer]
            [org.apache.hadoop.fs FileStatus FileSystem Path]
@@ -298,7 +298,7 @@ URIs into the distributed cache configuration."
 (defn distcacher
   "Return a function for merging the `uri-map` of local paths to URIs
 into the distributed cache files of a Hadoop configuration."
-  [uri-map] (mpartial distcache! uri-map))
+  [uri-map] (pr/mpartial distcache! uri-map))
 
 (defn with-copies*
   "Function form of `with-copies`."

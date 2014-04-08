@@ -10,7 +10,7 @@
                         (mux :as mux) (dux :as dux)]
             [parkour.util.shutdown :as shutdown]
             [parkour.util :refer
-             [ignore-errors returning doto-let mpartial prev-reset!]])
+             [ignore-errors returning doto-let prev-reset!]])
   (:import [java.util.concurrent ExecutionException]
            [clojure.lang Var]
            [org.apache.hadoop.io NullWritable]
@@ -125,7 +125,7 @@ node or a vector of job nodes."
   (fn [alloc set-class cls-var & args] (type cls-var)))
 
 (defmethod remote-config Class
-  [alloc set-class cls] (mpartial set-class cls))
+  [alloc set-class cls] (pr/mpartial set-class cls))
 
 (defmethod remote-config Var
   [alloc set-class uvar & args]
@@ -211,7 +211,7 @@ vector of the two map-output key & value classes."
   [nodes classes cls-var & args]
   (if (= 1 (count nodes))
     (apply partition (first nodes) classes cls-var args)
-    (let [steps (mapv #(mpartial mux/add-substep (:config %)) nodes)
+    (let [steps (mapv #(pr/mpartial mux/add-substep (:config %)) nodes)
           mapper (mapper-config parkour.hadoop.Mux$Mapper)
           node {:stage :map,
                 :input-id (gen-id),

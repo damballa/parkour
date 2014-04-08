@@ -2,9 +2,9 @@
   (:refer-clojure :exclude [shuffle])
   (:require [abracad.avro :as avro]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
-                     (mapreduce :as mr)]
+                     (mapreduce :as mr) (reducers :as pr)]
             [parkour.io (dseq :as dseq) (dsink :as dsink)]
-            [parkour.util :refer [ignore-errors returning mpartial]])
+            [parkour.util :refer [ignore-errors returning]])
   (:import [org.apache.avro Schema]
            [org.apache.avro.mapred AvroKey AvroValue AvroWrapper]
            [org.apache.avro.mapreduce
@@ -140,11 +140,11 @@ the arguments to `set-input`, and reading from `paths`."
 (defn shuffle
   "Configuration step for Avro shuffle, with key schema `ks`, optional value
 schema `vs`, and optional grouping schema `gs`."
-  ([ks] (mpartial set-map-output ks))
-  ([ks vs] (mpartial set-map-output ks vs))
+  ([ks] (pr/mpartial set-map-output ks))
+  ([ks vs] (pr/mpartial set-map-output ks vs))
   ([ks vs gs]
-     [(mpartial set-map-output ks vs)
-      (mpartial set-grouping gs)]))
+     [(pr/mpartial set-map-output ks vs)
+      (pr/mpartial set-grouping gs)]))
 
 (defn dsink
   "Distributed sink for Avro output, applying the vector of `schemas` as per the

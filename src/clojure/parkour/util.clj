@@ -31,40 +31,6 @@ already an instance of `c`."
   "Return a new map made by mapping `f` over the values of `m`."
   [f m] (into {} (map (fn [[k v]] [k (f v)]) m)))
 
-(defn mpartial
-  "Return a function which applies `f` to its first argument,
-followed by `x`, `y`, etc., followed by any additional arguments."
-  ([f] f)
-  ([f x]
-     (fn
-       ([o] (f o x))
-       ([o y] (f o x y))
-       ([o y & args] (apply f o x y args))))
-  ([f x y]
-     (fn
-       ([o] (f o x y))
-       ([o z] (f o x y z))
-       ([o z & args] (apply f o x y z args))))
-  ([f x y & more]
-     (fn
-       ([o] (apply f o x y more))
-       ([o z] (apply f o x y z more))
-       ([o z & args] (apply f o x y z (concat more args))))))
-
-(defn mcomp
-  "Composition of method-like functions, threading the first argument to the
-composed function as the first argument of each composing function."
-  ([f] f)
-  ([f g]
-     (fn
-       ([o x] (f o (g o x)))
-       ([o x & args] (f o (apply g o x args)))))
-  ([f g & fs]
-     (let [[f & fs] (reverse (list* f g fs))]
-       (fn
-         ([o x] (reduce #(%1 o %2) (f o x) fs))
-         ([o x & args] (reduce #(%1 o %2) (apply f o x args) fs))))))
-
 (defn var-str
   "String fully-qualified name of a var."
   [v] (subs (pr-str v) 2))
@@ -72,11 +38,6 @@ composed function as the first argument of each composing function."
 (defn var-symbol
   "Fully-qualified symbol for a var."
   [v] (symbol (var-str v)))
-
-(defn ffilter
-  "Returns the first item in `coll` for which `(pred item)` is true."
-  ([coll] (ffilter identity coll))
-  ([pred coll] (reduce (fn [_ x] (if (pred x) (reduced x))) nil coll)))
 
 (defmacro ^:private prev-swap!*
   [atom apply-f & args]

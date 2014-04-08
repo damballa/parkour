@@ -2,7 +2,7 @@
   (:require [clojure.core.reducers :as r]
             [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)]
             [parkour.io (dux :as dux)]
-            [parkour.util :refer [map-vals prev-reset! mpartial]])
+            [parkour.util :refer [map-vals prev-reset!]])
   (:import [clojure.lang IDeref]
            [org.apache.hadoop.mapreduce Job TaskAttemptContext]
            [org.apache.hadoop.mapreduce
