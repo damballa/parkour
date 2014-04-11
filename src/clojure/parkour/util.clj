@@ -68,7 +68,7 @@ already an instance of `c`."
 (defmacro compile-if
   "Evaluate `exp` and if it returns logical true and doesn't error, expand to
 `then`.  Else expand to `else` if provided."
-  ([exp then] `(compile-if exp then nil))
+  ([exp then] `(compile-if ~exp ~then nil))
   ([exp then else]
      (if (try (eval exp) (catch Throwable _ false))
        `(do ~then)
