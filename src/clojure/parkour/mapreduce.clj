@@ -5,7 +5,8 @@
             [clojure.core.protocols :as ccp]
             [clojure.string :as str]
             [clojure.reflect :as reflect]
-            [parkour (conf :as conf) (wrapper :as w) (reducers :as pr)]
+            [parkour (conf :as conf) (wrapper :as w) (cser :as cser)
+             ,       (reducers :as pr)]
             [parkour.mapreduce (source :as src) (sink :as snk)]
             [parkour.util :refer [returning ignore-errors]])
   (:import [java.io Writer]
@@ -189,10 +190,10 @@ See also: `collfn`, `contextfn`."
   [conf var & args]
   (assert (instance? Var var))
   (let [i (conf/get-int conf "parkour.mapper.next" 0)]
-    (conf/assoc! conf
-      "parkour.mapper.next" (inc i)
-      (format "parkour.mapper.%d.var" i) (pr-str var)
-      (format "parkour.mapper.%d.args" i) (pr-str args))
+    (conf/assoc! conf "parkour.mapper.next" (inc i))
+    (cser/assoc! conf
+      (format "parkour.mapper.%d.var" i) var
+      (format "parkour.mapper.%d.args" i) args)
     (Class/forName (format "parkour.hadoop.Mappers$_%d" i))))
 
 (defn ^:private reducer!*
@@ -201,9 +202,10 @@ See also: `collfn`, `contextfn`."
   (let [i (conf/get-int conf "parkour.reducer.next" 0)]
     (conf/assoc! conf
       "parkour.reducer.next" (inc i)
-      (format "parkour.reducer.%d.step" i) (name step)
-      (format "parkour.reducer.%d.var" i) (pr-str var)
-      (format "parkour.reducer.%d.args" i) (pr-str args))
+      (format "parkour.reducer.%d.step" i) (name step))
+    (cser/assoc! conf
+      (format "parkour.reducer.%d.var" i) var
+      (format "parkour.reducer.%d.args" i) args)
     (Class/forName (format "parkour.hadoop.Reducers$_%d" i))))
 
 (defn reducer!
@@ -242,9 +244,9 @@ as `OOLL`.
 See also: `partfn`."
   [conf var & args]
   (assert (instance? Var var))
-  (conf/assoc! conf
-    "parkour.partitioner.var" (pr-str var)
-    "parkour.partitioner.args" (pr-str args))
+  (cser/assoc! conf
+    "parkour.partitioner.var" var
+    "parkour.partitioner.args" args)
   parkour.hadoop.Partitioner)
 
 (defn set-mapper
