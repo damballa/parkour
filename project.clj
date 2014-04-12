@@ -15,7 +15,7 @@
                org.apache.avro/avro-mapred
                org.apache.avro/avro-ipc]
   :dependencies [[org.clojure/tools.logging "0.2.6"]
-                 [com.damballa/abracad "0.4.9"]
+                 [com.damballa/abracad "0.4.10"]
                  [org.apache.avro/avro "1.7.5"]
                  [pjstadig/scopes "0.3.0"]
                  [transduce/transduce "0.1.1"]]

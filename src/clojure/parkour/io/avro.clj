@@ -5,11 +5,13 @@
                      (mapreduce :as mr) (reducers :as pr)]
             [parkour.io (dseq :as dseq) (dsink :as dsink)]
             [parkour.util :refer [ignore-errors returning]])
-  (:import [org.apache.avro Schema]
-           [org.apache.avro.mapred AvroKey AvroValue AvroWrapper]
+  (:import [java.net URI]
+           [org.apache.avro Schema]
+           [org.apache.avro.mapred AvroKey AvroValue AvroWrapper FsInput]
            [org.apache.avro.mapreduce
              AvroJob AvroKeyInputFormat AvroKeyOutputFormat
              AvroKeyValueOutputFormat]
+           [org.apache.hadoop.fs Path]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
@@ -22,6 +24,17 @@
   AvroWrapper
   (unwrap [w] (.datum w))
   (rewrap [w x] (returning w (.datum w x))))
+
+(def ^:private fs-input-impl
+  {:-seekable-input (fn [p opts]
+                      (FsInput.
+                       (fs/path p)
+                       (cond (contains? opts :conf) (:conf opts)
+                             (contains? opts :fs) (conf/ig (:fs opts))
+                             :else (conf/ig))))})
+
+(extend Path avro/PSeekableInput fs-input-impl)
+(extend URI avro/PSeekableInput fs-input-impl)
 
 (defn wrap-sink
   "Wrap task context for sinking Avro output."
