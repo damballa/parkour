@@ -1,6 +1,6 @@
 language: clojure
 lein: lein2
-script: lein2 do clean, stable javac, all test
+script: lein2 do clean, javac, all test
 jdk:
   - openjdk6
   - openjdk7

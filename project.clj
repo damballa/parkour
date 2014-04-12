@@ -36,8 +36,7 @@
                     parkour.util.shutdown.hadoop1
                     parkour.util.shutdown.hadoop2]
           :output-dir "tmp/codox"}
-  :aliases {"stable" ["with-profile" "-default,+default*,+hadoop-stable"]
-            "few" ["with-profile" "default*,clojure-1-6-0"
+  :aliases {"few" ["with-profile" "default*,clojure-1-6-0"
                    "with-profile" "+hadoop-1-2-1:+hadoop-2-4-0"
                    "with-profile" "-default"]
             "all" ["with-profile" "default*"
