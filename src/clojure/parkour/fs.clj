@@ -4,7 +4,7 @@
             [clojure.reflect :as reflect]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (reducers :as pr)]
-            [parkour.util :refer [ignore-errors returning map-vals]])
+            [parkour.util :refer [ignore-errors returning map-vals run-id]])
   (:import [java.net URI URL]
            [java.io File IOException InputStream OutputStream Reader Writer]
            [org.apache.hadoop.fs FileStatus FileSystem Path]
@@ -217,15 +217,7 @@ filesystem.  May be overridden in configuration via the property
 `parkour.temp.dir`."
   "/tmp")
 
-(defn ^:private run-id
-  "A likely-unique user- and time-based string."
-  []
-  (let [user (System/getProperty "user.name")
-        time (System/currentTimeMillis)
-        rand (rand-int Integer/MAX_VALUE)]
-    (str user "-" time "-" rand)))
-
-(defn ^:private temp-root
+(defn temp-root
   [conf] (path (conf/get conf "parkour.temp.dir" *temp-dir*)))
 
 (defn ^:private new-temp-dir

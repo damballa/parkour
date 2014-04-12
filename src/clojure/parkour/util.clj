@@ -78,3 +78,11 @@ already an instance of `c`."
   "Evaluate `exp` and if it returns logical true and doesn't error, expand
 `body` forms."
   [exp & body] `(compile-if (do ~@body) nil))
+
+(defn run-id
+  "A likely-unique user- and time-based string."
+  []
+  (let [user (System/getProperty "user.name")
+        time (System/currentTimeMillis)
+        rand (rand-int Integer/MAX_VALUE)]
+    (str user "-" time "-" rand)))
