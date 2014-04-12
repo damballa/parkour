@@ -56,7 +56,7 @@ static
 
 
     dispatchMacros['^'] = new MetaReader();
-    //dispatchMacros['"'] = new RegexReader();
+    dispatchMacros['"'] = new RegexReader();
     dispatchMacros['{'] = new SetReader();
     dispatchMacros['<'] = new UnreadableReader();
     dispatchMacros['_'] = new DiscardReader();
@@ -380,12 +380,8 @@ static private boolean isTerminatingMacro(int ch){
     return (ch != '#' && ch != '\'' && isMacro(ch));
 }
 
-/*
 public static class RegexReader extends AFn{
-
-    static StringReader stringrdr = new StringReader();
-
-    public Object invoke(Object reader, Object doublequote) {
+    public Object invoke(Object reader, Object doublequote, Object opts) {
         StringBuilder sb = new StringBuilder();
         Reader r = (Reader) reader;
         for(int ch = read1(r); ch != '"'; ch = read1(r))
@@ -404,7 +400,6 @@ public static class RegexReader extends AFn{
         return Pattern.compile(sb.toString());
     }
 }
-*/
 
 public static class StringReader extends AFn{
     public Object invoke(Object reader, Object doublequote, Object opts) {
