@@ -38,14 +38,14 @@
           :output-dir "tmp/codox"}
   :aliases {"stable" ["with-profile" "-default,+default*,+hadoop-stable"]
             "few" ["with-profile" "default*,clojure-1-6-0"
-                   "with-profile" "+hadoop-1-2-1:+hadoop-2-3-0"
+                   "with-profile" "+hadoop-1-2-1:+hadoop-2-4-0"
                    "with-profile" "-default"]
             "all" ["with-profile" "default*"
                    "with-profile" "+clojure-1-5-1:+clojure-1-6-0"
                    "with-profile" ~(str "+hadoop-1-0-3:"
                                         "+hadoop-1-2-1:"
                                         "+hadoop-2-2-0:"
-                                        "+hadoop-2-3-0:"
+                                        "+hadoop-2-4-0:"
                                         "+hadoop-cdh4:"
                                         "+hadoop-cdh5")
                    "with-profile" "-default"]}
@@ -92,10 +92,10 @@
                     {:dependencies
                      [[org.apache.hadoop/hadoop-client "2.2.0"]
                       [org.apache.hadoop/hadoop-common "2.2.0"]]}]
-     :hadoop-2-3-0 [:avro-hadoop2
+     :hadoop-2-4-0 [:avro-hadoop2
                     {:dependencies
-                     [[org.apache.hadoop/hadoop-client "2.3.0"]
-                      [org.apache.hadoop/hadoop-common "2.3.0"]]}]
+                     [[org.apache.hadoop/hadoop-client "2.4.0"]
+                      [org.apache.hadoop/hadoop-common "2.4.0"]]}]
      :avro-cdh4 {:repositories
                  , [["platypope" "http://jars.platypope.org/release/"]]
                  :dependencies
