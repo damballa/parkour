@@ -35,13 +35,14 @@
 (deftest test-task-collfn
   (let [inpath (fs/path "dev-resources/word-count-input.txt")
         outpath (doto (fs/path "tmp/output") fs/path-delete)
+        schemas [:string :long]
         [result] (-> (pg/input (text/dseq inpath))
                      (pg/map #'word-count-mapper)
-                     (pg/partition (mra/shuffle :string :long)
+                     (pg/partition (mra/shuffle schemas)
                                    #'word-count-partitioner)
                      (pg/combine #'word-count-reducer)
                      (pg/reduce #'word-count-reducer)
-                     (pg/output (mra/dsink [:string :long] outpath))
+                     (pg/output (mra/dsink schemas outpath))
                      (pg/execute (th/config) "word-count"))]
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
            (->> result w/unwrap (into {}))))))

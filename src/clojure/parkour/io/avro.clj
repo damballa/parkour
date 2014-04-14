@@ -126,21 +126,9 @@ when the output format has not been otherwise explicitly specified."
        (set-data-model)
        (.setOutputFormatClass AvroKeyValueOutputFormat)
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))
-       (AvroJob/setOutputValueSchema (avro/parse-schema vs)))))
-
-(defn tuple-schema
-  "Return Avro schema for record consisting of fields of the provided `types`."
-  ([types] (-> "parkour.io.avro.tuple" gensym name (tuple-schema types)))
-  ([name types]
-     (let [schemas (mapv avro/parse-schema types)
-           schemas (->> {:name name, :type "record",
-                         :abracad.reader "vector",
-                         :fields (map-indexed (fn [i ^Schema schema]
-                                                {:name (str "field" i),
-                                                 :type (.getFullName schema)})
-                                              schemas)}
-                        (conj schemas))]
-       (apply avro/parse-schema schemas))))
+       (AvroJob/setOutputValueSchema (avro/parse-schema vs))))
+  ([^Job job ks vs gs]
+     (set-output job ks vs)))
 
 (defn dseq
   "Distributed sequence of Avro input, applying the vector of `schemas` as per
@@ -151,14 +139,19 @@ the arguments to `set-input`, and reading from `paths`."
      (apply set-input job schemas)
      (FileInputFormat/setInputPaths job (fs/path-array paths)))))
 
-(defn shuffle
-  "Configuration step for Avro shuffle, with key schema `ks`, optional value
-schema `vs`, and optional grouping schema `gs`."
+(defn ^:private shuffle*
+  "Internal implementation for `shuffle`."
   ([ks] (pr/mpartial set-map-output ks))
   ([ks vs] (pr/mpartial set-map-output ks vs))
   ([ks vs gs]
      [(pr/mpartial set-map-output ks vs)
       (pr/mpartial set-grouping gs)]))
+
+(defn shuffle
+  "Configuration step for Avro shuffle, with key schema `ks`, optional value
+schema `vs`, and optional grouping schema `gs`."
+  {:arglists '([[ks]] [[ks vs]] [[ks vs gs]])}
+  [schemas] (apply shuffle* schemas))
 
 (defn dsink
   "Distributed sink for Avro output, applying the vector of `schemas` as per the

@@ -79,8 +79,8 @@
         words-path (doto (fs/path "tmp/word-count-words") fs/path-delete)
         count-path (doto (fs/path "tmp/word-count-output") fs/path-delete)
         dseq (text/dseq inpath)
-        words-dsink (seqf/dsink Text NullWritable words-path)
-        count-dsink (seqf/dsink Text LongWritable count-path)
+        words-dsink (seqf/dsink [Text NullWritable] words-path)
+        count-dsink (seqf/dsink [Text LongWritable] count-path)
         conf (th/config)
         [words counts] (mmo-word-count conf dseq words-dsink count-dsink)]
     (is (= #{"apple" "banana" "carrot"} (into #{} (r/map first words))))

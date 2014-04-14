@@ -173,14 +173,19 @@ Clojure var `var` and optional `args`."
   (let [step (apply mapper-config mapper args)]
     (-> node (config step) (assoc :stage :map))))
 
-(defn shuffle
-  "Base shuffle configuration; sets map output key & value types to
-the classes `ckey` and `cval` respectively."
-  ([ckey] (shuffle ckey NullWritable))
+(defn ^:private shuffle*
+  "Internal implementation of `shuffle`."
+  ([ckey] (shuffle* ckey NullWritable))
   ([ckey cval]
      (fn [^Job job]
        (.setMapOutputKeyClass job ckey)
        (.setMapOutputValueClass job cval))))
+
+(defn shuffle
+  "Base shuffle configuration; sets map output key & value types to
+the classes `ckey` and `cval` respectively."
+  {:arglists '([[ckey] [[ckey cval]]])}
+  [classes] (apply shuffle* classes))
 
 (defn ^:private shuffle-classes?
   "True iff `classes` is a vector of two classes."
@@ -225,7 +230,7 @@ vector of the two map-output key & value classes."
       (config (apply partitioner-config cls-var args)
               (if-not (shuffle-classes? classes)
                 classes
-                (apply shuffle classes)))))
+                (shuffle classes)))))
 
 (defn combine
   "Add combine task to job node `node`, as implemented by `Reducer` class `cls`,

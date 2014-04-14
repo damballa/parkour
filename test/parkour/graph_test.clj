@@ -45,7 +45,7 @@
         outfs (fs/path-fs outpath)
         _ (.delete outfs outpath true)
         dseq (text/dseq inpath)
-        dsink (seqf/dsink Text LongWritable outpath)
+        dsink (seqf/dsink [Text LongWritable] outpath)
         [result] (word-count (th/config) dseq dsink)]
     (is (= 6 (-> (->> result mr/counters-map vals (apply merge))
                  (get "MAP_OUTPUT_RECORDS"))))
@@ -117,7 +117,7 @@
   [conf left right dsink]
   (-> [(-> (pg/source left) (pg/map #'trivial-join-mapper 0))
        (-> (pg/source right) (pg/map #'trivial-join-mapper 1))]
-      (pg/partition (mra/shuffle key-schema :string grouping-schema)
+      (pg/partition (mra/shuffle [key-schema :string grouping-schema])
                     #'trivial-join-partitioner)
       (pg/reduce #'trivial-join-reducer)
       (pg/sink dsink)
@@ -176,8 +176,8 @@
         outfs (fs/path-fs outpath)
         _ (.delete outfs outpath true)
         dseq (text/dseq inpath)
-        even (seqf/dsink Text LongWritable evenpath)
-        odd (seqf/dsink Text LongWritable oddpath)
+        even (seqf/dsink [Text LongWritable] evenpath)
+        odd (seqf/dsink [Text LongWritable] oddpath)
         [even odd] (multiple-outputs (th/config) dseq even odd)]
     (is (= {"banana" 2} (into {} (r/map w/unwrap-all even))))
     (is (= {"apple" 3, "carrot" 1} (into {} (r/map w/unwrap-all odd))))))

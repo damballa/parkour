@@ -60,7 +60,7 @@
 
 (deftest test-tuple-roundtrip
   (let [records [["foo" 1] ["bar" 1] ["baz" 1] ["quux" 1]]
-        schema (mra/tuple-schema [:string :long])
+        schema (avro/tuple-schema [:string :long])
         p (fs/path "tmp/avro")]
     (fs/path-delete p)
     (with-open [out (->> p (mra/dsink [schema]) dsink/sink-for)]
@@ -88,7 +88,7 @@
         schema+g (avro/grouping-schema 1 schema)
         [result] (-> (pg/input dseq)
                      (pg/map #'->keys)
-                     (pg/partition (mra/shuffle schema nil schema+g))
+                     (pg/partition (mra/shuffle [schema nil schema+g]))
                      (pg/reduce #'kkg->kvg)
                      (pg/output dsink)
                      (pg/execute (th/config) "avro-grouping"))]
