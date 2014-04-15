@@ -22,4 +22,8 @@
     (dsink/with-dseq (text/dsink (doto p fs/path-delete))
       (mr/sink-as :keys lines))
     (is (= lines (->> p fs/path-list (remove fs/hidden?) first
-                      slurp str/split-lines)))))
+                      slurp str/split-lines)))
+    (is (= lines (->> (mr/sink-as :keys lines)
+                      (dsink/with-dseq (text/dsink))
+                      (r/map second)
+                      (into []))))))

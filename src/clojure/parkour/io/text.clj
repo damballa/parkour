@@ -1,6 +1,7 @@
 (ns parkour.io.text
   (:require [parkour (conf :as conf) (fs :as fs)]
-            [parkour.io (dseq :as dseq) (dsink :as dsink)])
+            [parkour.io (dseq :as dseq) (dsink :as dsink)]
+            [parkour.io.transient :refer [transient-path]])
   (:import [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
            [org.apache.hadoop.mapreduce.lib.input TextInputFormat]
@@ -20,12 +21,13 @@ of (file offset, text line)."
   "Distributed sink for line-delimited text output.  Produces one line
 per tuple containing TAB-separated results of invoking `.toString`
 method of tuple members."
-  [path]
-  (dsink/dsink
-   (dseq path)
-   (fn [^Job job]
-     (doto job
-       (.setOutputFormatClass TextOutputFormat)
-       (.setOutputKeyClass Object)
-       (.setOutputValueClass Object)
-       (FileOutputFormat/setOutputPath (fs/path path))))))
+  ([] (dsink (transient-path)))
+  ([path]
+     (dsink/dsink
+      (dseq path)
+      (fn [^Job job]
+        (doto job
+          (.setOutputFormatClass TextOutputFormat)
+          (.setOutputKeyClass Object)
+          (.setOutputValueClass Object)
+          (FileOutputFormat/setOutputPath (fs/path path)))))))

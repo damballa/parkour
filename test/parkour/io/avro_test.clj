@@ -70,20 +70,21 @@
                           (into [])))))))
 
 (defn ->keys
-  [coll] (->> coll mr/keyvals (mr/sink-as :keys)))
+  {::mr/source-as :keyvals, ::mr/sink-as :keys}
+  [coll] coll)
 
 (defn kkg->kvg
+  {::mr/source-as :keykeygroups, ::mr/sink-as :keyvals}
   [coll]
-  (->> (mr/keykeygroups coll)
-       (r/map (fn [[[k] ks]] [k (mapv #(nth % 1) ks)]))
-       (mr/sink-as :keyvals)))
+  (r/map (fn [[[k] ks]]
+           [k (mapv #(nth % 1) ks)])
+         coll))
 
 (deftest test-grouping
   (let [inpath (doto (fs/path "tmp/input") fs/path-delete)
         dseq (dsink/with-dseq (mra/dsink [:string :long] inpath)
                [["a" 1] ["a" 2] ["b" 3] ["c" 4] ["c" 5]])
-        outpath (doto (fs/path "tmp/output") fs/path-delete)
-        dsink (mra/dsink [:string {:type "array", :items :long}] outpath)
+        dsink (mra/dsink [:string {:type "array", :items :long}])
         schema (avro/tuple-schema [:string :long])
         schema+g (avro/grouping-schema 1 schema)
         [result] (-> (pg/input dseq)

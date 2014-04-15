@@ -5,6 +5,7 @@
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr) (reducers :as pr) (cser :as cser)]
             [parkour.io (dseq :as dseq) (dsink :as dsink) (dval :as dval)]
+            [parkour.io.transient :refer [transient-path]]
             [parkour.util :refer [ignore-errors returning]])
   (:import [java.net URI]
            [org.apache.avro Schema]
@@ -156,13 +157,14 @@ schema `vs`, and optional grouping schema `gs`."
 (defn dsink
   "Distributed sink for Avro output, applying the vector of `schemas` as per the
 arguments to `set-output`, and writing to `path`."
-  [schemas path]
-  (dsink/dsink
-   (let [defaults (-> schemas count (repeat :default))]
-     (dseq defaults path))
-   (fn [^Job job]
-     (apply set-output job schemas)
-     (FileOutputFormat/setOutputPath job (fs/path path)))))
+  ([schemas] (dsink schemas (transient-path)))
+  ([schemas path]
+     (dsink/dsink
+      (let [defaults (-> schemas count (repeat :default))]
+        (dseq defaults path))
+      (fn [^Job job]
+        (apply set-output job schemas)
+        (FileOutputFormat/setOutputPath job (fs/path path))))))
 
 (defn dval
   "Avro distributed value, serialized using `schema` if provided or a plain

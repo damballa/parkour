@@ -1,6 +1,7 @@
 (ns parkour.io.cascading
   (:require [parkour (conf :as conf) (fs :as fs) (wrapper :as w)]
             [parkour.io (dseq :as dseq) (dsink :as dsink) (seqf :as seqf)]
+            [parkour.io.transient :refer [transient-path]]
             [parkour.util :refer [doto-let returning]])
   (:import [cascading.tuple Tuple]))
 
@@ -30,8 +31,9 @@
   "Distributed sink writing `Tuple`s to Cascading sequence file at `path`.
 Although both the keys and values are `Tuple`s, Cascading uses only the sequence
 file values."
-  [path]
-  (dsink/dsink
-   (dseq path)
-   [add-serializations
-    (seqf/dsink [Tuple Tuple] path)]))
+  ([] (dsink (transient-path)))
+  ([path]
+     (dsink/dsink
+      (dseq path)
+      [add-serializations
+       (seqf/dsink [Tuple Tuple] path)])))

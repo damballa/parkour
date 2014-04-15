@@ -1,5 +1,6 @@
 (ns parkour.test-helpers
-  (:require [parkour (conf :as conf)]))
+  (:require [pjstadig.scopes :as s]
+            [parkour (conf :as conf)]))
 
 (defn config
   "Configure `conf` (or fresh configuration if not provided) for local-mode test
@@ -15,9 +16,9 @@ execution."
 (defn config-fixture
   "A clojure.test fixture function for running tests under the local-mode test
 configuration."
-  [f] (conf/with-default (config) (f)))
+  [f] (s/with-resource-scope (conf/with-default (config) (f))))
 
 (defmacro with-config
   "Execute `body` forms with the default configuration set to a local-mode test
 configuration."
-  [& body] `(conf/with-default (config) ~@body))
+  [& body] `(config-fixture (^:once fn* [] ~@body)))

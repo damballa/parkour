@@ -18,4 +18,9 @@
                   (->> (doto "tmp/seqf" fs/path-delete)
                        (seqf/dsink [Text LongWritable]))
                   records)
-                w/unwrap (into []))))))
+                (into []))))
+    (is (= records
+           (->> (dsink/with-dseq
+                  (seqf/dsink [Text LongWritable])
+                  records)
+                (into []))))))

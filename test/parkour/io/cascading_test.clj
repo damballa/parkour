@@ -14,4 +14,8 @@
     (fs/path-delete p)
     (with-open [out (->> p (casc/dsink) dsink/sink-for)]
       (->> records (mr/sink-as :vals) (mr/sink out)))
-    (is (= records (->> p casc/dseq w/unwrap (r/map second) (into []))))))
+    (is (= records (->> p casc/dseq (r/map second) (into []))))
+    (is (= records (->> (mr/sink-as :vals records)
+                        (dsink/with-dseq (casc/dsink))
+                        (r/map second)
+                        (into []))))))
