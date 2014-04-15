@@ -11,6 +11,13 @@
 
 (use-fixtures :once th/config-fixture)
 
+(deftest test-raw-io
+  (let [p (fs/path "tmp/raw.avro"), records (vec (range 5))]
+    (with-open [dfw (avro/data-file-writer "snappy" 'long p)]
+      (doseq [r records] (.append dfw r)))
+    (with-open [dfr (avro/data-file-reader p)]
+      (is (= records (seq dfr))))))
+
 (deftest test-input
   (let [records ["foo" "bar" "baz" "quux"], schema (avro/parse-schema :string)
         p (fs/path "tmp/avro"), f (io/file p "0.avro")]
