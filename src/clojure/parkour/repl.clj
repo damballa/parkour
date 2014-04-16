@@ -21,15 +21,18 @@
   `(do
      (require 'leiningen.core.project
               'leiningen.core.classpath
+              'leiningen.core.main
               'leiningen.with-profile
               'leiningen.jar)
-     (let [project# (leiningen.core.project/read
-                     "project.clj" [:default :jobjar])
-           deps-project# (leiningen.core.project/unmerge-profiles
-                          project# [:default])]
-       {:dep-paths (->> (leiningen.core.classpath/get-classpath deps-project#)
-                        (filter #(.endsWith % ".jar")))
-        :jobjar-path (get (leiningen.jar/jar project#) [:extension "jar"])})))
+     (binding [leiningen.core.main/*exit-process?* false]
+       (let [project# (leiningen.core.project/read
+                       "project.clj" [:default :jobjar])
+             deps-project# (leiningen.core.project/unmerge-profiles
+                            project# [:default])]
+         {:dep-paths (->> (leiningen.core.classpath/get-classpath deps-project#)
+                          (filter #(.endsWith % ".jar")))
+          :jobjar-path (get (leiningen.jar/jar project#)
+                            [:extension "jar"])}))))
 
 (defn ^:private user-home
   "User HDFS home directory."
