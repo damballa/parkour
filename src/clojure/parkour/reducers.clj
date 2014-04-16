@@ -1,5 +1,5 @@
 (ns parkour.reducers
-  (:refer-clojure :exclude [map-indexed reductions distinct count first])
+  (:refer-clojure :exclude [map-indexed reductions distinct count first keep])
   (:require [clojure.core.reducers :as r]
             [clojure.core.protocols :as ccp]
             [transduce.reducers :as tr]
@@ -117,6 +117,10 @@ vector of the results."
   "Like `second`, but more efficient for indexed collections."
   [coll] (nth coll 1))
 
+(defn nth2
+  "Third element from indexed collection `coll`."
+  [coll] (nth coll 2))
+
 (defn count
   "Like `count`, but implemented in terms of `reduce`."
   [coll] (reduce (comp inc arg0) 0 coll))
@@ -129,6 +133,10 @@ vector of the results."
   "Returns the first item in `coll` for which `(pred item)` is true."
   ([coll] (ffilter identity coll))
   ([pred coll] (reduce (fn [_ x] (if (pred x) (reduced x))) nil coll)))
+
+(def keep
+  "Like `keep`, but implemented in terms of `reduce`"
+  (comp (partial r/remove nil?) r/map))
 
 (defn distinct-by
   "Remove adjacent duplicate values of `(f x)` for each `x` in `coll`."
