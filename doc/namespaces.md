@@ -261,6 +261,14 @@ de/muxing classes like `AvroMultipleOutputs`.
      (r/take 1)
      (into []))
 ;;=> ["(defproject com.damballa/parkour"]
+
+;;Or with multiple inputs
+
+(->> (apply text/dseq (fs/path-glob "2014-*-*"))
+     (r/map second)
+     (r/map #(subs % 0 32))
+     (r/take 1)
+     (into [])))
 ```
 
 ## Job graph API
