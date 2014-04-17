@@ -1,7 +1,8 @@
 (ns parkour.io.mux
   (:require [clojure.edn :as edn]
             [clojure.core.reducers :as r]
-            [parkour (conf :as conf) (cstep :as cstep) (mapreduce :as mr)]
+            [parkour (conf :as conf) (fs :as fs) (cstep :as cstep)
+             ,       (mapreduce :as mr)]
             [parkour.io (dseq :as dseq)]
             [parkour.util :refer [returning]])
   (:import [org.apache.hadoop.mapreduce Job]
@@ -9,6 +10,9 @@
 
 (def ^:private ^:const confs-key
   "parkour.mux.confs")
+
+(def ^:private exclude-keys
+  [confs-key "mapred.cache.files" "mapreduce.job.cache.files"])
 
 (defn ^:private mux-input?
   "True iff `job` is configured for multiplex input."
@@ -30,11 +34,14 @@
   "Add multiplex input format sub-configuration."
   [^Job job subconf]
   (if-not (mux-input? subconf)
-    (let [diff (-> job (conf/diff subconf) (dissoc confs-key)),
+    (let [dcm (fs/distcache-files subconf)
+          diff (conf/diff job subconf)
+          diff (apply dissoc diff exclude-keys)
           diffs (get-subconfs job)]
       (doto job
         (.setInputFormatClass Mux$InputFormat)
-        (conf/assoc! confs-key (-> diffs (conj diff) pr-str))))
+        (conf/assoc! confs-key (-> diffs (conj diff) pr-str))
+        (fs/distcache! dcm)))
     (reduce #(add-subconf %1 (-> subconf mr/job (conf/merge! %2)))
             job (get-subconfs subconf))))
 

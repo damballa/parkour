@@ -278,14 +278,17 @@ temporary directory path, created via the optional `conf`."
 URIs into the distributed cache configuration."
   [conf uri-map]
   (let [conf (doto (conf/ig conf)
-               (DistributedCache/createSymlink))]
-    (->> (into (distcache-files conf) uri-map)
-         (map (fn [[local remote]]
-                (if (identical? local remote)
-                  remote
-                  (.resolve (uri remote) (str "#" local)))))
-         (str/join ",")
-         (conf/assoc! conf "mapred.cache.files"))))
+               (DistributedCache/createSymlink))
+        uris (->> (into (distcache-files conf) uri-map)
+                  (map (fn [[local remote]]
+                         (let [remote (uri remote)]
+                           (if (= local remote )
+                             remote
+                             (.resolve remote (str "#" local))))))
+                  (into-array URI))]
+    (returning conf
+      (when (seq uris)
+        (DistributedCache/setCacheFiles uris conf)))))
 
 (defn distcacher
   "Return a function for merging the `uri-map` of local paths to URIs

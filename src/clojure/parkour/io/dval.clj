@@ -17,14 +17,40 @@
   IDeref (deref [_] @value)
   IPending (isRealized [_] (realized? value)))
 
+(defn ^:private unfragment
+  "The provided `uri`, but without any fragment."
+  {:tag `URI}
+  [^URI uri]
+  (let [fragment (.getFragment uri)]
+    (if (nil? fragment)
+      uri
+      (let [uri-s (str uri), n (- (count uri-s) (count fragment) 1)]
+        (fs/uri (subs uri-s 0 n))))))
+
+(defn ^:private ->entry
+  "Parse `remote` and `local` into mapping tuple of (fragment, local file)."
+  [^URI remote local]
+  (if-let [fragment (.getFragment remote)]
+    (let [symlink (io/file fragment), symlink? (.exists symlink)
+          local (io/file (str local)), local? (.exists local)
+          remote (unfragment remote), remote? (= "file" (.getScheme remote))
+          source (cond symlink? symlink, local? local, remote? remote
+                       :else (throw (ex-info
+                                     (str remote ": cannot locate local file")
+                                     {:remote remote, :local local})))]
+      [fragment source])))
+
 (defn ^:private distcache-dval
   "Remote-side dval data reader, reconstituting as a delay."
   [[readv cnames]]
-  (let [remotes (DistributedCache/getCacheFiles cser/*conf*)
-        locals (DistributedCache/getLocalCacheFiles cser/*conf*)
-        ->entry (fn [r l] [(.getFragment ^URI r) l])
-        cname->local (into {} (map ->entry remotes locals))
-        sources (map cname->local cnames)]
+  (let [remotes (seq (DistributedCache/getCacheFiles cser/*conf*))
+        locals (seq (DistributedCache/getLocalCacheFiles cser/*conf*))
+        _ (when (not= (count remotes) (count locals))
+            (throw (ex-info "cache files do not match local files"
+                            {:remotes remotes, :locals locals})))
+        entries (map ->entry remotes locals)
+        cname->source (->> entries (remove nil?) (into {}))
+        sources (map cname->source cnames)]
     (delay (apply readv sources))))
 
 (defmethod print-method DVal
