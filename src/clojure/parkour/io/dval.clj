@@ -1,6 +1,7 @@
 (ns parkour.io.dval
   (:require [clojure.java.io :as io]
-            [parkour (fs :as fs) (cser :as cser) (reducers :as pr)]
+            [parkour (fs :as fs) (cser :as cser) (mapreduce :as mr)
+             ,       (reducers :as pr)]
             [parkour.io.transient :refer [transient-path]]
             [parkour.util :as util :refer [doto-let]])
   (:import [java.io Writer]
@@ -28,17 +29,18 @@
         (fs/uri (subs uri-s 0 n))))))
 
 (defn ^:private ->entry
-  "Parse `remote` and `local` into mapping tuple of (fragment, local file)."
+  "Parse `remote` and `local` into mapping tuple of (fragment, cache path)."
   [^URI remote local]
   (if-let [fragment (.getFragment remote)]
     (let [symlink (io/file fragment), symlink? (.exists symlink)
           local (io/file (str local)), local? (.exists local)
           remote (unfragment remote), remote? (= "file" (.getScheme remote))
           source (cond symlink? symlink, local? local, remote? remote
+                       (mr/local-runner? cser/*conf*) remote
                        :else (throw (ex-info
                                      (str remote ": cannot locate local file")
                                      {:remote remote, :local local})))]
-      [fragment source])))
+      [fragment (fs/path source)])))
 
 (defn ^:private distcache-dval
   "Remote-side dval data reader, reconstituting as a delay."
