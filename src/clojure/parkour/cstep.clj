@@ -27,6 +27,15 @@ parameters and values; a vector of other steps; or anything implementing the
   APersistentVector (-apply! [v job] (reduce apply! job v))
   IFn (-apply! [f job] (f job)))
 
+(defn base*
+  "Base configuration step."
+  [^Job job]
+  (conf/assoc! job
+    "mapreduce.task.classpath.user.precedence" true
+    "mapreduce.job.user.classpath.first" true
+    "mapreduce.user.classpath.first" true
+    "avro.serialization.data.model" "abracad.avro.ClojureData"))
+
 (defn base
   "Base configuration step for job named `jname`."
   [jname]
@@ -34,11 +43,7 @@ parameters and values; a vector of other steps; or anything implementing the
     (doto job
       (.setJobName jname)
       (cond-> (nil? (.getJar job)) (.setJarByClass Mappers))
-      (conf/assoc! #_job
-        "mapreduce.task.classpath.user.precedence" true
-        "mapreduce.job.user.classpath.first" true
-        "mapreduce.user.classpath.first" true
-        "avro.serialization.data.model" "abracad.avro.ClojureData"))))
+      (base*))))
 
 (defn step-map
   "Map of job configuration keys and values implemented by `step`."

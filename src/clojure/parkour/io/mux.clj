@@ -50,6 +50,7 @@ job configuration `steps`."
   [& steps]
   (dseq/dseq
    (fn [^Job job]
+     (cstep/base* job)
      (reduce add-substep job steps))))
 
 (defmethod dseq/input-paths* Mux$InputFormat
