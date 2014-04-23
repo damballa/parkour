@@ -4,7 +4,7 @@
             [clojure.reflect :as reflect]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (reducers :as pr)]
-            [parkour.util :refer [ignore-errors returning map-vals]])
+            [parkour.util :refer [ignore-errors returning map-vals run-id]])
   (:import [java.net URI URL]
            [java.io File IOException InputStream OutputStream Reader Writer]
            [org.apache.hadoop.fs FileStatus FileSystem Path]
@@ -217,15 +217,7 @@ filesystem.  May be overridden in configuration via the property
 `parkour.temp.dir`."
   "/tmp")
 
-(defn ^:private run-id
-  "A likely-unique user- and time-based string."
-  []
-  (let [user (System/getProperty "user.name")
-        time (System/currentTimeMillis)
-        rand (rand-int Integer/MAX_VALUE)]
-    (str user "-" time "-" rand)))
-
-(defn ^:private temp-root
+(defn temp-root
   [conf] (path (conf/get conf "parkour.temp.dir" *temp-dir*)))
 
 (defn ^:private new-temp-dir
@@ -286,14 +278,17 @@ temporary directory path, created via the optional `conf`."
 URIs into the distributed cache configuration."
   [conf uri-map]
   (let [conf (doto (conf/ig conf)
-               (DistributedCache/createSymlink))]
-    (->> (into (distcache-files conf) uri-map)
-         (map (fn [[local remote]]
-                (if (identical? local remote)
-                  remote
-                  (.resolve (uri remote) (str "#" local)))))
-         (str/join ",")
-         (conf/assoc! conf "mapred.cache.files"))))
+               (DistributedCache/createSymlink))
+        uris (->> (into (distcache-files conf) uri-map)
+                  (map (fn [[local remote]]
+                         (let [remote (uri remote)]
+                           (if (= local remote )
+                             remote
+                             (.resolve remote (str "#" local))))))
+                  (into-array URI))]
+    (returning conf
+      (when (seq uris)
+        (DistributedCache/setCacheFiles uris conf)))))
 
 (defn distcacher
   "Return a function for merging the `uri-map` of local paths to URIs

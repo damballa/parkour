@@ -1,4 +1,7 @@
-(ns parkour.util)
+(ns parkour.util
+  (:require [clojure.edn :as edn]
+            [clojure.java.io :as io])
+  (:import [java.io PushbackReader Writer]))
 
 (defmacro ignore-errors
   "Returns the result of evaluating body, or nil if it throws an exception."
@@ -78,3 +81,24 @@ already an instance of `c`."
   "Evaluate `exp` and if it returns logical true and doesn't error, expand
 `body` forms."
   [exp & body] `(compile-if (do ~@body) nil))
+
+(defn run-id
+  "A likely-unique user- and time-based string."
+  []
+  (let [user (System/getProperty "user.name")
+        time (System/currentTimeMillis)
+        rand (rand-int Integer/MAX_VALUE)]
+    (str user "-" time "-" rand)))
+
+(defn edn-spit
+  "Like `spit`, but emits `content` to `f` as EDN."
+  [f content & opts]
+  (with-open [^Writer f (apply io/writer f opts)]
+    (binding [*out* f]
+      (pr content))))
+
+(defn edn-slurp
+  "Like `slurp`, but parses content from `f` as EDN."
+  [f & opts]
+  (with-open [f (PushbackReader. (apply io/reader f opts))]
+    (edn/read {:readers *data-readers*} f)))

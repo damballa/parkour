@@ -4,7 +4,8 @@
             [clojure.edn :as edn]
             [clojure.tools.logging :as log]
             [pjstadig.scopes :as s]
-            [parkour (conf :as conf) (mapreduce :as mr) (wrapper :as w)])
+            [parkour (conf :as conf) (mapreduce :as mr) (wrapper :as w)
+             ,       (cser :as cser)])
   (:import [clojure.lang IFn$OOLL Var]
            [org.apache.hadoop.mapreduce MapContext]))
 
@@ -14,13 +15,9 @@
 
 (defn step-v-args
   ([conf key]
-     (let [fqname (conf/get conf (str "parkour." key ".var"))
-           [ns sym] (str/split fqname #"/" 2)
-           ns (symbol (if-not (.startsWith ^String ns "#'") ns (subs ns 2)))
-           v (do (require ns) (ns-resolve ns (symbol sym)))
-           args (do (require-readers)
-                    (some->> (conf/get conf (str "parkour." key ".args"))
-                             (edn/read-string {:readers *data-readers*})))]
+     (require-readers)
+     (let [v (cser/get conf (str "parkour." key ".var"))
+           args (cser/get conf (str "parkour." key ".args"))]
        [v args]))
   ([conf kind id]
      (step-v-args conf (str kind "." id))))

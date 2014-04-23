@@ -1,9 +1,10 @@
 (ns parkour.io.avro
   (:refer-clojure :exclude [shuffle])
   (:require [abracad.avro :as avro]
+            [abracad.avro.edn :as aedn]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
-                     (mapreduce :as mr) (reducers :as pr)]
-            [parkour.io (dseq :as dseq) (dsink :as dsink)]
+                     (mapreduce :as mr) (reducers :as pr) (cser :as cser)]
+            [parkour.io (dseq :as dseq) (dsink :as dsink) (dval :as dval)]
             [parkour.util :refer [ignore-errors returning]])
   (:import [java.net URI]
            [org.apache.avro Schema]
@@ -169,3 +170,11 @@ arguments to `set-output`, and writing to `path`."
    (fn [^Job job]
      (apply set-output job schemas)
      (FileOutputFormat/setOutputPath job (fs/path path)))))
+
+(defn dval
+  "Avro distributed value, serialized using `schema` if provided or a plain
+EDN-in-Avro schema if not."
+  ([value] (dval (aedn/new-schema) value))
+  ([schema value]
+     (let [writef (partial avro/spit schema) ]
+       (dval/transient-dval writef #'avro/slurp value))))

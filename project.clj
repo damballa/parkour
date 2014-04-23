@@ -80,7 +80,8 @@
                     [[org.apache.avro/avro-mapred "1.7.5"]]}
      :hadoop-1-0-3 [:avro-hadoop1
                     {:dependencies
-                     [[org.apache.hadoop/hadoop-core "1.0.3"]]}]
+                     [[org.apache.hadoop/hadoop-core "1.0.3"]
+                      [commons-io/commons-io "2.1"]]}]
      :hadoop-1-2-1 [:avro-hadoop1
                     {:dependencies
                      [[org.apache.hadoop/hadoop-core "1.2.1"]]}]
