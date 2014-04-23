@@ -41,8 +41,7 @@
                    "with-profile" "-default"]
             "all" ["with-profile" "default*"
                    "with-profile" "+clojure-1-5-1:+clojure-1-6-0"
-                   "with-profile" ~(str "+hadoop-1-0-3:"
-                                        "+hadoop-1-2-1:"
+                   "with-profile" ~(str "+hadoop-1-2-1:"
                                         "+hadoop-2-2-0:"
                                         "+hadoop-2-4-0:"
                                         "+hadoop-cdh4:"
