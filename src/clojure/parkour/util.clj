@@ -80,7 +80,7 @@ already an instance of `c`."
 (defmacro compile-when
   "Evaluate `exp` and if it returns logical true and doesn't error, expand
 `body` forms."
-  [exp & body] `(compile-if (do ~@body) nil))
+  [exp & body] `(compile-if ~exp (do ~@body) nil))
 
 (defn run-id
   "A likely-unique user- and time-based string."
