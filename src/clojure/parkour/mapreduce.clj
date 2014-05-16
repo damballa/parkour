@@ -29,8 +29,9 @@ internal use within Parkour."
 (defn local-runner?
   "True iff `conf` specifies the local job runner."
   [conf]
-  (or (= "local" (conf/get conf "mapred.job.tracker" "local"))
-      (= "local" (conf/get conf "mapreduce.framework.name" "local"))))
+  (= "local" (or (conf/get conf "mapred.job.tracker" nil)
+                 (conf/get conf "mapreduce.framework.name" nil)
+                 "local")))
 
 (defn keys
   "Produce keys only from the tuples in `context`.  Deprecated."
