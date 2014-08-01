@@ -10,7 +10,7 @@
            [org.apache.hadoop.filecache DistributedCache]))
 
 ;; Distributed value
-(defrecord DVal [value readv params dcm]
+(deftype DVal [value readv params dcm]
   Object
   (toString [_]
     (let [v (if (realized? value) @value :pending)]
@@ -60,8 +60,8 @@
   [^DVal dval ^Writer writer]
   (let [repr (if (nil? cser/*conf*)
                (str dval)
-               (let [{:keys [readv params dcm]} dval
-                     literal (pr-str [readv params (-> dcm keys vec)])]
+               (let [v (.-readv dval), p (.-params dval), dcm (.-dcm dval)
+                     literal (pr-str [v p (-> dcm keys vec)])]
                  (fs/distcache! cser/*conf* dcm)
                  (str "#parkour/dval " literal)))]
     (.write writer repr)))
