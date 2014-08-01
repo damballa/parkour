@@ -10,7 +10,7 @@
            [org.apache.hadoop.filecache DistributedCache]))
 
 ;; Distributed value
-(defrecord DVal [value readv dcm]
+(defrecord DVal [value readv params dcm]
   Object
   (toString [_]
     (let [v (if (realized? value) @value :pending)]
@@ -44,7 +44,7 @@
 
 (defn ^:private distcache-dval
   "Remote-side dval data reader, reconstituting as a delay."
-  [[readv cnames]]
+  [[readv params cnames]]
   (let [remotes (seq (DistributedCache/getCacheFiles cser/*conf*))
         locals (seq (DistributedCache/getLocalCacheFiles cser/*conf*))
         _ (when (not= (count remotes) (count locals))
@@ -52,15 +52,16 @@
                             {:remotes remotes, :locals locals})))
         entries (map ->entry remotes locals)
         cname->source (->> entries (remove nil?) (into {}))
-        sources (map cname->source cnames)]
-    (delay (apply readv sources))))
+        sources (map cname->source cnames)
+        args (concat params sources)]
+    (delay (apply readv args))))
 
 (defmethod print-method DVal
   [^DVal dval ^Writer writer]
   (let [repr (if (nil? cser/*conf*)
                (str dval)
-               (let [{:keys [readv dcm]} dval
-                     literal (pr-str [readv (-> dcm keys vec)])]
+               (let [{:keys [readv params dcm]} dval
+                     literal (pr-str [readv params (-> dcm keys vec)])]
                  (fs/distcache! cser/*conf* dcm)
                  (str "#parkour/dval " literal)))]
     (.write writer repr)))
@@ -78,27 +79,33 @@
 
 (defn dval
   "Return a dval which locally holds `value` and remotely will deserialize by
-applying var `readv` to distributed copies of `sources`."
-  [value readv & sources]
-  (let [dcm (into {} (map (juxt cache-name fs/uri) sources))
-        value (if (instance? IDeref value) value (identity-ref value))]
-    (DVal. value readv dcm)))
+applying var `readv` to the concatenation of `params` and distributed copies of
+`sources`."
+  ([value readv sources] (dval value readv nil sources))
+  ([value readv params sources]
+     (let [dcm (into {} (map (juxt cache-name fs/uri) sources))
+           value (if (instance? IDeref value) value (identity-ref value))]
+       (DVal. value readv params dcm))))
 
 (defn load-dval
-  "Return a dval which will deserialize by applying var `readv` to `sources`
-locally and distributed copies of `sources` remotely."
-  [readv & sources]
-  (let [value (delay (apply readv sources))]
-    (apply dval value readv sources)))
+  "Return a dval which will deserialize by applying var `readv` to the
+concatenation of `params` and `sources` locally and distributed copies of
+`sources` remotely."
+  ([readv sources] (load-dval readv nil sources))
+  ([readv params sources]
+     (let [args (concat params sources)
+           value (delay (apply readv args))]
+       (dval value readv params sources))))
 
 (defn copy-dval
   "Like `load-dval`, but first copy `sources` to transient locations."
-  [readv & sources]
-  (let [sources (map fs/uri sources)
-        sources (doto-let [tpaths (map transient-path sources)]
-                  (doseq [[source tpath] (map vector sources tpaths)]
-                    (io/copy source tpath)))]
-    (apply load-dval readv sources)))
+  ([readv sources] (copy-dval readv nil sources))
+  ([readv params sources]
+     (let [sources (map fs/uri sources)
+           sources (doto-let [tpaths (map transient-path sources)]
+                     (doseq [[source tpath] (map vector sources tpaths)]
+                       (io/copy source tpath)))]
+       (apply load-dval readv params sources))))
 
 (defn transient-dval
   "Serialize `value` to a transient location by calling `writef` with the path
@@ -107,7 +114,7 @@ deserialize by calling var `readv` with a distributed copy of the transient
 serialization path."
   [writef readv value]
   (let [source (doto (transient-path) (writef value))]
-    (dval value readv source)))
+    (dval value readv [source])))
 
 (defn edn-dval
   "EDN-serialize `value` to a transient location and yield a wrapping dval."
