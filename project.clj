@@ -14,8 +14,8 @@
                org.apache.avro/avro
                org.apache.avro/avro-mapred
                org.apache.avro/avro-ipc]
-  :dependencies [[org.clojure/tools.logging "0.2.6"]
-                 [com.damballa/abracad "0.4.10"]
+  :dependencies [[org.clojure/tools.logging "0.3.0"]
+                 [com.damballa/abracad "0.4.11"]
                  [org.apache.avro/avro "1.7.5"]
                  [pjstadig/scopes "0.3.0"]
                  [transduce/transduce "0.1.1"]]
@@ -38,13 +38,13 @@
           :output-dir "tmp/codox"}
   :aliases {"few" ["with-profile"
                    ~(->> (for [c ["clojure-1-6-0"]
-                               h ["hadoop-1-2-1" "hadoop-2-4-0"]]
+                               h ["hadoop-1-2-1" "hadoop-2-4-1"]]
                            ["default*" c h])
                          (map (partial clojure.string/join ","))
                          (clojure.string/join ":"))]
             "all" ["with-profile"
                    ~(->> (for [c ["clojure-1-5-1" "clojure-1-6-0"]
-                               h ["hadoop-1-2-1" "hadoop-2-2-0" "hadoop-2-4-0"
+                               h ["hadoop-1-2-1" "hadoop-2-2-0" "hadoop-2-4-1"
                                   "hadoop-cdh4" "hadoop-cdh5"]]
                            ["default*" c h])
                          (map (partial clojure.string/join ","))
@@ -94,10 +94,10 @@
                     {:dependencies
                      [[org.apache.hadoop/hadoop-client "2.2.0"]
                       [org.apache.hadoop/hadoop-common "2.2.0"]]}]
-     :hadoop-2-4-0 [:avro-hadoop2
+     :hadoop-2-4-1 [:avro-hadoop2
                     {:dependencies
-                     [[org.apache.hadoop/hadoop-client "2.4.0"]
-                      [org.apache.hadoop/hadoop-common "2.4.0"]]}]
+                     [[org.apache.hadoop/hadoop-client "2.4.1"]
+                      [org.apache.hadoop/hadoop-common "2.4.1"]]}]
      :avro-cdh4 {:repositories
                  , [["platypope" "http://jars.platypope.org/release/"]]
                  :dependencies
