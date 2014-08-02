@@ -36,7 +36,7 @@ Writables."
 (defn ^:private test+setter
   [s-wobj m]
   (let [t (-> m :parameter-types first), t' (prim->obj t t)]
-    `[(instance? ~t') (.set ~s-wobj ~(vary-meta 'obj assoc :tag t))]))
+    `[(instance? ~t' ~'obj) (.set ~s-wobj ~(vary-meta 'obj assoc :tag t))]))
 
 (defn ^:private auto-wrapper*
   "Return forms for auto-generated `Wrapper` implementation for class `c`."
