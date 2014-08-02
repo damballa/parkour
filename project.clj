@@ -36,20 +36,23 @@
                     parkour.util.shutdown.hadoop1
                     parkour.util.shutdown.hadoop2]
           :output-dir "tmp/codox"}
-  :aliases {"few" ["with-profile" "default*,clojure-1-6-0"
-                   "with-profile" "+hadoop-1-2-1:+hadoop-2-4-0"
-                   "with-profile" "-default"]
-            "all" ["with-profile" "default*"
-                   "with-profile" "+clojure-1-5-1:+clojure-1-6-0"
-                   "with-profile" ~(str "+hadoop-1-2-1:"
-                                        "+hadoop-2-2-0:"
-                                        "+hadoop-2-4-0:"
-                                        "+hadoop-cdh4:"
-                                        "+hadoop-cdh5")
-                   "with-profile" "-default"]}
+  :aliases {"few" ["with-profile"
+                   ~(->> (for [c ["clojure-1-6-0"]
+                               h ["hadoop-1-2-1" "hadoop-2-4-0"]]
+                           ["default*" c h])
+                         (map (partial clojure.string/join ","))
+                         (clojure.string/join ":"))]
+            "all" ["with-profile"
+                   ~(->> (for [c ["clojure-1-5-1" "clojure-1-6-0"]
+                               h ["hadoop-1-2-1" "hadoop-2-2-0" "hadoop-2-4-0"
+                                  "hadoop-cdh4" "hadoop-cdh5"]]
+                           ["default*" c h])
+                         (map (partial clojure.string/join ","))
+                         (clojure.string/join ":"))]}
   :profiles
-  , {:default* [:base :system :user :provided :dev]
-     :default [:default* :clojure-1-6-0 :hadoop-stable]
+  , {:default* [:base :system :user :provided :dev],
+     :default+ [:clojure-1-6-0 :hadoop-stable],
+     :default [:default* :default+]
      :conjars {:repositories
                [["conjars" "http://conjars.org/repo/"]]}
      :cloudera {:repositories
