@@ -9,8 +9,7 @@
            [org.apache.hadoop.util ReflectionUtils]))
 
 (defprotocol Wrapper
-  "Protocol for working with mutable wrapper objects, such as Hadoop
-Writables."
+  "Protocol for working with mutable wrapper objects, such as Hadoop Writables."
   (unwrap [wobj] "Unwrap `wobj` in a type-specific fashion.")
   (rewrap [wobj obj] "Mutate wapper `wobj` to wrap `obj`."))
 
@@ -97,9 +96,9 @@ Writables."
   [x] (if (class? x) x (class x)))
 
 (defn new-instance
-  "Return a new instance of the class of `klass`, or of `klass` itself
-if a class.  If Hadoop `conf` is provided and `klass` is Configurable,
-configure the new instance with `conf`."
+  "Return a new instance of the class of `klass`, or of `klass` itself if a
+class.  If Hadoop `conf` is provided and `klass` is Configurable, configure the
+new instance with `conf`."
   ([klass] (new-instance* (->class klass)))
   ([conf klass] (new-instance* (conf/ig conf) (->class klass))))
 
@@ -129,13 +128,13 @@ configure the new instance with `conf`."
         (rewrap v v')))))
 
 (defn wrap-keyvals
-  "Return a function which wraps its key/value pair argument in
-instances of the wrapper type `t` or types `k` & `v`."
+  "Return a function which wraps its key/value pair argument in instances of the
+wrapper types `k` & `v`."
   ([k v] (wrap-keyvals* new-instance k v))
   ([conf k v] (wrap-keyvals* (partial new-instance conf) k v)))
 
 (defn wrap-vals
-  "Return a function which wraps its argument in an instance of the
-wrapper type `t`."
+  "Return a function which wraps its argument in an instance of the wrapper type
+`t`."
   ([t] (partial rewrap (new-instance t)))
   ([conf t] (partial rewrap (new-instance conf t))))

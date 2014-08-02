@@ -11,7 +11,7 @@
            [org.apache.hadoop.mapreduce.lib.input FileInputFormat]))
 
 (defprotocol DSeqable
-  "Protocol for producing distribute sequence."
+  "Protocol for producing distributed sequence."
   (-dseq [this] "Return distributed sequence for `this`."))
 
 (defn input-format
