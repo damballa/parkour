@@ -15,7 +15,7 @@
     (fs/path-delete p)
     (with-open [outw (->> "lines.txt" (fs/path p) io/writer)]
       (doseq [^String line lines] (.write outw line) (.write outw "\n")))
-    (is (= lines (->> p text/dseq w/unwrap (r/map second) (into []))))))
+    (is (= lines (->> p text/dseq (into []))))))
 
 (deftest test-output
   (let [lines ["foo" "bar" "baz" "quux"], p (fs/path "tmp/text")]
@@ -25,5 +25,4 @@
                       slurp str/split-lines)))
     (is (= lines (->> (mr/sink-as :keys lines)
                       (dsink/with-dseq (text/dsink))
-                      (r/map second)
                       (into []))))))
