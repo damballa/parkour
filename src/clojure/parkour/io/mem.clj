@@ -38,13 +38,16 @@
 
 (defn dseq
   "Distributed sequence producing key-value tuples from `data`, which should be
-either a map or a sequence of two-item vectors.  Stores input data in local
-process memory, and thus only works for jobs run in local mode."
-  [data]
-  (dseq/dseq
-   (fn [^Job job]
-     (let [iname (-> "input__" gensym keyword)]
-       (input-add iname data)
-       (doto job
-         (conf/assoc! iname-key (name iname))
-         (.setInputFormatClass Mem$InputFormat))))))
+either a map or a sequence of two-item vectors, and will have the default source
+shape `shape` if provided.  Stores input data in local process memory, and thus
+only works for jobs run in local mode."
+  ([data] (dseq :keyvals data))
+  ([shape data]
+     (dseq/dseq
+      (fn [^Job job]
+        (let [iname (-> "input__" gensym keyword)]
+          (input-add iname data)
+          (doto job
+            (conf/assoc! iname-key (name iname))
+            (.setInputFormatClass Mem$InputFormat)
+            (dseq/set-default-shape! shape)))))))
