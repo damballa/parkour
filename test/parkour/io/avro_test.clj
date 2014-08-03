@@ -37,6 +37,12 @@
       (is (= records (with-open [dfr (avro/data-file-reader f)]
                        (into [] dfr)))))))
 
+(deftest test-key-roundtrip-defaults
+  (th/with-config
+    (let [records ["foo" "bar" "baz" "quux"]
+          dseq (dsink/with-dseq (mra/dsink ['string]) records)]
+      (is (= records (into [] dseq))))))
+
 (deftest test-kv-output
   (let [records [["foo" 1] ["bar" 1] ["baz" 1] ["quux" 1]]
         p (fs/path "tmp/avro")]

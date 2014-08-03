@@ -122,7 +122,8 @@ when the output format has not been otherwise explicitly specified."
        (set-data-model)
        (.setOutputFormatClass AvroKeyOutputFormat)
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))
-       (.setOutputValueClass NullWritable)))
+       (.setOutputValueClass NullWritable)
+       (dsink/set-default-shape! :keys)))
   ([^Job job ks vs]
      (doto job
        (set-data-model)
