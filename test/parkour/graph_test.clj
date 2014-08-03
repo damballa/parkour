@@ -138,10 +138,7 @@
             [1 "bar" "blue"]
             [2 "baz" "green"]
             [2 "baz" "red"]]
-           (->> result
-                (r/map (comp w/unwrap first))
-                (into [])
-                sort)))))
+           (->> result (into []) sort)))))
 
 (defn multiple-outputs-mapper
   [input]

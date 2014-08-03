@@ -25,8 +25,7 @@
     (io/make-parents f)
     (with-open [dfw (avro/data-file-writer schema f)]
       (doseq [record records] (.append dfw record)))
-    (is (= records (->> p (mra/dseq [:default]) w/unwrap (r/map first)
-                        (into []))))))
+    (is (= records (->> p (mra/dseq [:default]) (into []))))))
 
 (deftest test-key-output
   (let [records ["foo" "bar" "baz" "quux"]
@@ -66,8 +65,7 @@
     (with-open [out (->> p (mra/dsink [schema]) dsink/sink-for)]
       (->> records (mr/sink-as :keys) (mr/sink out)))
     (let [f (->> p fs/path-list (remove fs/hidden?) first io/file)]
-      (is (= records (->> p (mra/dseq [:default]) w/unwrap (r/map first)
-                          (into [])))))))
+      (is (= records (->> p (mra/dseq [:default]) (into [])))))))
 
 (defn ->keys
   {::mr/source-as :keyvals, ::mr/sink-as :keys}
