@@ -16,7 +16,7 @@
 (defn word-count-mapper
   [input]
   (let [wc (.getCounter mr/*context* "word-count" "words")]
-    (->> input mr/vals
+    (->> input
          (r/mapcat #(str/split % #"\s+"))
          (r/map (fn [word]
                   (returning word
@@ -24,10 +24,11 @@
          (r/map #(-> [% 1])))))
 
 (defn word-count-reducer
+  {::mr/source-as :keyvalgroups}
   [input]
-  (->> input mr/keyvalgroups
-       (r/map (fn [[word counts]]
-                [word (r/reduce + 0 counts)]))))
+  (r/map (fn [[word counts]]
+           [word (r/reduce + 0 counts)])
+         input))
 
 (defn word-count
   [conf dseq dsink]
@@ -66,9 +67,10 @@
 
 (deftest test-word-count-mem
   (let [outpath (doto (fs/path "tmp/word-count-output") fs/path-delete)
-        dseq (mem/dseq [[nil "apple banana banana"]
-                        [nil "carrot apple"]
-                        [nil "apple"]])
+        dseq (->> [["apple banana banana"]
+                   ["carrot apple"]
+                   ["apple"]]
+                  (mem/dseq :keys))
         dsink (seqf/dsink [Text LongWritable] outpath)
         [result] (word-count (th/config) dseq dsink)]
     (is (= {"apple" 3, "banana" 2, "carrot" 1}
@@ -95,23 +97,23 @@
 
 (defn trivial-join-mapper
   [tag input]
-  (->> input mr/vals
-       (r/map (fn [line]
-                (let [[key val] (str/split line #"\s")]
-                  [[(Long/parseLong key) tag] val])))))
+  (r/map (fn [line]
+           (let [[key val] (str/split line #"\s")]
+             [[(Long/parseLong key) tag] val]))
+         input))
 
 (defn trivial-join-partitioner
   ^long [[key] _ ^long nparts]
   (-> key hash (mod nparts)))
 
 (defn trivial-join-reducer
+  {::mr/source-as :keyvalgroups}
   [input]
-  (->> input mr/keyvalgroups
-       (r/mapcat (fn [[[id] vals]]
-                   (let [vals (into [] vals)
-                         left (first vals)]
-                     (r/map #(-> [id left %]) (rest vals)))))
-       (mr/sink-as :keys)))
+  (r/mapcat (fn [[[id] vals]]
+              (let [vals (into [] vals)
+                    left (first vals)]
+                (r/map #(-> [id left %]) (rest vals))))
+            input))
 
 (defn trivial-join
   [conf left right dsink]
