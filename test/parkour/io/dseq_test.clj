@@ -62,25 +62,23 @@
 
 (deftest test-multi-split-reduce-auto
   (is (= ["apple" "banana" "carrot"]
-         (->> (multi-split-dseq)
-              w/unwrap (r/map second)
-              (into []) sort vec))))
+         (->> (multi-split-dseq) (into []) sort vec))))
 
 
 (deftest test-multi-split-reduce-unwrap
   (with-open [source (dseq/source-for (multi-split-dseq))]
     (is (= ["apple" "banana" "carrot"]
-           (->> source (r/map second) (into []) sort vec)))))
+           (->> source (into []) sort vec)))))
 
 (deftest test-multi-split-reduce-raw
   (with-open [source (dseq/source-for (multi-split-dseq) :raw? true)]
     (is (= [(Text. "apple") (Text. "banana") (Text. "carrot")]
-           (->> source (r/map (comp w/clone second)) (into []) sort vec)))))
+           (->> source (r/map w/clone) (into []) sort vec)))))
 
 (deftest test-multi-split-seq
   (with-open [source (dseq/source-for (multi-split-dseq))]
     (is (= ["apple" "banana" "carrot"]
-           (->> source (map second) sort vec)))))
+           (->> source seq sort vec)))))
 
 (deftest test-input-paths
   (is (= (map fs/path ["file:foo/bar" "file:baz/quux"])

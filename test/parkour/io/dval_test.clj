@@ -27,9 +27,7 @@
   (th/with-config
     (let [words #{"blue" "baz"}
           lines (text/dseq (io/resource "matrixify-input.txt"))
-          actual (->> (filter-lines-j (conf/ig) words lines)
-                      (r/map pr/nth1)
-                      (into #{}))]
+          actual (into #{} (filter-lines-j (conf/ig) words lines))]
       (is (= #{"foo  blue  1.0"
                "bar  blue  4.0"
                "baz  red   5.0"}

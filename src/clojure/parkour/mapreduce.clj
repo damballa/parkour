@@ -80,7 +80,7 @@ source-shaping function of one argument or a keyword indicating a built-in
 source-shaping function.  Supported keywords are: `:keys`, `:vals`, `:keyvals`,
 `:keygroups`, `:valgroups`, :keyvalgroups`, `:keykeyvalgroups`,
 `:keykeygroups`, and `:keysgroups`."
-  [kind source] ((src/source-fn kind) source))
+  [kind source] (src/source-as kind source))
 
 (defn wrap-sink
   "Return new tuple sink which wraps keys and values as the types `ckey` and
@@ -96,7 +96,7 @@ are not already of the correct type then sinks them to `sink`."
 either be a sinking function of two arguments (a sink and a collection) or a
 keyword indicating a built-in sinking function.  Supported keywords are `:none`,
 `:keys`, `:vals`, and `:keyvals`."
-  [kind coll] (vary-meta coll assoc ::snk/sink-as kind))
+  [kind coll] (snk/sink-as kind coll))
 
 (defn sink
   "Emit all tuples from `coll` to `sink`."
@@ -111,13 +111,13 @@ function input and/or output will be re-shaped as specified via the associated
 metadata value."
   [v]
   (let [m (meta v)
-        source-as (or (some->> m ::source-as (partial source-as)) identity)
-        sink-as (or (some->> m ::sink-as (partial sink-as)) identity)]
+        shape-in (get m ::source-as :default)
+        shape-out (get m ::sink-as :default)]
     (fn [conf & args]
       (fn [context]
-        (let [input (source-as (w/unwrap context))
+        (let [input (src/source-as shape-in (w/unwrap context))
               args (conj (vec args) input)
-              output (sink-as (apply v args))]
+              output (snk/maybe-sink-as shape-out (apply v args))]
           (sink context output))))))
 
 (defn contextfn

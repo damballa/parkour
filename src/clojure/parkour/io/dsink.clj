@@ -1,6 +1,6 @@
 (ns parkour.io.dsink
-  (:require [parkour (conf :as conf) (wrapper :as w) (mapreduce :as mr)
-                     (cstep :as cstep)]
+  (:require [parkour (conf :as conf) (cser :as cser) (cstep :as cstep)
+             ,       (wrapper :as w) (mapreduce :as mr)]
             [parkour.mapreduce (sink :as snk)]
             [parkour.io (dseq :as dseq)]
             [parkour.util :refer [ignore-errors returning coerce]])
@@ -97,3 +97,7 @@ sink produced from `dsink`, and return `dsink`'s associated dseq."
 
 (defmethod output-paths* FileOutputFormat
   [^Job job] [(FileOutputFormat/getOutputPath job)])
+
+(defn set-default-shape!
+  "Set default sink shape for `conf` to `shape`."
+  [conf shape] (cser/assoc! conf "parkour.sink-as.default" shape))

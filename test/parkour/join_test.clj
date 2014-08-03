@@ -89,6 +89,5 @@
             [2 "baz" "green"]
             [2 "baz" "red"]]
            (->> (mra/dseq [:default] outpath)
-                (r/map (comp w/unwrap first))
                 (into [])
                 sort)))))

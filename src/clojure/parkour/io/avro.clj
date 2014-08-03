@@ -64,7 +64,8 @@ input writer schema(s)."
        (AvroJob/setInputKeySchema job (avro/parse-schema ks)))
      (doto job
        (set-data-model)
-       (.setInputFormatClass AvroKeyInputFormat)))
+       (.setInputFormatClass AvroKeyInputFormat)
+       (dseq/set-default-shape! :keys)))
   ([^Job job ks vs]
      (when-not (identical? :default ks)
        (AvroJob/setInputKeySchema job (avro/parse-schema ks)))
@@ -121,7 +122,8 @@ when the output format has not been otherwise explicitly specified."
        (set-data-model)
        (.setOutputFormatClass AvroKeyOutputFormat)
        (AvroJob/setOutputKeySchema (avro/parse-schema ks))
-       (.setOutputValueClass NullWritable)))
+       (.setOutputValueClass NullWritable)
+       (dsink/set-default-shape! :keys)))
   ([^Job job ks vs]
      (doto job
        (set-data-model)
