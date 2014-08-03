@@ -1,7 +1,8 @@
 (ns parkour.io.dseq
   (:require [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
-            [parkour (conf :as conf) (cstep :as cstep) (wrapper :as w)]
+            [parkour (conf :as conf) (cser :as cser) (cstep :as cstep)
+             ,       (wrapper :as w)]
             [parkour.mapreduce (source :as src)]
             [parkour.io.dseq (mapred :as mr1) (mapreduce :as mr2)]
             [parkour.util :refer [ignore-errors coerce]])
@@ -26,14 +27,14 @@
 resources, as via `with-open`.  If the `raw?` keyword argument is true, then the
 tuple source will not automatically unwrap values."
   {:tag `Closeable}
-  [dseq & {:keys [raw?]}]
+  [dseq & {:keys [raw? shape], :or {raw? false, shape :default}}]
   (let [job (cstep/apply! dseq), klass (input-format job)
         tuple-source (cond (mr1/input-format? klass) mr1/tuple-source
                            (mr2/input-format? klass) mr2/tuple-source)
-        source (tuple-source job klass)]
-    (if raw?
-      source
-      (src/unwrap-source source))))
+        source (tuple-source job klass)
+        source (if raw? source (src/unwrap-source source))
+        source (src/source-as shape source)]
+    source))
 
 (deftype DSeq [meta step]
   Object
@@ -84,3 +85,7 @@ job configuration step `obj`.  Result is a config step and reducible."
 
 (defmethod input-paths* FileInputFormat
   [^Job job] (vec (FileInputFormat/getInputPaths job)))
+
+(defn set-default-shape!
+  "Set default source shape for `conf` to `shape`."
+  [conf shape] (cser/assoc! conf "parkour.source-as.default" shape))

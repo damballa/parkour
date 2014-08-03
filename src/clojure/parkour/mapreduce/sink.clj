@@ -1,7 +1,7 @@
 (ns parkour.mapreduce.sink
   (:refer-clojure :exclude [key val keys vals reduce])
   (:require [clojure.core :as cc]
-            [parkour (conf :as conf) (wrapper :as w)]
+            [parkour (conf :as conf) (cser :as cser) (wrapper :as w)]
             [parkour.util :refer [returning]])
   (:import [java.io Closeable]
            [clojure.lang IFn]
@@ -18,6 +18,8 @@
     "Emit the tuple pair of `key` and `value` to `sink`.")
   (-close [sink]
     "Close the sink, flushing any buffered output."))
+
+(declare sink-fn*)
 
 (defn emit-keyval
   "Emit pair of `key` and `val` to `sink` as a complete tuple."
@@ -102,6 +104,19 @@ the original class."
              1 (let [[keyval] args] (emit-keyval sink keyval))
              2 (let [[key val] args] (emit-keyval sink key val))))))))
 
+(defn ^:private output-sink?
+  [conf]
+  (or (= "reduce" (conf/get conf "parkour.step" "reduce"))
+      (zero? (conf/get-int conf "mapred.reduce.tasks" 1))))
+
+(defn ^:private sink-default
+  "Sinking function for emitting default results."
+  [sink coll]
+  (let [shape (if-not (output-sink? sink)
+                :keyvals
+                (cser/get sink "parkour.sink-as.default" :keyvals))]
+    ((sink-fn* shape) sink coll)))
+
 (defn ^:private sink-none
   "Sinking function for emitting no results."
   [sink coll] (cc/reduce (fn [_ _]) nil coll))
@@ -116,7 +131,8 @@ the original class."
 
 (def ^:private sink-fns
   "Map from sink-type keyword to sinking function."
-  {:none sink-none
+  {:default sink-default
+   :none sink-none
    :keyvals (sink-emit-wrapped emit-keyval),
    :keys (sink-emit-wrapped emit-key),
    :vals (sink-emit-wrapped emit-val),
@@ -135,4 +151,16 @@ the original class."
 
 (defn sink-fn
   "Tuple-emitting function for `coll`."
-  [coll] (-> coll meta (get ::sink-as :keyvals) sink-fn*))
+  [coll] (-> coll meta (get ::sink-as :default) sink-fn*))
+
+(defn sink-as
+  "Annotate `coll` as containing values to sink as `kind`."
+  [kind coll] (vary-meta coll assoc ::sink-as kind))
+
+(defn maybe-sink-as
+  "Annotate `coll` as containing values to sink as `kind`, unless `coll` is
+already annotated."
+  [kind coll]
+  (if (contains? (meta coll) ::sink-as)
+    coll
+    (sink-as kind coll)))

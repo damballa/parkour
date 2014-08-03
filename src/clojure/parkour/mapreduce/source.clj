@@ -3,7 +3,7 @@
   (:require [clojure.core :as cc]
             [clojure.core.reducers :as r]
             [clojure.core.protocols :as ccp]
-            [parkour (conf :as conf) (wrapper :as w)])
+            [parkour (conf :as conf) (cser :as cser) (wrapper :as w)])
   (:import [clojure.lang Seqable]
            [java.io Closeable]
            [java.util Collection]
@@ -26,6 +26,8 @@ of such tuples."
     "Source updated to next distinct key, implementation.")
   (-close [source]
     "Close the source, cleaning up any associated resources."))
+
+(declare source-as)
 
 (defn source?
   "True iff `x` is a tuple source."
@@ -101,7 +103,18 @@ iteration function `nextf` and extraction function `dataf`."
     (coll-reduce [_ f init] (source-reduce nextf dataf source f init))
 
     Seqable
-    (seq [_] (source-seq nextf dataf source))))
+    (seq [_] (source-seq nextf dataf source))
+
+    Closeable
+    (close [_] (-close source))
+
+    TupleSource
+    (key [_] (key source))
+    (val [_] (val source))
+    (vals [_] (vals source))
+    (next-keyval [this] (next-keyval source))
+    (next-key [this] (next-key source))
+    (-close [_] (-close source))))
 
 (defn seq-source
   [coll]
@@ -170,6 +183,14 @@ iteration function `nextf` and extraction function `dataf`."
   TaskInputOutputContext
   (unwrap [wobj] (unwrap-source wobj)))
 
+(defn shape-default
+  "Produce default source shape tuples from `context`."
+  [context]
+  (if-not (= "map" (conf/get context "parkour.step" "map"))
+    context
+    (let [shape (cser/get context "parkour.source-as.default" identity)]
+      (source-as shape context))))
+
 (defn shape-keys
   "Produce keys only from the tuples in `context`."
   [context]
@@ -231,7 +252,8 @@ from the tuples in `context`."
 
 (def source-fns
   "Map of keywords to built-in source-shaping functions."
-  {:keys shape-keys
+  {:default shape-default
+   :keys shape-keys
    :vals shape-vals
    :keyvals shape-keyvals
    :keygroups shape-keygroups
@@ -249,3 +271,7 @@ from the tuples in `context`."
     (as-> f (when (keyword? f)
               (throw (ex-info (str "Unknown built-in source `:" f "`")
                               {:f f}))))))
+
+(defn source-as
+  "Shape `source` to the collection shape `kind`."
+  [kind source] ((source-fn kind) source))
