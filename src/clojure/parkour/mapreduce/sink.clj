@@ -4,7 +4,7 @@
             [parkour (conf :as conf) (cser :as cser) (wrapper :as w)]
             [parkour.util :refer [returning]])
   (:import [java.io Closeable]
-           [clojure.lang IFn]
+           [clojure.lang IFn IObj]
            [org.apache.hadoop.conf Configurable]
            [org.apache.hadoop.mapreduce MapContext ReduceContext]))
 
@@ -161,6 +161,6 @@ the original class."
   "Annotate `coll` as containing values to sink as `kind`, unless `coll` is
 already annotated."
   [kind coll]
-  (if (contains? (meta coll) ::sink-as)
-    coll
-    (sink-as kind coll)))
+  (cond (contains? (meta coll) ::sink-as) coll
+        (instance? IObj coll) (sink-as kind coll)
+        :else coll))
