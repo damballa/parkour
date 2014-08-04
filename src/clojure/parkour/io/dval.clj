@@ -105,7 +105,7 @@ concatenation of `params` and `sources` locally and distributed copies of
            sources (doto-let [tpaths (map transient-path sources)]
                      (doseq [[source tpath] (map vector sources tpaths)]
                        (io/copy source tpath)))]
-       (apply load-dval readv params sources))))
+       (load-dval readv params sources))))
 
 (defn transient-dval
   "Serialize `value` to a transient location by calling `writef` with the path

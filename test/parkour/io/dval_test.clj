@@ -4,7 +4,7 @@
             [clojure.java.io :as io]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
-             ,       (graph :as pg) (reducers :as pr)]
+             ,       (graph :as pg) (reducers :as pr) (util :as pu)]
             [parkour.io (dval :as dval) (text :as text)]
             [parkour.test-helpers :as th]))
 
@@ -15,20 +15,26 @@
         words? (partial some @words)]
     (r/filter (comp words? ->words) lines)))
 
-(defn filter-lines-j
+(defn filter-lines
   [conf words lines]
   (-> (pg/input lines)
-      (pg/map #'filter-lines-m (dval/edn-dval words))
+      (pg/map #'filter-lines-m words)
       (pg/output (text/dsink (doto "tmp/output" fs/path-delete)))
       (pg/execute conf "filter-lines")
       (first)))
 
-(deftest test-edn-dval
+(defn dval-works?
+  [words]
   (th/with-config
-    (let [words #{"blue" "baz"}
-          lines (text/dseq (io/resource "matrixify-input.txt"))
-          actual (into #{} (filter-lines-j (conf/ig) words lines))]
-      (is (= #{"foo  blue  1.0"
-               "bar  blue  4.0"
-               "baz  red   5.0"}
-             actual)))))
+    (let [lines (text/dseq (io/resource "matrixify-input.txt"))
+          actual (into #{} (filter-lines (conf/ig) words lines))]
+      (= #{"foo  blue  1.0"
+           "bar  blue  4.0"
+           "baz  red   5.0"}
+         actual))))
+
+(deftest test-dvals
+  (are [dval] (dval-works? dval)
+       (dval/load-dval #'pu/edn-slurp [(io/resource "words.edn")])
+       (dval/copy-dval #'pu/edn-slurp [(io/resource "words.edn")])
+       (dval/edn-dval #{"blue" "baz"})))
