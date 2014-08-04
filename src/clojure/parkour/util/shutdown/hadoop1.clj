@@ -41,6 +41,6 @@
         (returning t
           (.put m nil nil) ;; Prevent cache from ever being empty
           (when t'
-            (add-hook #(some-> t' .start))
+            (add-hook #(when t' (.start t') (.join t')))
             (.removeShutdownHook (Runtime/getRuntime) t'))
           (.addShutdownHook (Runtime/getRuntime) t))))))
