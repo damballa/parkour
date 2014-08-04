@@ -25,16 +25,16 @@
 
 (defn dval-works?
   [words]
-  (th/with-config
-    (let [lines (text/dseq (io/resource "matrixify-input.txt"))
-          actual (into #{} (filter-lines (conf/ig) words lines))]
-      (= #{"foo  blue  1.0"
-           "bar  blue  4.0"
-           "baz  red   5.0"}
-         actual))))
+  (let [lines (text/dseq (io/resource "matrixify-input.txt"))
+        actual (into #{} (filter-lines (conf/ig) words lines))]
+    (= #{"foo  blue  1.0"
+         "bar  blue  4.0"
+         "baz  red   5.0"}
+       actual)))
 
 (deftest test-dvals
-  (are [dval] (dval-works? dval)
-       (dval/load-dval #'pu/edn-slurp [(io/resource "words.edn")])
-       (dval/copy-dval #'pu/edn-slurp [(io/resource "words.edn")])
-       (dval/edn-dval #{"blue" "baz"})))
+  (th/with-config
+    (are [dval] (dval-works? dval)
+         (dval/load-dval #'pu/edn-slurp [(io/resource "words.edn")])
+         (dval/copy-dval #'pu/edn-slurp [(io/resource "words.edn")])
+         (dval/edn-dval #{"blue" "baz"}))))
