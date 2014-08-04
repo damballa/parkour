@@ -1,7 +1,8 @@
 (ns parkour.io.transient
   (:require [pjstadig.scopes :as s]
             [parkour (conf :as conf) (fs :as fs)]
-            [parkour.util :as util :refer [ignore-errors doto-let]]))
+            [parkour.util :as util :refer [ignore-errors doto-let]])
+  (:import [org.apache.hadoop.fs Path]))
 
 (defonce
   ^{:private true
@@ -11,10 +12,12 @@
 
 (defn ^:private transient-root
   "Transient path root directory, as specified by `conf` if provided."
+  {:tag `Path}
   ([] (transient-root (conf/ig)))
   ([conf]
-     (or (conf/get conf "parkour.transient.dir")
-         (fs/path (fs/temp-root conf) run-id))))
+     (-> (or (conf/get conf "parkour.transient.dir")
+             (fs/path (fs/temp-root conf) run-id))
+         (fs/path))))
 
 (defn transient-path
   "Return new unique transient path, which will be deleted on process exit or
