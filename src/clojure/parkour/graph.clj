@@ -430,3 +430,14 @@ the distributed sequences produced by the job graph leaves."
                    (into {}))
         runner (if (mr/local-runner? conf) graph-delay graph-future)]
     (run-graph runner graph tails)))
+
+(defn fexecute
+  "As per `execute`, but require and return only a single result desq;
+almost `(comp first execute)`."
+  [graph conf jname]
+  (let [[result :as results] (execute graph conf jname)
+        nresults (count results)]
+    (if (= 1 nresults)
+      result
+      (throw (ex-info "Multiple outputs from `fexecute`d graph."
+                      {:nresults nresults})))))
