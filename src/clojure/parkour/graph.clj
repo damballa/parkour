@@ -239,7 +239,8 @@ or Clojure var `var` and optional `args`."
   [node cls-var & args]
   (if-not (identical? :partition (stage node))
     (error "combine" node)
-    (let [step (apply combiner-config cls-var args)]
+    (let [step [(apply combiner-config cls-var args)
+                (apply reducer-config cls-var args)]]
       (-> node (config step) (assoc :stage :combine)))))
 
 (defn reduce
