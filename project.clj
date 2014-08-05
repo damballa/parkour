@@ -66,7 +66,7 @@
      :java6 {:dependencies
              [[org.codehaus.jsr166-mirror/jsr166y "1.7.0"]]}
      :examples {:source-paths ["examples"]}
-     :hadoop-user [:java6 :avro-cdh4]
+     :hadoop-user [:java6 :avro-cdh4 :clojure-1-6-0]
      :jobjar [:hadoop-user :examples]
      :dev [:examples
            :conjars ;; For cascading-* *
