@@ -69,7 +69,7 @@ code re-writing).
 Parkour pushes most composition of computation back to the language layer, as
 explicit composition of Clojure functions within MapReduce task functions.  Task
 functions act on the portion of a distributed collection available within an
-individual task.  The prevents Parkour from providing explicit cross-task
+individual task.  This prevents Parkour from providing explicit cross-task
 operations, but allows task functions to call any Clojure collection function,
 not just the subset of methods provided by a distributed collection type.  Users
 must manually divide computations into tasks, but those tasks may combine into
@@ -79,7 +79,7 @@ build.
 ### Cascalog
 
 [Cascalog][cascalog] is the elephant in the room.  Why Parkour when Cascalog
-exists?  And especially when Cascalog 2 is right around the corner?
+exists?
 
 Cascalog and Cascading are both excellent pieces of engineering, but introduce
 significant complexity.  Fundamentally, Cascalog is not an integration layer for

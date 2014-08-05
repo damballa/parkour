@@ -1,5 +1,34 @@
 # Parkour News – history of user-visible changes
 
+## 0.6.0 / ?
+
+### Breaking changes
+
+- Deprecate direct invocation of source-shaping functions.
+- Normalize shuffle & sink type/schema arguments to vectors of such.
+- `TextInputFormat` dseq defaults to `:vals` source shape.
+- `AvroKeyInputFormat` dseq defaults to `:keys` source shape.
+- `AvroKeyOutputFormat` dsink defaults to `:keys` sink shape.
+
+### Other changes
+
+- Allow shorthand partition shuffle to specify only key class.
+- Add `dseq/input-paths` for determining dseq input paths.
+- Support direct Avro input via Hadoop filesystem paths.
+- Add `cser` namespace; de/serialize vars as task arguments.
+- Add distributed values (dvals) and documentation.
+- Modify file dsinks to allow implicit transient output paths.
+- Allow csteps to specify default source/sink shapes.
+- Allow in-memory dseqs to specify default source shape.
+- Wait for Hadoop 1.x FS cleanup hook to complete on exit.
+- Add `fexecute` function to job graph API.
+- Use combiner as reducer when reducer not later specified.
+- Extend `reducers` namespace of reducer-based helpers.
+- Add `toolbox` namespace of common task functions.
+- Make tuple sources `r/fold`-able via `map-combine`.
+- Allow `pg/input` to handle a vector of `:input` nodes.
+- Load task-side the same namespaces loaded locally.
+
 ## 0.5.4 / 2014-02-08
 
 - Ensure job-failure clean-up runs only once.

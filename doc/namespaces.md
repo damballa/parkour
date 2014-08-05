@@ -132,15 +132,18 @@ tuples.  The input reshaping functions allow access to key/value tuples, just
 keys or values, or – in reduce tasks – any combination of distinct grouping keys
 and reshaped sub-collections of grouped tuples.
 
+Generally the reshaping functions do not need to be invoked directly, and
+instead can be specified as keyword values to the `::mr/source-as` and
+`::mr/sink-as` metadata keys used by the `collfn` adapter.
+
 ```clj
 (require '[clojure.core.reducers :as r])
 (require '[parkour.mapreduce :as mr])
 
 (defn replacer
-  [val input]
-  (->> (mr/keys input)
-       (r/map (fn [key] [key val]))
-       (mr/sink-as :keyvals)))
+  {::mr/source-as :keys, ::mr/sink-as :keyvals}
+  [val coll]
+  (r/map (fn [key] [key val]) coll))
 
 (defn run-replacer
   [val]
@@ -163,6 +166,27 @@ step parameters as closed-over variables, exposing an entirely uniform interface
 for applying configuration steps to jobs.  This allows code to treat
 configuration steps as first-class entities, inverting the control pattern
 exposed by the base Hadoop Java API.
+
+### parkour.cser
+
+The `parkour.cser` namespace provides functions for writing/reading Clojure
+values to/from job configuration parameters as extended EDN:
+
+- `assoc!` – Sets a configuration parameter to the EDN representation of a
+  value.
+- `get` – Reads a value from the EDN representation stored in a configuration
+  parameter.
+
+In addition to the obvious, these functions provide the following behaviors:
+
+- For the dynamic scope of calls to `assoc!`, `parkour.cser/*conf*` will be
+  bound to the configuration being modified.  This provides `print-method`
+  implementations access to the configuration a value is being serialized into,
+  allowing them to access and modify other parameters as necessary to support
+  their serialization.
+- The printed form of Clojure vars (e.g. `#'foo/bar`) is read as `require`ing
+  the containing namespace then `resolve`ing the symbol.  This supports
+  e.g. higher-order tasks parameterized with other function-vars.
 
 ### parkour.cstep
 
@@ -224,6 +248,10 @@ locally.  The same `mr/sink` function used in job task functions will write
 local collections to these local sinks, producing the same output as when
 running a job.  This simplifies the creation of test fixtures, etc.
 
+The `parkour.io.dval` namespace provides a value-oriented interface for
+interacting with the Hadoop distributed cache.  It is described in detail in the
+documentation for [distributed values][dvals].
+
 Most of the remaining namespaces provide pre-built dseq and dsink
 implementations for common input and output formats:
 
@@ -256,19 +284,17 @@ de/muxing classes like `AvroMultipleOutputs`.
 (require '[parkour.io.text :as text])
 
 (->> (text/dseq "project.clj")
-     (r/map second)
      (r/map #(subs % 0 32))
      (r/take 1)
      (into []))
 ;;=> ["(defproject com.damballa/parkour"]
 
-;;Or with multiple inputs
-
-(->> (apply text/dseq (fs/path-glob "2014-*-*"))
-     (r/map second)
+;; Or with multiple inputs
+(->> (apply text/dseq (fs/path-glob "*.clj"))
      (r/map #(subs % 0 32))
      (r/take 1)
      (into [])))
+;;=> ["(defproject com.damballa/parkour"]
 ```
 
 ## Job graph API
@@ -301,15 +327,16 @@ The job graph API functions and associated stages are as follows:
   step, also accepts a vector of two classes, which are configured as the map
   output key and value classes for a basic shuffle.
 - `combine` – Accepts a `:partition` node and a combine-task var or class;
-  returns a `:combine` node.
+  returns a `:combine` node.  The provided combiner will double as the job
+  reducer if a separate reducer is not later specified.
 - `reduce` – Accepts a `:partition` or `:combine` node and a reduce-task var or
   class; returns a `:reduce` node.
-- `output` – Accepts a `:map` or `:reduce` node and an output dsink; returns a
-  `:input` node which consumes from the provided dsink’s associated dseq and
-  depends on the job node completed by the dsink’s configuration step.  Instead
-  of a single output dsink, also accepts multiple arguments as a sequence of
-  name-dsink outputs, which are configured as demultiplex named outputs; returns
-  a vector of `:input` nodes for the associated dseqs.
+- `output` – Accepts a `:map` or `:combine`/`:reduce` node and an output dsink;
+  returns a `:input` node which consumes from the provided dsink’s associated
+  dseq and depends on the job node completed by the dsink’s configuration step.
+  Instead of a single output dsink, also accepts multiple arguments as a
+  sequence of name-dsink outputs, which are configured as demultiplex named
+  outputs; returns a vector of `:input` nodes for the associated dseqs.
 
 In addition to the per-stage functions, the job graph API also provide a generic
 `config` function, which adds arbitrary configuration steps to a node in any
@@ -322,17 +349,19 @@ runs the jobs composing the graph, attempting to run independent jobs in
 parallel.  On successful completion, it returns a vector of the provided leaf
 node dseqs, and on failure throws an exception.
 
+For the common case where a job graph yield only a single output, the `fexecute`
+function will verify that there is only a single output and return it.
+
 ```clj
 (defn word-count
-  [conf dseq dsink]
-  (-> (pg/input dseq)
-      (pg/map #'mapper)
+  [conf lines]
+  (-> (pg/input lines)
+      (pg/map #'word-count-m)
       (pg/partition [Text LongWritable])
-      (pg/combine #'reducer)
-      (pg/reduce #'reducer)
-      (pg/sink dsink)
-      (pg/execute conf "word-count")
-      first))
+      (pg/combine #'ptb/keyvalgroups-r #'+)
+      (pg/output (seqf/dsink [Text LongWritable]))
+      (pg/fexecute conf `word-count)))
 ```
 
 [abracad]: https://github.com/damballa/abracad/
+[dvals]: https://github.com/damballa/parkour/blob/master/doc/dvals.md

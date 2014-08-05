@@ -1,4 +1,4 @@
-# dvals
+# Distributed values
 
 Parkour distributed values (dvals) provide a value-oriented interface for using
 the Hadoop distributed cache in Parkour MapReduce applications.
@@ -53,11 +53,11 @@ the value-oriented API provided by dvals.
 
 Parkour dvals are Clojure reference types similar to delays, but which capture a
 function-var plus arguments as explicitly separate and EDN-serializable values.
-These values form an executable and serializable “recipe” for the dval’s value,
-allowing complete and compact serialization of the dval even if its computed
-value supports neither.  Dvals may be passed as arguments to MapReduce tasks, in
-which case they deserialize task-side as delays over evaluation of their
-recipes.
+These component values form an executable and serializable “recipe” for the
+dval’s value, allowing complete and compact serialization of the dval even if
+its computed value supports neither.  Dvals may be passed as arguments to
+MapReduce tasks, in which case they deserialize task-side as delays over
+evaluation of their recipes.
 
 The `parkour.io.dval` namespace provides two base functions for creating dvals:
 

@@ -123,40 +123,38 @@ input tuples.  That collection may be directly reduced, or may be “reshaped”
 into a reducible and seqable collection containing a particular “shape” of the
 original key-value data.
 
-Tasks may specify a particular input shape in any of three ways: by directly
-calling one of Parkour’s input reshaping functions on the input collection; by
-calling the `mr/source-as` function with a shape keyword or function; or by
-using the `collfn` adapter and specifying a shape keyword or function as the
-value of the `::mr/source-as` key in their var metadata.
+Tasks may specify a particular input shape in one of two ways: by calling the
+`mr/source-as` function with a shape keyword or function; or by using the
+`collfn` adapter and specifying a shape keyword or function as the value of the
+`::mr/source-as` key in their var metadata.
 
-The reshaping functions all reside in the `parkour.mapreduce` namespace.  The
-associated shape keywords are simply the keyword version of the function base
-name e.g. `keyvals` -> `:keyvals`.
+The following shape keywords are available in both map and reduce/combine tasks:
 
-The following reshaping functions are available in both map and reduce/combine
-tasks:
-
-- `keyvals` – “Re-shape” as vectors of key-vals pairs.  Nearly the identity
+- `:default` – Use the default input shape specified in job configuration.  Will
+  be `:keyvals` if unspecified, but dseqs for input formats with idiosyncratic
+  key/value division may specify other shapes; e.g, `:vals` for
+  `TextInputFormat`.
+- `:keyvals` – Re-shape as vectors of key-vals pairs.  Nearly the identity
   transformation, but does allow the resulting collection to be seqable as well.
   This is the standard `Mapper` input shape.
-- `keys` – Just the keys from each key-value pair.
-- `vals` – Just the values from each key-value pair.
+- `:keys` – Just the keys from each key-value pair.
+- `:vals` – Just the values from each key-value pair.
 
-The following reshaping functions are available only in reduce/combine tasks:
+The following shape keywords are available only in reduce/combine tasks:
 
-- `keyvalgroups` – Vector pairs of the first instance of each distinct grouping
+- `:keyvalgroups` – Vector pairs of the first instance of each distinct grouping
   key and a sub-collection of all the values associated with that grouping key.
   This is the standard `Reducer` input shape.
-- `keygroups` – Just the first instance of each distinct grouping key.
-- `valgroups` – Just the sub-collections of values associated with each distinct
-  grouping key.
-- `keykeyvalgroups` – Vector pairs of the first instance of each distinct
+- `:keygroups` – Just the first instance of each distinct grouping key.
+- `:valgroups` – Just the sub-collections of values associated with each
+  distinct grouping key.
+- `:keykeyvalgroups` – Vector pairs of the first instance of each distinct
   grouping key and a sub-collection all the vector pairs of specific keys and
   values associated with that grouping key.
-- `keykeygroups` – Vector pairs of the first instance of each distinct grouping
+- `:keykeygroups` – Vector pairs of the first instance of each distinct grouping
   key and a sub-collection all specific keys associated with that grouping key.
-- `keysgroups` – Just the sub-collections all specific keys associated with each
-  distinct grouping key.
+- `:keysgroups` – Just the sub-collections all specific keys associated with
+  each distinct grouping key.
 
 ### Output sinks
 
@@ -172,6 +170,10 @@ The shape argument to `sink-as` may be a user-supplied function of two arguments
 performing the actual sinking, or a keyword indicating a standard built-in
 sinking function:
 
+- `:default` – Use the default ouput shape specified in job configuration.  Will
+  be `:keyvals` if unspecified, but dsinks for output formats with idiosyncratic
+  key/value division may specify other shapes; e.g. `:keys` for
+  `AvroKeyOutputFormat`.
 - `:keyvals` – Sink collection as pairs of tuple keys and values.
 - `:keys` – Sink collection values as output tuple keys, providing `nil` for
   each tuple value.
@@ -180,12 +182,8 @@ sinking function:
 - `:none` – Consume input without actually sinking any tuples.
 
 Parkour applies the `parkour.mapreduce/sink` function to these annotated
-collection to write the output tuples.  One may also call it explicitly in order
-to e.g. produce output from the reduction of a grouping sub-collection.
-
-The output shape annotations also allow composition of task functions for the
-above shapes – `(mr/keys (mr/sink-as :keys coll))` is a no-op, and `(mr/keys
-(mr/sink-as :keyvals coll))` is (almost) the same as `(map first coll)`.
+collections to write the output tuples.  One may also call it explicitly in
+order to e.g. produce output from the reduction of a grouping sub-collection.
 
 ## Partitioner
 

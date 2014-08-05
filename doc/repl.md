@@ -31,7 +31,7 @@ The parameters are:
 - `fs.default.name` / `fs.defaultFS`
 - `hadoop.security.authentication`
 
-There may be other – PRs for additional parameters appreciated.
+There may be others – PRs for additional parameters appreciated.
 
 ## Local-mode tests
 
@@ -59,8 +59,9 @@ Together, local processing of small samples of real data supports the rapid
 iteration which can make REPL-based development so effective.
 
 ```clj
-(word-count (conf/local-mr!) "file:tmp/outpath/0"
-            (sample/dseq (text/dseq "hdfs-giant-text-file.txt")))
+(->> (text/dseq "hdfs-giant-text-file.txt")
+     (sample/dseq)
+     (word-count (conf/local-mr!)))
 ```
 
 ## REPL-launched remote jobs
@@ -77,8 +78,8 @@ allows execution of any function with a job JAR built and a Hadoop configuration
 ready to deploy it.
 
 ```clj
-(launch! {"mapred.reduce.tasks" 313} word-count "outpath/0"
-         (text/dseq "hdfs-giant-text-file.txt"))
+(->> (text/dseq "hdfs-giant-text-file.txt")
+     (launch! {"mapred.reduce.tasks" 313} word-count))
 ```
 
 [lein-hadoop-cluster]: https://github.com/llasram/lein-hadoop-cluster

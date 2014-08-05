@@ -14,7 +14,7 @@ input or output key/value.
 Parkour makes this pattern concrete in the `parkour.wrapper` namespaces’s
 `Wrapper` protocol.  The `Wrapper` protocol provides two functions:
 
-- `unwrap` – Accepts a wrapper type instance; returns the wrapped value.
+- `unwrap` – Accepts a wrapper type instance; returns the extracted value.
   Defaults to returning the “wrapper” object itself.
 - `rewrap` – Accepts a wrapper type instance and a new value; returns a wrapper
   type instance holding the wrapped value.  Defaults to returning the value
@@ -26,7 +26,7 @@ optional, and may by skipped by specifying a non-unwrapping metadata
 `:parkour.mapreduce/adapter` function (such as `identity`) for task vars.  See
 the docstrings of `parkour.mapreduce/mapper!` and `parkour.mapreduce/reducer!`
 for more details.  The protocol functions may also be called manually, and many
-Parkour/Hadoop types are extended to do the obvious thing when `unwrap`ed.
+Hadoop types are already extended to do the obvious thing when `unwrap`ed.
 
 ## Specific serializations
 
@@ -35,8 +35,8 @@ others.
 
 ### Avro
 
-Although nothing embedded in Parkour’s design or implementation gives it special
-status, Avro is the preferred Parkour Hadoop serialization method.
+Although nothing embedded in Parkour’s design gives it special status, Avro is
+the preferred Parkour Hadoop serialization method.
 
 Unlike most common Hadoop serialization mechanisms, Avro does not require
 ahead-of-time compilation, code-generation, or concrete types.  With

@@ -10,7 +10,7 @@
 
 (defn dseq
   "Distributed sequence of input text file lines.  Tuples consist
-of (file offset, text line)."
+of (file offset, text line).  Default source shape is `:vals`."
   [& paths]
   (dseq/dseq
    (fn [^Job job]

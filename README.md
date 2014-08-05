@@ -20,7 +20,7 @@ Parkour is available on Clojars.  Add this `:dependency` to your Leiningen
 `project.clj`:
 
 ```clj
-[com.damballa/parkour "0.5.4"]
+[com.damballa/parkour "0.6.0"]
 ```
 
 ## Usage
@@ -29,32 +29,20 @@ The [Parkour introduction][intro] contains an overview of the key concepts, but
 here is the classic “word count” example, in Parkour:
 
 ```clj
-(defn mapper
-  {::mr/source-as :vals}
-  [input]
-  (->> input
+(defn word-count-m
+  [coll]
+  (->> coll
        (r/mapcat #(str/split % #"\s+"))
        (r/map #(-> [% 1]))))
 
-(defn reducer
-  {::mr/source-as :keyvalgroups}
-  [input]
-  (r/map (fn [[word counts]]
-           [word (r/reduce + 0 counts)])
-         input))
-
 (defn word-count
-  [conf workdir lines]
-  (let [wc-path (fs/path workdir "word-count")
-        wc-dsink (seqf/dsink [Text LongWritable] wc-path)]
-    (-> (pg/input lines)
-        (pg/map #'mapper)
-        (pg/partition [Text LongWritable])
-        (pg/combine #'reducer)
-        (pg/reduce #'reducer)
-        (pg/output wc-dsink)
-        (pg/execute conf "word-count")
-        first)))
+  [conf lines]
+  (-> (pg/input lines)
+      (pg/map #'word-count-m)
+      (pg/partition [Text LongWritable])
+      (pg/combine #'ptb/keyvalgroups-r #'+)
+      (pg/output (seqf/dsink [Text LongWritable]))
+      (pg/fexecute conf `word-count)))
 ```
 
 ## Documentation
@@ -73,6 +61,12 @@ Parkour’s documentation is divided into a number of separate sections:
   Parkour uses to run your code in MapReduce jobs.
 - [Serialization][serialization] – How Parkour integrates Clojure with Hadoop
   serialization mechanisms.
+- [Unified I/O][unified-io] – Unified collection-like local and distributed I/O
+  via Parkour dseqs and dsinks.
+- [Distributed values][dvals] – Parkour’s value-oriented interface to the Hadoop
+  distributed cache.
+- [Multiple I/O][multi-io] – Configuring multiple inputs and/or outputs for
+  single Hadoop MapReduce jobs.
 - [Reducers vs seqs][reducers-vs-seqs] – Why Parkour’s default idiom uses
   reducers, and when to use seqs instead.
 - [Testing][testing] – Patterns for testing Parkour MapReduce jobs.
@@ -102,6 +96,9 @@ Hickey, and is distributed under the Eclipse Public License v1.0.
 [repl]: https://github.com/damballa/parkour/blob/master/doc/repl.md
 [mr-detailed]: https://github.com/damballa/parkour/blob/master/doc/mr-detailed.md
 [serialization]: https://github.com/damballa/parkour/blob/master/doc/serialization.md
+[unified-io]: https://github.com/damballa/parkour/blob/master/doc/unified-io.md
+[dvals]: https://github.com/damballa/parkour/blob/master/doc/dvals.md
+[multi-io]: https://github.com/damballa/parkour/blob/master/doc/multi-io.md
 [reducers-vs-seqs]: https://github.com/damballa/parkour/blob/master/doc/reducers-vs-seqs.md
 [testing]: https://github.com/damballa/parkour/blob/master/doc/testing.md
 [deployment]: https://github.com/damballa/parkour/blob/master/doc/deployment.md

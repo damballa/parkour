@@ -1,15 +1,7 @@
 * Documentation
 
-** Multiple input/output documentation
 ** Examples
 *** Reduce-side join
-
-* More execution options
-
-Parkour currently inherits Hadoop’s default job-failure behavior when a job’s
-output directory already exists.  It would be nice to support other behaviors,
-such as skipping existing, overwriting existing, or a make-like model where
-outputs are overwritten when their inputs have changed.
 
 * Integration for writing other Hadoop classes
 
@@ -35,12 +27,6 @@ The ClassLoader approach may not however be possible.  It’s not clear if Hadoo
 allows tasks to configure an alternative ClassLoader prior to task
 initialization.
 
-* Make dseqs locally foldable
-
-Right now dseqs may be locally =reduce=-d, but there’s no reason they shouldn’t
-be =fold=-able.  The fold implementation should be able to use fork-join to run
-the fold in parallel across the input splits.
-
 * Support for EMR
 
 Probably a separate project.  Suggested by ztellman, potentially a Leiningen
@@ -62,11 +48,6 @@ record-reader (and context) for the original input split, allowing the same data
 to be subsequently re-processed.  Not certain this is a useful feature, but is
 an interesting idea.
 
-* Extended configuration serialization
-
-Provide an interface which ultimately allows objects to ship themselves via the
-distributed cache when they are serialized into a configuration.
-
 * n-record dseq
 
 A dseq which acts like NLineInputFormat, but wraps an arbitrary existing
@@ -77,12 +58,3 @@ records across <m> mappers).
 
 A dseq which distributes input records via the job configuration.  Should
 probably use extended configuration serialization.
-
-* dseq input path access
-
-Provide a multimethod for accessing a dseq's input paths.
-
-* Provide mapreduce utility namespace
-
-Provide a namespace of common mapreduce operations, such as a =first-p=
-partitioner, a =sum-r= reducer, etc.
