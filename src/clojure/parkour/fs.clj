@@ -100,6 +100,12 @@ extension of `clojure.java.io/Coercions`."
   (as-file [x] (io/as-file (uri x)))
   (as-url [x] (.toURL (uri x))))
 
+(defn path-qualified
+  "Expand path `p` to a filesystem-qualified path."
+  {:tag `Path}
+  ([p] (let [p (path p)] (path-qualified (path-fs p) p)))
+  ([fs p] (.makeQualified ^FileSystem fs (path p))))
+
 (defn path-glob
   "Expand path glob `p` to set of matching paths."
   ([p] (let [p (path p)] (path-glob (path-fs p) p)))

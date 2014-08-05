@@ -2,7 +2,7 @@
   (:require [clojure.core.protocols :as ccp]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (cser :as cser) (cstep :as cstep)
-             ,       (wrapper :as w)]
+             ,       (wrapper :as w) (fs :as fs)]
             [parkour.mapreduce (source :as src)]
             [parkour.io.dseq (mapred :as mr1) (mapreduce :as mr2)]
             [parkour.util :refer [ignore-errors coerce]])
@@ -89,3 +89,30 @@ job configuration step `obj`.  Result is a config step and reducible."
 (defn set-default-shape!
   "Set default source shape for `conf` to `shape`."
   [conf shape] (cser/assoc! conf "parkour.source-as.default" shape))
+
+(defn ^:private ensure-single!
+  [src-dseq paths]
+  (when-not (= 1 (count paths))
+    (throw (ex-info "Can only `move!` dseq with single concrete input path"
+                    {:src-dseq src-dseq}))))
+
+(defn input-path-setter
+  "Configuration step setting the input paths to `paths`"
+  [& paths]
+  (let [paths (fs/path-array paths)]
+    (fn [^Job job] (FileInputFormat/setInputPaths job paths))))
+
+(defn move!
+  "Move content for file-backed `src-dseq` -- which must have a single,
+concrete file input path -- to `dst-path`; return new dseq."
+  ([src-dseq dst-path] (move! (conf/ig) src-dseq dst-path))
+  ([conf src-dseq dst-path]
+     (let [fs (fs/path-fs conf dst-path)
+           ensure-single! (partial ensure-single! src-dseq)
+           [src-path] (doto (input-paths [conf src-dseq]) ensure-single!)
+           _ (when-not (= fs (fs/path-fs conf src-path))
+               (throw (ex-info "src-path and dst-path not on same FS"
+                               {:src-path src-path, :dst-path dst-path})))
+           [src-path] (doto (fs/path-glob fs src-path) ensure-single!)]
+       (.rename fs src-path dst-path)
+       (dseq [src-dseq (input-path-setter dst-path)]))))
