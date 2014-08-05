@@ -38,16 +38,13 @@ its first argument, follow by any number of additional (command-line string)
 argument."
   {:tag `Tool}
   ([f] (ParkourTool. nil f))
-  ([conf f] (ParkourTool. (conf/iguration conf) f)))
+  ([conf f] (ParkourTool. (conf/ig conf) f)))
 
 (defn run
   "Run the Tool/function `t` with the arguments `args`."
-  ([t args]
-     (let [t (coerce Tool tool t)
-           args (into-array String args)]
-       (ToolRunner/run ^Tool t args)))
+  ([t args] (run (conf/ig) t args))
   ([conf t args]
-     (let [conf (conf/iguration conf)
+     (let [conf (conf/ig conf)
            t (coerce Tool tool t)
            args (into-array String args)]
        (ToolRunner/run ^Configuration conf ^Tool t args))))
