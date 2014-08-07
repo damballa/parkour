@@ -54,6 +54,11 @@ tuple source will not automatically unwrap values."
     (with-open [source (source-for step)]
       (ccp/coll-reduce source f init)))
 
+  r/CollFold
+  (coll-fold [this n combinef reducef]
+    (with-open [source (source-for step)]
+      (r/coll-fold source n combinef reducef)))
+
   DSeqable
   (-dseq [this] this))
 

@@ -1,6 +1,7 @@
 (ns parkour.io.dseq.mapred
   {:private true}
   (:require [clojure.core.protocols :as ccp]
+            [clojure.core.reducers :as r]
             [parkour (conf :as conf) (wrapper :as w)]
             [parkour.util :refer [doto-let returning]]
             [parkour.mapreduce (source :as src)]
@@ -39,6 +40,8 @@
           (set! val (.createValue rr))
           (recur)))))
   (-close [_] (.close rr))
+  (-nsplits [_] 1)
+  (-splits [this] [this])
 
   java.io.Closeable
   (close [this] (src/-close this))
@@ -46,6 +49,10 @@
   ccp/CollReduce
   (coll-reduce [this f] (ccp/coll-reduce this f (f)))
   (coll-reduce [this f init] (src/source-reduce this f init))
+
+  r/CollFold
+  (coll-fold [this _ combinef reducef]
+    (src/source-fold this combinef reducef))
 
   Seqable
   (seq [this] (src/source-seq this)))

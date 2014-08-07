@@ -64,6 +64,10 @@
   (is (= ["apple" "banana" "carrot"]
          (->> (multi-split-dseq) (into []) sort vec))))
 
+(deftest test-multi-split-fold-auto
+  (let [dseq (multi-split-dseq)]
+    (is (= 1790 (->> dseq (r/mapcat identity) (r/map long) (r/reduce +))))
+    (is (= 1790 (->> dseq (r/mapcat identity) (r/map long) (r/fold +))))))
 
 (deftest test-multi-split-reduce-unwrap
   (with-open [source (dseq/source-for (multi-split-dseq))]

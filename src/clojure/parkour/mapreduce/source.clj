@@ -3,7 +3,10 @@
   (:require [clojure.core :as cc]
             [clojure.core.reducers :as r]
             [clojure.core.protocols :as ccp]
-            [parkour (conf :as conf) (cser :as cser) (wrapper :as w)])
+            [parkour (conf :as conf) (cser :as cser) (wrapper :as w)
+             ,       (reducers :as pr)]
+            [parkour.util :refer [returning]]
+            [parkour.util.map-combine :refer [map-combine]])
   (:import [clojure.lang Seqable]
            [java.io Closeable]
            [java.util Collection]
@@ -14,24 +17,36 @@
 (defprotocol TupleSource
   "Internal protocol for iterating over key/value tuples from a source
 of such tuples."
-  (key [this]
+  (key [source]
     "Current tuple's key.")
-  (val [this]
+  (val [source]
     "Current tuple's value.")
-  (vals [this]
+  (vals [source]
     "Current key's sequence of associated values.")
-  (next-keyval [this]
+  (next-keyval [source]
     "Source updated to next key/value tuple, implementation.")
-  (next-key [this]
+  (next-key [source]
     "Source updated to next distinct key, implementation.")
   (-close [source]
-    "Close the source, cleaning up any associated resources."))
+    "Close the source, cleaning up any associated resources.")
+  (-nsplits [source]
+    "Number of splits into which source may be divided.")
+  (-splits [source]
+    "Sequence of tuple sources for each split of original source."))
 
 (declare source-as)
 
 (defn source?
   "True iff `x` is a tuple source."
   [x] (satisfies? TupleSource x))
+
+(defn nsplits
+  "Number of splits into which source may be divided."
+  ^long [source] (-nsplits source))
+
+(defn splits
+  "Sequence of tuple sources for each split of original source."
+  [source] (case (nsplits source) 0 nil, 1 [source], #_else (-splits source)))
 
 (defn keyval
   "Pair of current tuple's key and value."
@@ -49,6 +64,10 @@ of such tuples."
     (coll-reduce [this f1] (ccp/coll-reduce this f1 (f1)))
     (coll-reduce [_ f1 init] (r/reduce f1 init (r/map f coll)))
 
+    r/CollFold
+    (coll-fold [_ n combinef reducef]
+      (r/fold n combinef reducef (r/map f coll)))
+
     Seqable
     (seq [_] (map f coll))))
 
@@ -64,21 +83,45 @@ of such tuples."
   "Current grouping key's sequence of grouped keys."
   [context] (mapping (fn [_] (key context)) (vals context)))
 
-(defn source-reduce
+(defn source-reduce*
   "As per `reduce`, but in terms of the `TupleSource` protocol.  When provided,
 applies `nextf` to `source` to retrieve the next tuple source for each iteration
 and `dataf` to retrieve the tuple values passed to `f`."
   ([source f init]
-     (source-reduce next-keyval keyval source f init))
+     (source-reduce* next-keyval keyval source f init))
   ([nextf dataf source f init]
      (loop [source source, state init]
-       (let [source (nextf source)]
-         (if-not source
+       (let [source' (nextf source)]
+         (if (nil? source')
            state
-           (let [state (f state (dataf source))]
-             (if (reduced? state)
-               @state
-               (recur source state))))))))
+           (if-not (identical? source source')
+             (recur source' state)
+             (let [state' (f state (dataf source'))]
+               (if (reduced? state')
+                 @state'
+                 (recur source' state')))))))))
+
+(defn source-reduce
+  ([source f init]
+     (source-reduce next-keyval keyval source f init))
+  ([nextf dataf source f init]
+     (case (nsplits source)
+       0 init
+       1 (source-reduce* nextf dataf source f init)
+       , (reduce (fn [acc source]
+                   (source-reduce* nextf dataf source f acc))
+                 init (splits source)))))
+
+(defn source-fold
+  "As per `r/fold`, but in terms of the `TupleSource` protocol."
+  ([source combinef reducef]
+     (source-fold next-keyval keyval source combinef reducef))
+  ([nextf dataf source combinef reducef]
+     (case (nsplits source)
+       0 (combinef)
+       1 (source-reduce* nextf dataf source reducef (combinef))
+       , (let [mapf #(source-reduce* nextf dataf % reducef (combinef))]
+           (map-combine mapf combinef (splits source))))))
 
 (defn source-seq
   "A seq for `source`, in terms of the `TupleSource` protocol.  When provided,
@@ -89,32 +132,49 @@ and `dataf` to retrieve the tuple values passed to `f`."
   ([nextf dataf source]
      ((fn step [source]
         (lazy-seq
-         (if-let [source (nextf source)]
-           (cons (dataf source) (step source)))))
+         (if-let [source' (nextf source)]
+           (if-not (identical? source source')
+             (step source')
+             (cons (dataf source') (step source'))))))
       source)))
 
 (defn reducer
   "Make a tuple source `source` `reduce`able and `seq`able with particular
 iteration function `nextf` and extraction function `dataf`."
   [nextf dataf source]
-  (reify
-    ccp/CollReduce
-    (coll-reduce [this f] (ccp/coll-reduce this f (f)))
-    (coll-reduce [_ f init] (source-reduce nextf dataf source f init))
+  (let [reducer (partial reducer nextf dataf)]
+    (reify
+      ccp/CollReduce
+      (coll-reduce [this f] (ccp/coll-reduce this f (f)))
+      (coll-reduce [_ f init] (source-reduce nextf dataf source f init))
 
-    Seqable
-    (seq [_] (source-seq nextf dataf source))
+      r/CollFold
+      (coll-fold [_ _ combinef reducef]
+        (source-fold nextf dataf source combinef reducef))
 
-    Closeable
-    (close [_] (-close source))
+      Seqable
+      (seq [_] (source-seq nextf dataf source))
 
-    TupleSource
-    (key [_] (key source))
-    (val [_] (val source))
-    (vals [_] (vals source))
-    (next-keyval [this] (next-keyval source))
-    (next-key [this] (next-key source))
-    (-close [_] (-close source))))
+      Closeable
+      (close [_] (-close source))
+
+      TupleSource
+      (key [_] (key source))
+      (val [_] (val source))
+      (vals [_] (vals source))
+      (next-keyval [this]
+        (if-let [source' (next-keyval source)]
+          (if (identical? source source')
+            this
+            (reducer source'))))
+      (next-key [this]
+        (if-let [source' (next-key source)]
+          (if (identical? source source')
+            this
+            (reducer source'))))
+      (-close [_] (-close source))
+      (-nsplits [_] (-nsplits source))
+      (-splits [_] (map reducer (-splits source))))))
 
 (defn seq-source
   [coll]
@@ -123,22 +183,30 @@ iteration function `nextf` and extraction function `dataf`."
       (key [_] (nth (first coll) 0))
       (val [_] (nth (first coll) 1))
       (next-keyval [_] (seq-source (rest coll)))
-      (-close [_]))))
+      (-close [_])
+      (-nsplits [_] 1)
+      (-splits [this] [this]))))
 
 (extend-protocol TupleSource
   nil
   (next-keyval [_] nil)
   (-close [_])
+  (-nsplits [_] 0)
+  (-splits [_] nil)
 
   Collection
   (next-keyval [this] (seq-source this))
   (-close [_])
+  (-nsplits [_] 1)
+  (-splits [this] [this])
 
   MapContext
   (key [this] (.getCurrentKey this))
   (val [this] (.getCurrentValue this))
   (next-keyval [this] (if (.nextKeyValue this) this))
   (-close [_])
+  (-nsplits [_] 1)
+  (-splits [this] [this])
 
   ReduceContext
   (key [this] (.getCurrentKey this))
@@ -146,13 +214,19 @@ iteration function `nextf` and extraction function `dataf`."
   (vals [this] (.getValues this))
   (next-keyval [this] (if (.nextKeyValue this) this))
   (next-key [this] (if (.nextKey this) this))
-  (-close [_]))
+  (-close [_])
+  (-nsplits [_] 1)
+  (-splits [this] [this]))
 
-(extend-protocol ccp/CollReduce
-  TaskInputOutputContext
+(extend-type TaskInputOutputContext
+  ccp/CollReduce
   (coll-reduce
     ([this f] (ccp/coll-reduce this f (f)))
-    ([this f init] (source-reduce this f init))))
+    ([this f init] (source-reduce this f init)))
+
+  r/CollFold
+  (coll-fold [this _ combinef reducef]
+    (source-fold this combinef reducef)))
 
 (defn unwrap-source
   "Produce \"unwrapper\" for `source`, which unwraps each accessed entry."
@@ -165,9 +239,19 @@ iteration function `nextf` and extraction function `dataf`."
     (key [_] (w/unwrap (key source)))
     (val [_] (w/unwrap (val source)))
     (vals [_] (mapping w/unwrap (vals source)))
-    (next-keyval [this] (if (next-keyval source) this))
-    (next-key [this] (if (next-key source) this))
+    (next-keyval [this]
+      (if-let [source' (next-keyval source)]
+        (if (identical? source source')
+          this
+          (unwrap-source source'))))
+    (next-key [this]
+      (if-let [source' (next-key source)]
+        (if (identical? source source')
+          this
+          (unwrap-source source'))))
     (-close [_] (-close source))
+    (-nsplits [_] (-nsplits source))
+    (-splits [this] (map unwrap-source (-splits source)))
 
     Closeable
     (close [_] (-close source))
@@ -175,6 +259,10 @@ iteration function `nextf` and extraction function `dataf`."
     ccp/CollReduce
     (coll-reduce [this f] (ccp/coll-reduce this f (f)))
     (coll-reduce [this f init] (source-reduce this f init))
+
+    r/CollFold
+    (coll-fold [this _ combinef reducef]
+      (source-fold this combinef reducef))
 
     Seqable
     (seq [this] (source-seq this))))
