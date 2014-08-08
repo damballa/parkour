@@ -5,9 +5,9 @@
             [clojure.core.reducers :as r]
             [clojure.tools.logging :as log]
             [parkour (conf :as conf) (fs :as fs) (cstep :as cstep)
-                     (wrapper :as w) (mapreduce :as mr) (reducers :as pr)]
+             ,        (wrapper :as w) (mapreduce :as mr) (reducers :as pr)]
             [parkour.io (dseq :as dseq) (dsink :as dsink)
-                        (mux :as mux) (dux :as dux)]
+             ,          (mux :as mux) (dux :as dux)]
             [parkour.util.shutdown :as shutdown]
             [parkour.util :refer
              [ignore-errors returning doto-let prev-reset!]])
@@ -93,16 +93,18 @@ vector of the result entries for the keys in the collection `outputs`."
     [] (swap! id inc)))
 
 (defn input
-  "Return a fresh `:input`-stage job graph node consuming from the provided
-`dseq`.  If instead provided a `:input`-stage node, will return it."
-  [dseq]
-  (if (identical? :input (:stage dseq))
-    dseq
-    {:stage :input,
-     :input-id (gen-id),
-     :config [(dseq/dseq dseq)],
-     :requires [],
-     }))
+  "Return a fresh `:input`-stage job graph node consuming from the provided dseq
+`node`.  If instead provided an `:input`-stage node or vector of such nodes,
+acts as the identity function."
+  [node]
+  (let [input? #(identical? :input (:stage %))]
+    (if (or (input? node) (and (vector? node) (every? input? node)))
+      node
+      {:stage :input,
+       :input-id (gen-id),
+       :config [(dseq/dseq node)],
+       :requires [],
+       })))
 
 (def
   ^{:deprecated true, :arglists '([dseq])}
