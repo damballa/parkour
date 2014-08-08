@@ -1,6 +1,7 @@
 (ns parkour.util.map-combine
   (:import [java.util.concurrent
-            , Executors ExecutorService Future TimeUnit ThreadPoolExecutor]))
+            , Executors ExecutorService Future TimeUnit ThreadPoolExecutor]
+           [clojure.lang Var]))
 
 (def ^:private ^ThreadPoolExecutor pool
   "Default thread pool for map-combine task execution."
@@ -11,15 +12,18 @@
       (.allowCoreThreadTimeOut true))))
 
 (defn ^:private mc-task
-  [state result combinef mapf x]
-  (fn []
-    (try
-      (let [x (mapf x), f (fn [[n r]] [(dec n) (combinef r x)])
-            [n r] (swap! state f)]
-        (when (zero? n)
-          (deliver result [:success r])))
-      (catch Exception e
-        (deliver result [:failure e])))))
+  [state result combinef mapf]
+  (let [frame (Var/cloneThreadBindingFrame)]
+    (fn [x]
+      (fn []
+        (Var/resetThreadBindingFrame frame)
+        (try
+          (let [x (mapf x), f (fn [[n r]] [(dec n) (combinef r x)])
+                [n r] (swap! state f)]
+            (when (zero? n)
+              (deliver result [:success r])))
+          (catch Exception e
+            (deliver result [:failure e])))))))
 
 (defn map-combine
   "Apply `mapf` to each element of `coll`, then combine those results with
@@ -29,7 +33,7 @@ may be combined in any order."
   ([mapf combinef coll] (map-combine pool mapf combinef coll))
   ([^ExecutorService pool mapf combinef coll]
      (let [state (atom [(count coll) (combinef)]), result (promise)
-           futf (partial mc-task state result combinef mapf)
+           futf (mc-task state result combinef mapf)
            futs (mapv #(.submit pool ^Callable (futf %)) coll)
            [status result] (try @result (catch Exception e [:failure e]))]
        (if (identical? :success status)

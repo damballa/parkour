@@ -69,6 +69,17 @@
     (is (= 1790 (->> dseq (r/mapcat identity) (r/map long) (r/reduce +))))
     (is (= 1790 (->> dseq (r/mapcat identity) (r/map long) (r/fold +))))))
 
+(def ^:dynamic *magic-increment*
+  "Magic increment for testing dynamic binding conveyance."
+  1)
+
+(deftest test-multi-split-fold-auto-bindings
+  (let [dseq (multi-split-dseq)]
+    (let [f (fn ([] 0) ([x y] (+ *magic-increment* x y)))]
+      (is (not= 1790 (->> dseq (r/mapcat identity) (r/map long) (r/fold f))))
+      (binding [*magic-increment* 0]
+        (is (= 1790 (->> dseq (r/mapcat identity) (r/map long) (r/fold f))))))))
+
 (deftest test-multi-split-reduce-unwrap
   (with-open [source (dseq/source-for (multi-split-dseq))]
     (is (= ["apple" "banana" "carrot"]
