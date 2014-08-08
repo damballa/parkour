@@ -27,6 +27,8 @@ of such tuples."
     "Source updated to next key/value tuple, implementation.")
   (next-key [source]
     "Source updated to next distinct key, implementation.")
+  (-initialize [source]
+    "Initialize the source for reading tuples.")
   (-close [source]
     "Close the source, cleaning up any associated resources.")
   (-nsplits [source]
@@ -39,6 +41,11 @@ of such tuples."
 (defn source?
   "True iff `x` is a tuple source."
   [x] (satisfies? TupleSource x))
+
+(defn initialize
+  "Initialize the source for reading tuples."
+  {:tag `Closeable}
+  [source] (returning source (-initialize source)))
 
 (defn nsplits
   "Number of splits into which source may be divided."
@@ -84,30 +91,28 @@ of such tuples."
   [context] (mapping (fn [_] (key context)) (vals context)))
 
 (defn source-reduce*
+  "Single-source implementation of `source-reduce`."
+  [nextf dataf source f init]
+  (with-open [source (initialize source)]
+    (loop [acc init]
+      (if-not (nextf source)
+        acc
+        (let [acc (f acc (dataf source))]
+          (if (reduced? acc)
+            acc
+            (recur acc)))))))
+
+(defn source-reduce
   "As per `reduce`, but in terms of the `TupleSource` protocol.  When provided,
 applies `nextf` to `source` to retrieve the next tuple source for each iteration
 and `dataf` to retrieve the tuple values passed to `f`."
-  ([source f init]
-     (source-reduce* next-keyval keyval source f init))
-  ([nextf dataf source f init]
-     (loop [source source, state init]
-       (let [source' (nextf source)]
-         (if (nil? source')
-           state
-           (if-not (identical? source source')
-             (recur source' state)
-             (let [state' (f state (dataf source'))]
-               (if (reduced? state')
-                 @state'
-                 (recur source' state')))))))))
-
-(defn source-reduce
   ([source f init]
      (source-reduce next-keyval keyval source f init))
   ([nextf dataf source f init]
      (case (nsplits source)
        0 init
-       1 (source-reduce* nextf dataf source f init)
+       1 (let [acc (source-reduce* nextf dataf source f init)]
+           (if (reduced? acc) @acc acc))
        , (reduce (fn [acc source]
                    (source-reduce* nextf dataf source f acc))
                  init (splits source)))))
@@ -123,20 +128,24 @@ and `dataf` to retrieve the tuple values passed to `f`."
        , (let [mapf #(source-reduce* nextf dataf % reducef (combinef))]
            (map-combine mapf combinef (splits source))))))
 
+(defn source-seq*
+  "Single-source implementation of `source-seq`."
+  [nextf dataf source]
+  ((fn step [source]
+     (lazy-seq
+      (if-not (nextf source)
+        (-close source)
+        (cons (dataf source) (step source)))))
+   (initialize source)))
+
 (defn source-seq
-  "A seq for `source`, in terms of the `TupleSource` protocol.  When provided,
-applies `nextf` to `source` to retrieve the next tuple source for each iteration
-and `dataf` to retrieve the tuple values passed to `f`."
   ([source]
      (source-seq next-keyval keyval source))
   ([nextf dataf source]
-     ((fn step [source]
-        (lazy-seq
-         (if-let [source' (nextf source)]
-           (if-not (identical? source source')
-             (step source')
-             (cons (dataf source') (step source'))))))
-      source)))
+     (case (nsplits source)
+       0 nil
+       1 (source-seq* nextf dataf source)
+       , (mapcat (partial source-seq* nextf dataf) (splits source)))))
 
 (defn reducer
   "Make a tuple source `source` `reduce`able and `seq`able with particular
@@ -162,48 +171,48 @@ iteration function `nextf` and extraction function `dataf`."
       (key [_] (key source))
       (val [_] (val source))
       (vals [_] (vals source))
-      (next-keyval [this]
-        (if-let [source' (next-keyval source)]
-          (if (identical? source source')
-            this
-            (reducer source'))))
-      (next-key [this]
-        (if-let [source' (next-key source)]
-          (if (identical? source source')
-            this
-            (reducer source'))))
+      (next-keyval [this] (next-keyval source))
+      (next-key [this] (next-key source))
+      (-initialize [_] (-initialize source))
       (-close [_] (-close source))
       (-nsplits [_] (-nsplits source))
       (-splits [_] (map reducer (-splits source))))))
 
 (defn seq-source
+  "Make a tuple source from `seq`able collection `coll`."
   [coll]
-  (if-let [coll (seq coll)]
-    (reify TupleSource
-      (key [_] (nth (first coll) 0))
-      (val [_] (nth (first coll) 1))
-      (next-keyval [_] (seq-source (rest coll)))
+  (let [coll (seq coll), tuples (atom coll)]
+    (reify
+      TupleSource
+      (key [_] (nth (first @tuples) 0))
+      (val [_] (nth (first @tuples) 1))
+      (next-keyval [_] (boolean (swap! tuples next)))
+      (-initialize [_])
       (-close [_])
       (-nsplits [_] 1)
-      (-splits [this] [this]))))
+      (-splits [this] [this])
+
+      Closeable
+      (close [_])
+
+      Seqable
+      (seq [_] coll))))
 
 (extend-protocol TupleSource
   nil
-  (next-keyval [_] nil)
+  (key [_] nil)
+  (val [_] nil)
+  (next-keyval [_] false)
+  (-initialize [_])
   (-close [_])
   (-nsplits [_] 0)
   (-splits [_] nil)
 
-  Collection
-  (next-keyval [this] (seq-source this))
-  (-close [_])
-  (-nsplits [_] 1)
-  (-splits [this] [this])
-
   MapContext
   (key [this] (.getCurrentKey this))
   (val [this] (.getCurrentValue this))
-  (next-keyval [this] (if (.nextKeyValue this) this))
+  (next-keyval [this] (.nextKeyValue this))
+  (-initialize [_])
   (-close [_])
   (-nsplits [_] 1)
   (-splits [this] [this])
@@ -212,8 +221,9 @@ iteration function `nextf` and extraction function `dataf`."
   (key [this] (.getCurrentKey this))
   (val [this] (.getCurrentValue this))
   (vals [this] (.getValues this))
-  (next-keyval [this] (if (.nextKeyValue this) this))
-  (next-key [this] (if (.nextKey this) this))
+  (next-keyval [this] (.nextKeyValue this))
+  (next-key [this] (.nextKey this))
+  (-initialize [_])
   (-close [_])
   (-nsplits [_] 1)
   (-splits [this] [this]))
@@ -239,16 +249,9 @@ iteration function `nextf` and extraction function `dataf`."
     (key [_] (w/unwrap (key source)))
     (val [_] (w/unwrap (val source)))
     (vals [_] (mapping w/unwrap (vals source)))
-    (next-keyval [this]
-      (if-let [source' (next-keyval source)]
-        (if (identical? source source')
-          this
-          (unwrap-source source'))))
-    (next-key [this]
-      (if-let [source' (next-key source)]
-        (if (identical? source source')
-          this
-          (unwrap-source source'))))
+    (next-keyval [this] (next-keyval source))
+    (next-key [this] (next-key source))
+    (-initialize [_] (-initialize source))
     (-close [_] (-close source))
     (-nsplits [_] (-nsplits source))
     (-splits [this] (map unwrap-source (-splits source)))

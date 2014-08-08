@@ -31,7 +31,7 @@
   (val [_] val)
   (next-keyval [this]
     (if (and rr (or (.next rr key val) (returning false (.close rr))))
-      this
+      true
       (if-not (empty? splits)
         (let [split (first splits)]
           (set! splits (rest splits))
@@ -39,6 +39,7 @@
           (set! key (.createKey rr))
           (set! val (.createValue rr))
           (recur)))))
+  (-initialize [_])
   (-close [_] (.close rr))
   (-nsplits [_] 1)
   (-splits [this] [this])
