@@ -7,12 +7,11 @@ to rows, `dst` nodes to column, and `weight`s to matrix values."
             [clojure.core.reducers :as r]
             [transduce.reducers :as tr]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
-             ,       (graph :as pg) (tool :as tool)]
+             ,       (toolbox :as ptb) (graph :as pg) (tool :as tool)]
             [parkour.io (dseq :as dseq) (text :as text) (avro :as mra)
              ,          (dux :as dux) (dval :as dval)]
             [parkour.util :refer [returning]]
-            [abracad.avro :as avro])
-  (:import [org.apache.hadoop.mapreduce Mapper]))
+            [abracad.avro :as avro]))
 
 (defn parse-m
   "Parse text input lines into (source, dest, weight) graph edges."
@@ -78,7 +77,7 @@ returning dseq on final matrix entries."
                          :counts (mra/dsink [:long :long])))
         [r-data r-counts]
         , (-> (pg/input c-data)
-              (pg/map Mapper)
+              (pg/map #'ptb/identity-t)
               (pg/partition (mra/shuffle [:string index-value]))
               (pg/reduce #'dim-count-r)
               (pg/output :data (mra/dsink [long-pair index-value])
