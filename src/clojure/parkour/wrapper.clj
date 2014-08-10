@@ -4,8 +4,9 @@
             [parkour.util :refer [returning]])
   (:import [clojure.lang IPersistentVector]
            [org.apache.hadoop.io
-             NullWritable Text Writable IntWritable LongWritable
-             DoubleWritable FloatWritable]
+            , NullWritable Text Writable IntWritable LongWritable
+            , DoubleWritable FloatWritable VIntWritable VLongWritable
+            , BytesWritable BooleanWritable]
            [org.apache.hadoop.util ReflectionUtils]))
 
 (defprotocol Wrapper
@@ -77,13 +78,21 @@
   Text
   (unwrap [wobj] (.toString wobj))
   (rewrap [wobj obj]
-    (returning wobj (.set wobj ^String obj))))
+    (doto wobj (.set ^String obj)))
+
+  BytesWritable
+  (unwrap [wobj] (.get wobj))
+  (rewrap [wobj ^bytes obj]
+    (doto wobj (.set obj 0 (alength obj)))))
 
 (auto-wrapper
   IntWritable
   LongWritable
+  VIntWritable
+  VLongWritable
+  FloatWritable
   DoubleWritable
-  FloatWritable)
+  BooleanWritable)
 
 (def ^:no-doc ^:internal new-instance* nil)
 (defmulti ^:no-doc ^:internal new-instance*
