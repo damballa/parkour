@@ -1,7 +1,7 @@
 (ns parkour.util
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io])
-  (:import [java.io PushbackReader Writer]
+  (:import [java.io PushbackReader Writer ObjectInputStream ObjectOutputStream]
            [clojure.lang IPending]))
 
 (defmacro ignore-errors
@@ -34,6 +34,16 @@ already an instance of `c`."
 (defn map-vals
   "Return a new map made by mapping `f` over the values of `m`."
   [f m] (into {} (map (fn [[k v]] [k (f v)]) m)))
+
+(defn realized-seq
+  "Seq of only the already-realized portion of `coll`."
+  [coll]
+  (if-not (instance? IPending coll)
+    (seq coll)
+    (lazy-seq
+     (if (realized? coll)
+       (cons (first coll)
+             (realized-seq (rest coll)))))))
 
 (defn var-str
   "String fully-qualified name of a var."
@@ -104,12 +114,14 @@ already an instance of `c`."
   (with-open [f (PushbackReader. (apply io/reader f opts))]
     (edn/read {:readers *data-readers*} f)))
 
-(defn realized-seq
-  "Seq of only the already-realized portion of `coll`."
-  [coll]
-  (if-not (instance? IPending coll)
-    (seq coll)
-    (lazy-seq
-     (if (realized? coll)
-       (cons (first coll)
-             (realized-seq (rest coll)))))))
+(defn jser-spit
+  "Like `split`, but emits `content` to `f` via Java serialization."
+  [f content & opts]
+  (with-open [oos (ObjectOutputStream. (apply io/output-stream f opts))]
+    (.writeObject oos content)))
+
+(defn jser-slurp
+  "Like `slurp`, but reads content from `f` via Java serialization."
+  [f & opts]
+  (with-open [ois (ObjectInputStream. (apply io/input-stream f opts))]
+    (.readObject ois)))

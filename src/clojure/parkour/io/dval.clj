@@ -77,7 +77,7 @@
   "Generate distinct distcache-entry name for `source`."
   [source] (str (gensym "dval-") "-" (-> source fs/path .getName)))
 
-(defn dval
+(defn ^:private dval
   "Return a dval which locally holds `value` and remotely will deserialize by
 applying var `readv` to the concatenation of `params` and distributed copies of
 `sources`."
@@ -119,3 +119,7 @@ serialization path."
 (defn edn-dval
   "EDN-serialize `value` to a transient location and yield a wrapping dval."
   [value] (transient-dval util/edn-spit #'util/edn-slurp value))
+
+(defn jser-dval
+  "Java-serialize `value` to a transient location and yield a wrapping dval."
+  [value] (transient-dval util/jser-spit #'util/jser-slurp value))
