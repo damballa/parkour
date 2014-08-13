@@ -65,8 +65,7 @@ data with parallel index (reducer, offset) tuple and final reducer count."
 (def entry (avro/tuple-schema [:long :long :double]))
 
 (defn matrixify
-  "Run matrix-ification jobs for `dseq`, storing output under `workdir` and
-returning dseq on final matrix entries."
+  "Run matrix-ification jobs for `dseq`. Return dseq on final matrix entries."
   [conf dseq]
   (let [[c-data c-counts]
         , (-> (pg/input dseq)
@@ -84,7 +83,7 @@ returning dseq on final matrix entries."
                          :counts (mra/dsink [:long :long])))
         [c-counts r-counts r-data]
         , (-> [c-counts r-counts r-data]
-              (pg/execute conf "matrixify/dim-count"))
+              (pg/execute conf `dim-count))
         c-offsets (dval/edn-dval (offsets c-counts))
         r-offsets (dval/edn-dval (offsets r-counts))]
     (-> (pg/input r-data)
