@@ -131,8 +131,7 @@ vector of the results."
 
 (defn ffilter
   "Returns the first item in `coll` for which `(pred item)` is true."
-  ([coll] (ffilter identity coll))
-  ([pred coll] (reduce (fn [_ x] (if (pred x) (reduced x))) nil coll)))
+  [pred coll] (reduce (fn [_ x] (if (pred x) (reduced x))) nil coll))
 
 (def keep
   "Like `keep`, but implemented in terms of `reduce`"
