@@ -157,8 +157,9 @@ schema `vs`, and optional grouping schema `gs`."
   [schemas] (apply shuffle* schemas))
 
 (defn dsink
-  "Distributed sink for Avro output, applying the vector of `schemas` as per the
-arguments to `set-output`, and writing to `path`."
+  "Distributed sink for writing Avro data files at `path`, or a transient path
+if not provided.  Configures output schemas as per application of `set-output`
+to `schemas`."
   ([schemas] (dsink schemas (transient-path)))
   ([schemas path]
      (dsink/dsink

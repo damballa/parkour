@@ -19,9 +19,9 @@ of (file offset, text line)."
      (dseq/set-default-shape! job :vals))))
 
 (defn dsink
-  "Distributed sink for line-delimited text output.  Produces one line
-per tuple containing TAB-separated results of invoking `.toString`
-method of tuple members."
+  "Distributed sink for writing line-delimited text output at `path`, or a
+transient path if not provided.  Produces one line per tuple containing
+TAB-separated results of invoking `.toString` method of tuple members."
   ([] (dsink (transient-path)))
   ([path]
      (dsink/dsink

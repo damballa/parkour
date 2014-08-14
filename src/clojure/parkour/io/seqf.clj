@@ -18,7 +18,8 @@
      (FileInputFormat/setInputPaths job (fs/path-array paths)))))
 
 (defn dsink
-  "Distributed sink writing tuples of classes `ckey` and `cval` to `path`."
+  "Distributed sink writing `Writable` tuples of classes `ckey` and `cval` to
+sequence files at `path`, or a transient path if not provided."
   ([[ckey cval]] (dsink [ckey cval] (transient-path)))
   ([[ckey cval] path]
      (let [cval (if-not (nil? cval) cval NullWritable)]

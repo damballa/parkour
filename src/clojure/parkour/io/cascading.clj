@@ -28,9 +28,9 @@
   [& paths] (dseq/dseq [add-serializations (apply seqf/dseq paths)]))
 
 (defn dsink
-  "Distributed sink writing `Tuple`s to Cascading sequence file at `path`.
-Although both the keys and values are `Tuple`s, Cascading uses only the sequence
-file values."
+  "Distributed sink writing `Tuple`s to Cascading sequence files at `path`, or a
+transient path if not provided.  Although both the keys and values are `Tuple`s,
+Cascading uses only the sequence file values."
   ([] (dsink (transient-path)))
   ([path]
      (dsink/dsink
