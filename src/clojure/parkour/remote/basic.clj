@@ -9,13 +9,15 @@
   (:import [clojure.lang IFn$OOLL Var]
            [org.apache.hadoop.mapreduce MapContext]))
 
-(defn require-readers
-  "Require the namespaces of all `*data-readers*` vars."
-  [] (doseq [[_ ^Var v] *data-readers*] (-> v .-ns ns-name require)))
+(defn require-namespaces
+  "Require the namespaces specified by `conf`."
+  [conf]
+  (when-let [nses (cser/get conf "parkour.namespaces" nil)]
+    (apply require (apply sorted-set nses))))
 
 (defn step-v-args
   ([conf key]
-     (require-readers)
+     (require-namespaces conf)
      (let [v (cser/get conf (str "parkour." key ".var"))
            args (cser/get conf (str "parkour." key ".args"))]
        [v args]))

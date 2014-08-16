@@ -1,5 +1,5 @@
 (ns parkour.cstep
-  (:require [parkour (conf :as conf) (mapreduce :as mr)]
+  (:require [parkour (conf :as conf) (cser :as cser) (mapreduce :as mr)]
             [parkour.util :refer [returning]])
   (:import [clojure.lang APersistentMap APersistentVector IFn]
            [org.apache.hadoop.conf Configuration]
@@ -43,6 +43,7 @@ parameters and values; a vector of other steps; or anything implementing the
     (doto job
       (.setJobName jname)
       (cond-> (nil? (.getJar job)) (.setJarByClass Mappers))
+      (cser/assoc! "parkour.namespaces" (loaded-libs))
       (base*))))
 
 (defn step-map
