@@ -12,6 +12,14 @@
   (:import [org.apache.hadoop.io Text NullWritable]
            [org.apache.hadoop.mapreduce Job Partitioner]))
 
+(deftest test-bound-reducers-splits
+  (th/with-config
+    (let [job (doto (mr/job) (.setNumReduceTasks 1000))
+          n (.getNumReduceTasks job)
+          job (cstep/apply! job [(text/dseq "doc") ptb/bound-reducers-splits])
+          n' (.getNumReduceTasks job)]
+      (is (< n' n)))))
+
 (deftest test-by-p
   (th/with-config
     (let [job (mr/job), klass (mr/partitioner! job #'ptb/by-p #'pr/nth1)

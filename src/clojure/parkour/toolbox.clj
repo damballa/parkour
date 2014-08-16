@@ -1,8 +1,18 @@
 (ns parkour.toolbox
   "Utility collection of common task functions."
   (:require [clojure.core.reducers :as r]
-            [parkour (mapreduce :as mr) (reducers :as pr) (graph :as pg)]
-            [parkour.io (avro :as mra)]))
+            [parkour (reducers :as pr) (wrapper :as w) (mapreduce :as mr)]
+            [parkour.io (dseq :as dseq)])
+  (:import [org.apache.hadoop.mapreduce Job InputFormat]))
+
+(defn bound-reducers-splits
+  "Convenience cstep for potentially small jobs, bounding the configured number
+of reducers to be no greater than the number of input splits."
+  [^Job job]
+  (let [n (.getNumReduceTasks job)
+        ifi (w/new-instance job (dseq/input-format job))
+        n' (count (.getSplits ^InputFormat ifi job))]
+    (.setNumReduceTasks job (min n n'))))
 
 (defn by-p
   "Partitioner for partitioning by the result of applying a provided function
