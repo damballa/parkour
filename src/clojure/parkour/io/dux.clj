@@ -159,20 +159,23 @@ format only) file basename `base`."
 
 (def ^{:arglists '([oname] [context coll])}
   named-keyvals
-  "Sink as key-val pairs to named output, with name provided as `oname` or as
-first element of three-element tuples."
+  "Sink as key-val pairs to named output.  If used directly as a shaping
+function, tuples should be doubles of output name and content.  If invoked with
+an output name `oname`, expects just output content."
   (partial named snk/emit-keyval))
 
 (def ^{:arglists '([oname] [context coll])}
   named-keys
-  "Sink as keys to named output, with name provided as `oname` or as first
-element of two-element tuples."
+  "Sink as keys to named output.  If used directly as a shaping function, tuples
+should be doubles of output name and content.  If invoked with an output name
+`oname`, expects just output content."
   (partial named snk/emit-key))
 
 (def ^{:arglists '([oname] [context coll])}
   named-vals
-  "Sink as values to named output, with name provided as `oname` or as first
-element of two-element tuples."
+  "Sink as values to named output If used directly as a shaping function, tuples
+should be doubles of output name and content.  If invoked with an output name
+`oname`, expects just output content."
   (partial named snk/emit-val))
 
 (defn ^:private prefix
@@ -191,20 +194,27 @@ element of two-element tuples."
                  (f sink t)))
              nil coll)))
 
-(def ^{:arglists '([oname])}
+(def ^{:arglists '([oname] [context coll])}
   prefix-keyvals
-  "Sink as key-val pairs to named output `oname`, with file prefix as first
-element of three-element tuples."
+  "Sink as key-val pairs to named output and file prefix.  If used directly as
+shaping function, tuples should be triples of output name, prefix, and content.
+If invoked wih an output name `oname`, tuples should be pairs of prefix and
+content."
+
   (partial prefix snk/emit-keyval))
 
-(def ^{:arglists '([oname])}
+(def ^{:arglists '([oname] [context coll])}
   prefix-keys
-  "Sink as keys to named output `oname`, with file prefix as first element of
-two-element tuples."
+  "Sink as keys to named output and file prefix.  If used directly as shaping
+function, tuples should be triples of output name, prefix, and content.  If
+invoked wih an output name `oname`, tuples should be pairs of prefix and
+content."
   (partial prefix snk/emit-key))
 
-(def ^{:arglists '([oname])}
+(def ^{:arglists '([oname] [context coll])}
   prefix-vals
-  "Sink as values to named output `oname`, with file prefix as first element of
-two-element tuples."
+  "Sink as values to named output and file prefix.  If used directly as shaping
+function, tuples should be triples of output name, prefix, and content.  If
+invoked wih an output name `oname`, tuples should be pairs of prefix and
+content."
   (partial prefix snk/emit-val))
