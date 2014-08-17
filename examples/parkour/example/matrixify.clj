@@ -30,9 +30,9 @@ data with parallel index (reducer, offset) tuple and final reducer count."
   (let [red (conf/get-long mr/*context* "mapred.task.partition" -1)]
     (tr/mapcat-state (fn [i odims-vals]
                        [(inc i) (if (identical? ::finished odims-vals)
-                                  [[:counts red i]]
+                                  [[:counts [red i]]]
                                   (map (fn [[odim val]]
-                                         [:data odim [[red i] val]])
+                                         [:data [odim [[red i] val]]])
                                        odims-vals))])
                      0 (r/mapcat identity [coll [::finished]]))))
 
