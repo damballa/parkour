@@ -99,8 +99,9 @@ keyword indicating a built-in sinking function.  Supported keywords are `:none`,
   [kind coll] (snk/sink-as kind coll))
 
 (defn sink
-  "Emit all tuples from `coll` to `sink`."
-  [sink coll] ((snk/sink-fn coll) sink coll))
+  "Emit all tuples from `coll` to `sink`, or to `*context*` if not provided."
+  ([coll] (sink *context* coll))
+  ([sink coll] ((snk/sink-fn coll) sink coll)))
 
 (defn collfn
   "Task function adapter for collection-function-like functions.  The adapted
