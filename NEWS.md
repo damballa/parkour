@@ -1,6 +1,6 @@
 # Parkour News – history of user-visible changes
 
-## 0.6.0 / ?
+## 0.6.0 / 2014-08-17
 
 ### Breaking changes
 
