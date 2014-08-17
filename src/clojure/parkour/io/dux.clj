@@ -1,6 +1,7 @@
 (ns parkour.io.dux
   (:require [clojure.edn :as edn]
             [clojure.core.reducers :as r]
+            [transduce.reducers :as tr]
             [pjstadig.scopes :as s]
             [parkour (conf :as conf) (wrapper :as w) (cstep :as cstep)
                      (mapreduce :as mr)]
@@ -144,18 +145,16 @@ format only) file basename `base`."
        (let [sink (if (identical? ::mr/map-output oname)
                     (mr/wrap-sink context)
                     (get-sink context oname))]
-         (reduce (fn [_ t]
-                   (f sink t))
-                 nil coll))))
+         (tr/each (partial f sink) coll))))
   ([f context coll]
      (let [wcontext (mr/wrap-sink context)]
-       (reduce (fn [_ [oname k v :as x]]
-                 (let [t (if (= 2 (count x)) k [k v])
-                       sink (if (identical? ::mr/map-output oname)
-                              wcontext
-                              (get-sink context oname))]
-                   (f sink t)))
-               nil coll))))
+       (tr/each (fn [[oname k v :as x]]
+                  (let [t (if (= 2 (count x)) k [k v])
+                        sink (if (identical? ::mr/map-output oname)
+                               wcontext
+                               (get-sink context oname))]
+                    (f sink t)))
+                coll))))
 
 (def ^{:arglists '([oname] [context coll])}
   named-keyvals
@@ -181,18 +180,28 @@ should be doubles of output name and content.  If invoked with an output name
 (defn ^:private prefix
   "Base function for `prefix-`* functions."
   ([f oname]
-     (fn [context coll]
-       (reduce (fn [_ [base k v :as x]]
-                 (let [t (if (= 2 (count x)) k [k v])
-                       sink (get-sink context oname base)]
-                   (f sink t)))
-               nil coll)))
+     (if (identical? ::mr/map-output oname)
+       (fn [context coll]
+         (let [sink (mr/wrap-sink context)]
+           (tr/each (fn [[_ k v :as x]]
+                      (let [t (if (= 2 (count x)) k [k v])]
+                        (f sink t)))
+                    coll)))
+       (fn [context coll]
+         (tr/each (fn [[base k v :as x]]
+                    (let [t (if (= 2 (count x)) k [k v])
+                          sink (get-sink context oname base)]
+                      (f sink t)))
+                  coll))))
   ([f context coll]
-     (reduce (fn [_ [oname base k v :as x]]
-               (let [t (if (= 3 (count x)) k [k v])
-                     sink (get-sink context oname base)]
-                 (f sink t)))
-             nil coll)))
+     (let [wcontext (mr/wrap-sink context)]
+       (tr/each (fn [[oname base k v :as x]]
+                  (let [t (if (= 3 (count x)) k [k v])
+                        sink (if (identical? ::mr/map-output oname)
+                               wcontext
+                               (get-sink context oname base))]
+                    (f sink t)))
+                coll))))
 
 (def ^{:arglists '([oname] [context coll])}
   prefix-keyvals
@@ -200,7 +209,6 @@ should be doubles of output name and content.  If invoked with an output name
 shaping function, tuples should be triples of output name, prefix, and content.
 If invoked wih an output name `oname`, tuples should be pairs of prefix and
 content."
-
   (partial prefix snk/emit-keyval))
 
 (def ^{:arglists '([oname] [context coll])}
