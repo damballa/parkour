@@ -5,19 +5,43 @@
             [clojure.tools.logging :as log]
             [pjstadig.scopes :as s]
             [parkour (conf :as conf) (mapreduce :as mr) (wrapper :as w)
-             ,       (cser :as cser)])
+             ,       (cser :as cser)]
+            [parkour.util :refer [ignore-errors returning]])
   (:import [clojure.lang IFn$OOLL Var]
            [org.apache.hadoop.mapreduce MapContext]))
 
-(defn require-namespaces
-  "Require the namespaces specified by `conf`."
-  [conf]
-  (when-let [nses (cser/get conf "parkour.namespaces" nil)]
-    (apply require (apply sorted-set nses))))
+(defn ^:private try-require*
+  "Attempt to `require` namespace by symbol `ns`.  On success return `true` and
+on failure log and return `false`."
+  [ns]
+  (try
+    (returning true (require ns))
+    (catch Exception e
+      (returning false
+        (log/warnf e "%s: failed to load namespace." ns)))))
+
+(defn ^:private ns-child-fn
+  "Return function which returns true iff the provided namespace-symbol is a
+child of namespace-symbol `prefix`."
+ [prefix]
+  (let [prefix (str (name prefix) ".")]
+    (fn [sym] (.startsWith (name sym) prefix))))
+
+(defn try-require
+  "Load the namespaces `nses`.  On failure loading any particular namespace,
+skip namespaces which are children of the failing namespace."
+  [& nses]
+  (loop [nses (sort nses)]
+    (when-let [[ns & nses] (seq nses)]
+      (if (try-require* ns)
+        (recur nses)
+        (recur (drop-while (ns-child-fn ns) nses))))))
 
 (defn step-v-args
+  "The tuple of (task function-var, args) for the task `key` (and optional `id`)
+in `conf`. "
   ([conf key]
-     (require-namespaces conf)
+     (apply try-require (cser/get conf "parkour.namespaces"))
      (let [v (cser/get conf (str "parkour." key ".var"))
            args (cser/get conf (str "parkour." key ".args"))]
        [v args]))
