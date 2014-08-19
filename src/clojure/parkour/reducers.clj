@@ -141,9 +141,10 @@ vector of the results."
   "Remove adjacent duplicate values of `(f x)` for each `x` in `coll`."
   [f coll]
   (let [sentinel (Object.)]
-    (->> (r/mapcat identity [coll [sentinel]])
-         (tr/map-state (fn [x x']
-                         [x' (if (= x x') sentinel x')])
+    (->> coll
+         (tr/map-state (fn [k x]
+                         (let [k' (f x)]
+                           [k' (if (= k k') sentinel x)]))
                        sentinel)
          (r/remove (partial identical? sentinel)))))
 

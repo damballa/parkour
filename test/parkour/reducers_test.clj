@@ -51,6 +51,14 @@
                (pr/reduce-by identity +)
                (into []))))))
 
+(deftest test-distinct-by
+  (is (= [[1 :a] [2 :d] [3 :g]]
+         (->> [[1 :a] [1 :b] [1 :c]
+               [2 :d] [2 :e] [2 :f]
+               [3 :g] [3 :h] [3 :i]]
+              (pr/distinct-by pr/nth0)
+              (into [])))))
+
 (deftest test-distinct
   (is (= [1 2 3]
          (->> [1 1 1 2 2 2 3 3 3]
