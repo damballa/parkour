@@ -122,8 +122,8 @@ vector of the results."
   [coll] (nth coll 2))
 
 (defn count
-  "Like `count`, but implemented in terms of `reduce`."
-  [coll] (reduce (comp inc arg0) 0 coll))
+  "Like `count`, but implemented in terms of `fold`."
+  [coll] (r/fold + (comp inc arg0) coll))
 
 (defn first
   "Like `first`, but implemented in terms of `reduce`."

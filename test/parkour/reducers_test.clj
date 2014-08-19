@@ -3,6 +3,14 @@
             [parkour (reducers :as pr)]
             [clojure.test :refer :all]))
 
+(deftest test-count
+  (are [n coll] (= n (pr/count coll))
+       0 nil
+       1 (range 1)
+       2 (range 2)
+       10 (range 10)
+       5 [1 2 3 4 5]))
+
 (deftest test-map-indexed
   (is (= [[0 :foo] [1 :bar] [2 :baz]]
          (->> [:foo :bar :baz]
