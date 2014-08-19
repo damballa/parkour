@@ -20,7 +20,7 @@
         dcpath* (fn dcpath* [md]
                   (proxy [Path IObj] [path]
                     (meta [] md)
-                    (withMeta [md] (dcpath* md path))))]
+                    (withMeta [md] (dcpath* md))))]
     (dcpath* {:type ::dcpath, ::dcname dcname})))
 
 (defn dcpath
