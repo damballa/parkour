@@ -112,7 +112,8 @@ job configuration step `obj`.  Result is a config step and reducible."
 concrete file input path -- to `dst-path`; return new dseq."
   ([src-dseq dst-path] (move! (conf/ig) src-dseq dst-path))
   ([conf src-dseq dst-path]
-     (let [fs (fs/path-fs conf dst-path)
+     (let [dst-path (fs/path dst-path)
+           fs (fs/path-fs conf dst-path)
            ensure-single! (partial ensure-single! src-dseq)
            [src-path] (doto (input-paths [conf src-dseq]) ensure-single!)
            _ (when-not (= fs (fs/path-fs conf src-path))
