@@ -1,10 +1,16 @@
 (ns parkour.reducers
-  (:refer-clojure :exclude [map-indexed reductions distinct count first keep])
-  (:require [clojure.core.reducers :as r]
+  (:refer-clojure
+   , :exclude [concat map-indexed reductions distinct count first keep])
+  (:require [clojure.core :as cc]
+            [clojure.core.reducers :as r]
             [clojure.core.protocols :as ccp]
             [transduce.reducers :as tr]
             [parkour.util :refer [returning]])
   (:import [java.util Random]))
+
+(defn concat
+  "Reducers version of `concat`."
+  [& colls] (r/mapcat identity colls))
 
 (defn map-indexed
   "Reducers version of `map-indexed`."
@@ -18,7 +24,7 @@
   ([f coll] (reductions f (f) coll))
   ([f init coll]
      (let [sentinel (Object.)]
-       (->> (r/mapcat identity [coll [sentinel]])
+       (->> (concat coll [sentinel])
             (tr/map-state (fn [acc x]
                             (if (identical? sentinel x)
                               [nil acc]
@@ -32,7 +38,7 @@ each partition with `f` and optional initial value `init` as per
 `r/reduce`."
   ([keyfn f coll]
      (let [sentinel (Object.)]
-       (->> (r/mapcat identity [coll [sentinel]])
+       (->> (concat coll [sentinel])
             (tr/map-state (fn [[k acc] x]
                             (if (identical? sentinel x)
                               [nil acc]
@@ -83,7 +89,7 @@ followed by `x`, `y`, etc., followed by any additional arguments."
      (fn
        ([o] (apply f o x y more))
        ([o z] (apply f o x y z more))
-       ([o z & args] (apply f o x y z (concat more args))))))
+       ([o z & args] (apply f o x y z (cc/concat more args))))))
 
 (defn mjuxt
   "Return a function which calls each function in `fs` on the
