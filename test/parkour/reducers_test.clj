@@ -43,6 +43,11 @@
            (->> [1 1 1 2 2 2 3 3 3 4 4 4]
                 (pr/reduce-by identity conj [])
                 (r/take 2)
+                (into []))))
+    (is (= []
+           (->> [1 1 1 3 3 3 5 5 5 7 7 7]
+                (r/filter even?)
+                (pr/reduce-by identity conj [])
                 (into [])))))
   (testing "Init value from monoid"
    (is (= [3 4]

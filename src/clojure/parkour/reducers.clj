@@ -43,10 +43,10 @@ each partition with `f` and optional initial value `init` as per
                             (if (identical? sentinel x)
                               [nil acc]
                               (let [k' (keyfn x)]
-                                (if (or (= k k') (identical? sentinel k))
+                                (if (= k k')
                                   [[k' (f acc x)] sentinel]
                                   [[k' (f (f) x)] acc]))))
-                          [sentinel (f)])
+                          [sentinel sentinel])
             (r/remove (partial identical? sentinel)))))
   ([keyfn f init coll]
      (let [f (fn ([] init) ([acc x] (f acc x)))]
