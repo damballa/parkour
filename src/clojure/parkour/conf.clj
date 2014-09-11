@@ -14,14 +14,17 @@
   "Base configuration, used as template for fresh configurations."
   (Configuration.))
 
+(def configuration* nil)
 (defmulti ^:private configuration*
   "Internal implementation multimethod for extracting a `Configuration`."
   type)
 
+(def conf-set* nil)
 (defmulti ^:private conf-set*
   "Internal implementation multimethod for setting value in Hadoop config."
   (fn [_ _ val] (type val)))
 
+(def conf-coerce nil)
 (defmulti ^:private conf-coerce
   "Internal implementation multimethod for converting value to one
 which may be set as Hadoop config value."
