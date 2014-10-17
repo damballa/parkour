@@ -11,7 +11,8 @@
             [parkour.util.shutdown :as shutdown]
             [parkour.util :refer
              [ignore-errors returning doto-let prev-reset!]])
-  (:import [java.util.concurrent ExecutionException]
+  (:import [java.io IOException]
+           [java.util.concurrent ExecutionException]
            [clojure.lang Var]
            [org.apache.hadoop.io NullWritable]
            [org.apache.hadoop.mapreduce Job]
@@ -299,13 +300,32 @@ and named `jname`."
     (cstep/apply! (cstep/base jname))
     (cstep/apply! (:config node))))
 
+(defn ^:private check-job-status
+  [f ^Job job]
+  (let [interval (conf/get-int job "jobclient.completion.poll.interval" 5000)
+        attempts (conf/get-int job "parkour.jobclient.attempts" 3)]
+    (loop [i 1]
+      (let [[res exp] (try [(f job) nil] (catch IOException exp [nil exp]))]
+        (cond
+         (nil? exp) res
+         (>= i attempts) (throw exp)
+         :else (let [interval (* interval (bit-shift-left 1 (dec i)))]
+                 (Thread/sleep interval)
+                 (recur (inc i))))))))
+
+(def ^:private job-complete?
+  (partial check-job-status #(.isComplete ^Job %)))
+
+(def ^:private job-successful?
+  (partial check-job-status #(.isSuccessful ^Job %)))
+
 (defn ^:private job-running?
   "True iff `job` is currently running."
-  [^Job job] (boolean (ignore-errors (not (.isComplete job)))))
+  [^Job job] (boolean (ignore-errors (not (job-complete? job)))))
 
 (defn ^:private job-ran?
   "True iff `job` ran or is currently running."
-  [^Job job] (boolean (ignore-errors (.isComplete job) true)))
+  [^Job job] (boolean (ignore-errors (job-complete? job) true)))
 
 (defn ^:private abort-fn
   "Function for terminating `job`, killing it and cleaning up output path(s)."
@@ -321,7 +341,7 @@ and named `jname`."
             (log/warn "Stopping job" jname)
             (ignore-errors
              (.killJob job)
-             (while (not (.isComplete job))
+             (while (not (job-complete? job))
                (Thread/sleep 100))))
           (when (job-ran? job)
             (doseq [[fs path] fs-paths]
@@ -341,9 +361,9 @@ not swallow `InterruptedException`."
       (try
         (log/info "Launching job" jname)
         (.submit job)
-        (while (not (.isComplete job))
+        (while (not (job-complete? job))
           (Thread/sleep interval))
-        (doto-let [result (.isSuccessful job)]
+        (doto-let [result (job-successful? job)]
           (if result
             (log/info "Job" jname "succeeded")
             (do
