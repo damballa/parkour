@@ -14,9 +14,10 @@ of (file offset, text line).  Default source shape is `:vals`."
   [& paths]
   (dseq/dseq
    (fn [^Job job]
-     (.setInputFormatClass job TextInputFormat)
-     (FileInputFormat/setInputPaths job (fs/path-array paths))
-     (dseq/set-default-shape! job :vals))))
+     (doto job
+       (.setInputFormatClass TextInputFormat)
+       (FileInputFormat/setInputPaths (fs/path-array paths))
+       (dseq/set-default-shape! :vals)))))
 
 (defn dsink
   "Distributed sink for writing line-delimited text output at `path`, or a

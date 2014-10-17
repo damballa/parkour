@@ -18,4 +18,4 @@
       (fs/path-delete p)
       (with-open [outw (->> "lines.txt" (fs/path p) io/writer)]
         (doseq [^String line lines] (.write outw line) (.write outw "\n")))
-      (is (= lines (->> p (nline/dseq 1) w/unwrap (r/map second) (into [])))))))
+      (is (= lines (->> p (nline/dseq 1) (into [])))))))

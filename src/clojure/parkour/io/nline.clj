@@ -7,11 +7,13 @@
 
 (defn dseq
   "Distributed sequence of input text file lines, allocating no more than `n`
-lines of text per mapper.  Tuples consist of (file offset, text line)."
+lines of text per mapper.  Tuples consist of (file offset, text line).
+Default source shape is `:vals`."
   [n & paths]
   (dseq/dseq
    (fn [^Job job]
      (doto job
        (.setInputFormatClass NLineInputFormat)
        (NLineInputFormat/setNumLinesPerSplit n)
-       (FileInputFormat/setInputPaths (fs/path-array paths))))))
+       (FileInputFormat/setInputPaths (fs/path-array paths))
+       (dseq/set-default-shape! :vals)))))
