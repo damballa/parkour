@@ -38,13 +38,13 @@
           :output-dir "tmp/codox"}
   :aliases {"few" ["with-profile"
                    ~(->> (for [c ["clojure-1-6-0"]
-                               h ["hadoop-1-2-1" "hadoop-2-4-1"]]
+                               h ["hadoop-1-2-1" "hadoop-2-5-1"]]
                            ["default*" c h])
                          (map (partial clojure.string/join ","))
                          (clojure.string/join ":"))]
             "all" ["with-profile"
                    ~(->> (for [c ["clojure-1-5-1" "clojure-1-6-0"]
-                               h ["hadoop-1-2-1" "hadoop-2-2-0" "hadoop-2-4-1"
+                               h ["hadoop-1-2-1" "hadoop-2-4-0" "hadoop-2-5-1"
                                   "hadoop-cdh4" "hadoop-cdh5"]]
                            ["default*" c h])
                          (map (partial clojure.string/join ","))
@@ -77,7 +77,7 @@
      :test {:resource-paths ["test-resources"]}
      :clojure-1-5-1 {:dependencies [[org.clojure/clojure "1.5.1"]]}
      :clojure-1-6-0 {:dependencies [[org.clojure/clojure "1.6.0"]]}
-     :hadoop-stable [:hadoop-1-2-1]
+     :hadoop-stable [:hadoop-2-5-1]
      :avro-hadoop1 {:dependencies
                     [[org.apache.avro/avro-mapred "1.7.5"]]}
      :hadoop-1-0-3 [:avro-hadoop1
@@ -90,14 +90,14 @@
      :avro-hadoop2 {:dependencies
                     [[org.apache.avro/avro-mapred "1.7.5"
                       :classifier "hadoop2"]]}
-     :hadoop-2-2-0 [:avro-hadoop2
+     :hadoop-2-4-0 [:avro-hadoop2
                     {:dependencies
-                     [[org.apache.hadoop/hadoop-client "2.2.0"]
-                      [org.apache.hadoop/hadoop-common "2.2.0"]]}]
-     :hadoop-2-4-1 [:avro-hadoop2
+                     [[org.apache.hadoop/hadoop-client "2.4.0"]
+                      [org.apache.hadoop/hadoop-common "2.4.0"]]}]
+     :hadoop-2-5-1 [:avro-hadoop2
                     {:dependencies
-                     [[org.apache.hadoop/hadoop-client "2.4.1"]
-                      [org.apache.hadoop/hadoop-common "2.4.1"]]}]
+                     [[org.apache.hadoop/hadoop-client "2.5.1"]
+                      [org.apache.hadoop/hadoop-common "2.5.1"]]}]
      :avro-cdh4 {:repositories
                  , [["platypope" "http://jars.platypope.org/release/"]]
                  :dependencies
