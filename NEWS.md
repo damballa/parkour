@@ -1,6 +1,6 @@
 # Parkour News – history of user-visible changes
 
-## 0.6.1 / ???
+## 0.6.1 / 2014-10-21
 
 - Ignore `Error`s during namespace loading.
 - `NLineInputFormat` dseq default source shape is `:vals`.
