@@ -16,7 +16,7 @@ on failure log and return `false`."
   [ns]
   (try
     (returning true (require ns))
-    (catch Exception e
+    (catch Throwable e
       (returning false
         (log/warnf e "%s: failed to load namespace." ns)))))
 
