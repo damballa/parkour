@@ -1,5 +1,16 @@
 # Parkour News – history of user-visible changes
 
+## 0.6.1 / ???
+
+- Ignore `Error`s during namespace loading.
+- `NLineInputFormat` dseq default source shape is `:vals`.
+- Retry failing job-status polls with exponential backoff.
+- Correctly `reduce-by` empty collections.
+- Add and use reducers version of `concat`.
+- Coerce `dseq/move!` dst-path to a Hadoop `Path`.
+- Fix busted `pr/distinct-by`.
+- Fix `with-meta` for dcpaths.
+
 ## 0.6.0 / 2014-08-17
 
 ### Breaking changes
