@@ -1,4 +1,5 @@
 (ns parkour.io.dval
+  (:refer-clojure :exclude [eval])
   (:require [clojure.java.io :as io]
             [parkour (fs :as fs) (cser :as cser) (mapreduce :as mr)
              ,       (reducers :as pr)]
@@ -58,17 +59,18 @@ original remote path when not (i.e. under local- or mixed-mode job execution)."
 available source path.  Result will usually be a local file path, but may be the
 original remote path under mixed-mode job execution."
   [[^URI remote local]]
-  (if-let [fragment (.getFragment remote)]
-    (let [symlink (io/file fragment), symlink? (.exists symlink)
-          local (io/file (str local)), local? (.exists local)
-          remote (unfragment remote), remote? (= "file" (.getScheme remote))
-          source (cond symlink? symlink, local? local, remote? remote
-                       ;; Could localize, but issues: clean-up, directories
-                       (mr/local-runner? cser/*conf*) remote
-                       :else (throw (ex-info
-                                     (str remote ": cannot locate local file")
-                                     {:remote remote, :local local})))]
-      (fs/path source))))
+  (let [fragment (.getFragment remote)
+        symlink (io/file fragment), symlink? (.exists symlink)
+        local (io/file (str local)), local? (.exists local)
+        remote (unfragment remote), remote? (= "file" (.getScheme remote))
+        source (cond symlink? symlink, local? local, remote? remote
+                     ;; Could localize, but issues: clean-up, directories
+                     (nil? mr/*context*) remote
+                     (mr/local-runner? cser/*conf*) remote
+                     :else (throw (ex-info
+                                   (str remote ": cannot locate local file")
+                                   {:remote remote, :local local})))]
+    (fs/path source)))
 
 (defn ^:private dcpath-reader
   "EDN tagged-literal reader for dcpaths."
@@ -103,7 +105,9 @@ original remote path under mixed-mode job execution."
 
 (defn ^:private dval-reader
   "EDN tagged-literal reader for dvals."
-  [[f & args]] (delay (apply f args)))
+  [form]
+  (let [value (delay (apply pr/funcall form))]
+    (DVal. value form)))
 
 (defn ^:private dval*
   "Return a dval which locally proxies to `valref` and remotely will deserialize
@@ -113,6 +117,10 @@ as a delay over applying var `readv` to `args`."
 (defn dval
   "Return a dval which acts as a delay over applying var `readv` to `args`."
   [readv & args] (apply dval* (delay (apply readv args)) readv args))
+
+(defn eval
+  "Evaluate `dval` form, recomputing value each time."
+  [dval] (apply pr/funcall (.-form ^DVal dval)))
 
 (defn ^:private identity-ref
   "Return reference which yields `x` when `deref`ed."
