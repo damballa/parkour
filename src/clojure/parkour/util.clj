@@ -26,6 +26,10 @@ Evaluates `expr`, then evaluates `body` with its result bound to the
          ~@body
          value#))))
 
+(defn ruquot
+  "Quotient of dividing numerator by denominator, rounding up."
+  [num div] (-> num (+ (dec div)) (quot div)))
+
 (defn coerce
   "Coerce `x` to be of class `c` by applying `f` to it iff `x` isn't
 already an instance of `c`."
