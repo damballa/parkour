@@ -43,7 +43,7 @@
                          (map (partial clojure.string/join ","))
                          (clojure.string/join ":"))]
             "all" ["with-profile"
-                   ~(->> (for [c ["clojure-1-5-1" "clojure-1-6-0"]
+                   ~(->> (for [c ["clojure-1-6-0" "clojure-1-7-0"]
                                h ["hadoop-1-2-1" "hadoop-2-4-0" "hadoop-2-5-1"
                                   "hadoop-cdh4" "hadoop-cdh5"]]
                            ["default*" c h])
@@ -75,8 +75,8 @@
              [cascading/cascading-hadoop "2.2.0"
               :exclusions [org.codehaus.janino/janino]]]}]
      :test {:resource-paths ["test-resources"]}
-     :clojure-1-5-1 {:dependencies [[org.clojure/clojure "1.5.1"]]}
      :clojure-1-6-0 {:dependencies [[org.clojure/clojure "1.6.0"]]}
+     :clojure-1-7-0 {:dependencies [[org.clojure/clojure "1.7.0-alpha4"]]}
      :hadoop-stable [:hadoop-2-5-1]
      :avro-hadoop1 {:dependencies
                     [[org.apache.avro/avro-mapred "1.7.5"]]}
@@ -103,18 +103,18 @@
                  :dependencies
                  , [[org.apache.avro/avro-mapred "1.7.5"
                      :classifier "hadoop1-cdh4"]]}
-     :hadoop-cdh4 [:cloudera ;; For hadoop-* *-*cdh4*
+     :hadoop-cdh4 [:cloudera
                    :avro-cdh4
                    {:dependencies
                     [[org.apache.hadoop/hadoop-core "2.0.0-mr1-cdh4.1.2"]
                      [org.apache.hadoop/hadoop-common "2.0.0-cdh4.1.2"]]}]
      :avro-cdh5 [:cloudera
                  {:dependencies
-                  [[org.apache.avro/avro "1.7.5-cdh5.0.0"]
-                   [org.apache.avro/avro-mapred "1.7.5-cdh5.0.0"
+                  [[org.apache.avro/avro "1.7.6-cdh5.2.0"]
+                   [org.apache.avro/avro-mapred "1.7.6-cdh5.2.0"
                     :classifier "hadoop2"]]}]
-     :hadoop-cdh5 [:cloudera ;; For hadoop-* *-*cdh4*
+     :hadoop-cdh5 [:cloudera
                    :avro-cdh5
                    {:dependencies
-                    [[org.apache.hadoop/hadoop-client "2.3.0-cdh5.0.0"]
-                     [org.apache.hadoop/hadoop-common "2.3.0-cdh5.0.0"]]}]})
+                    [[org.apache.hadoop/hadoop-client "2.5.0-cdh5.2.0"]
+                     [org.apache.hadoop/hadoop-common "2.5.0-cdh5.2.0"]]}]})
