@@ -87,9 +87,6 @@ Copyright © 2013-2014 Marshall Bockrath-Vandegrift & Damballa, Inc.
 
 Distributed under the Apache License, Version 2.0.
 
-The EDN reader implementation (`EdnReader.java`) is copyright © 2013 Rich
-Hickey, and is distributed under the Eclipse Public License v1.0.
-
 [intro]: https://github.com/damballa/parkour/blob/master/doc/intro.md
 [motivation]: https://github.com/damballa/parkour/blob/master/doc/motivation.md
 [namespaces]: https://github.com/damballa/parkour/blob/master/doc/namespaces.md

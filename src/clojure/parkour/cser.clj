@@ -1,11 +1,14 @@
 (ns parkour.cser
   (:refer-clojure :exclude [assoc! get read-string pr-str])
   (:require [clojure.core :as cc]
-            [parkour.conf :as conf])
+            [clojure.edn :as edn]
+            [letterpress.core :as lp]
+            [parkour.conf :as conf]
+            [parkour.cser.readers :refer [data-readers]]
+            [parkour.cser.printers :refer [data-printers]])
   (:import [java.io Writer]
            [clojure.lang RT]
-           [org.apache.hadoop.conf Configuration]
-           [parkour.edn EdnReader]))
+           [org.apache.hadoop.conf Configuration]))
 
 (def ^:internal ^:dynamic *conf*
   "Configuration of job being executed/configured during job configuration
@@ -18,8 +21,11 @@ de/serialization."
 
 (defn ^:private read-string*
   "Like core `edn/read-string`, but using cser/EDN reader implementation."
-  ([s] (read-string* {:eof nil, :readers *data-readers*} s))
-  ([opts s] (when s (EdnReader/readString s opts))))
+  ([s] (read-string* {} s))
+  ([opts s]
+     (let [readers (merge *data-readers* data-readers (:readers opts))
+           opts (assoc opts :readers readers)]
+       (edn/read-string opts s))))
 
 (defn read-string
   "Like core `edn/read-string`, but using cser/EDN reader implementation in the
@@ -27,14 +33,22 @@ cser context of `conf`."
   ([conf s] (with-conf conf (read-string* s)))
   ([conf opts s] (with-conf conf (read-string* opts s))))
 
+(defn ^:private pr-str*
+  "Like core `pr-str`, but with cser-specific printers."
+  ([] "")
+  ([x] (lp/pr-str {:printers data-printers} x))
+  ([x & xs] (apply lp/pr-str {:printers data-printers} x xs)))
+
 (defn pr-str
   "Like core `pr-str`, but in the cser context of `conf`."
-  [conf & xs] (with-conf conf (apply cc/pr-str xs)))
+  ([conf] "")
+  ([conf x] (with-conf conf (pr-str* x)))
+  ([conf x & xs] (with-conf conf (apply pr-str* x xs))))
 
 (defn ^:private assoc!*
   "Internal implementation for `assoc!`."
   ([conf key val]
-     (conf/assoc! conf key (cc/pr-str val)))
+     (conf/assoc! conf key (pr-str* val)))
   ([conf key val & kvs]
      (let [conf (assoc!* conf key val)]
        (if (empty? kvs)

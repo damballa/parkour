@@ -12,20 +12,21 @@
     (cser/assoc! conf conf-key x)
     (= x (cser/get conf conf-key))))
 
-(defn roundtrips-raw?
+(defn roundtrip-raw
   [x]
   (let [conf (conf/ig)]
-    (= x (cser/read-string conf (cser/pr-str conf x)))))
+    (cser/read-string conf (cser/pr-str conf x))))
+
+(defn roundtrips-raw?
+  [x] (= x (roundtrip-raw x)))
 
 (deftest test-cser
   (th/with-config
-    (let [conf (conf/ig)]
-      (are [x] (and (roundtrips-conf? x)
-                    (roundtrips-raw? x))
-           (range 10)
-           [:foo 'bar "baz"]
-           {:key #'val})
-      (are [x] (and (not (roundtrips-conf? x))
-                    (not (roundtrips-raw? x)))
-           ;; Any other failing cases?
-           java.lang.String))))
+    (are [x] (and (roundtrips-conf? x)
+                  (roundtrips-raw? x))
+         (range 10)
+         [:foo 'bar "baz"]
+         {:key #'val}
+         java.lang.String)
+    (let [re #"regular"]
+      (is (= (str re) (str (roundtrip-raw re)))))))
