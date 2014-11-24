@@ -14,9 +14,9 @@
                org.apache.avro/avro
                org.apache.avro/avro-mapred
                org.apache.avro/avro-ipc]
-  :dependencies [[org.clojure/tools.logging "0.3.0"]
+  :dependencies [[org.clojure/tools.logging "0.3.1"]
                  [com.damballa/abracad "0.4.11"]
-                 [org.apache.avro/avro "1.7.5"]
+                 [org.apache.avro/avro "1.7.7"]
                  [pjstadig/scopes "0.3.0"]
                  [transduce/transduce "0.1.1"]]
   :plugins [[codox/codox "0.6.6"]]
@@ -79,7 +79,7 @@
      :clojure-1-7-0 {:dependencies [[org.clojure/clojure "1.7.0-alpha4"]]}
      :hadoop-stable [:hadoop-2-5-1]
      :avro-hadoop1 {:dependencies
-                    [[org.apache.avro/avro-mapred "1.7.5"]]}
+                    [[org.apache.avro/avro-mapred "1.7.7"]]}
      :hadoop-1-0-3 [:avro-hadoop1
                     {:dependencies
                      [[org.apache.hadoop/hadoop-core "1.0.3"]
@@ -88,7 +88,7 @@
                     {:dependencies
                      [[org.apache.hadoop/hadoop-core "1.2.1"]]}]
      :avro-hadoop2 {:dependencies
-                    [[org.apache.avro/avro-mapred "1.7.5"
+                    [[org.apache.avro/avro-mapred "1.7.7"
                       :classifier "hadoop2"]]}
      :hadoop-2-4-0 [:avro-hadoop2
                     {:dependencies
@@ -101,7 +101,7 @@
      :avro-cdh4 {:repositories
                  , [["platypope" "http://jars.platypope.org/release/"]]
                  :dependencies
-                 , [[org.apache.avro/avro-mapred "1.7.5"
+                 , [[org.apache.avro/avro-mapred "1.7.7"
                      :classifier "hadoop1-cdh4"]]}
      :hadoop-cdh4 [:cloudera
                    :avro-cdh4
