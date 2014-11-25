@@ -17,6 +17,7 @@
   :dependencies [[org.clojure/tools.logging "0.3.1"]
                  [com.damballa/abracad "0.4.11"]
                  [org.apache.avro/avro "1.7.7"]
+                 [org.platypope/letterpress "0.1.0"]
                  [pjstadig/scopes "0.3.0"]
                  [transduce/transduce "0.1.1"]]
   :plugins [[codox/codox "0.6.6"]]
