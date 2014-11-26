@@ -16,6 +16,26 @@ specified as `:parkour.mapreduce/adapter` metadata on user-provided vars.
 Each of the Hadoop-invoked entry points Parkour exposes has its own specific
 interface and set of built-in adapters, which are described below.
 
+## InputFormat
+
+Hadoop `InputFormat` classes implement the translation from storage mechanisms
+and formats to in-memory task input records.  The vast majority of even Parkour
+MapReduce jobs will use existing Hadoop `InputFormat` implementations, but
+Parkour does provide a mechanism allowing pairs of var-bound functions to stand
+in for `InputFormat` classes.  Parkour invokes these pairs of functions
+configuration-side then task-side respectively, the first to translate job
+configuration to a collection of individual map-task configurations, then the
+second to translate each map-task configuration to the actual task input
+records.
+
+Vars for these steps are bound to a class for Hadoop job configuration by the
+`parkour.mapreduce/input-format!` function, along with vectors of optional
+additional EDN-serializable parameters for each.  See the docstring of the
+`input-format!` function for more details, and the source of the
+[`parkour.io.range`][range] namespace for an example.
+
+[range]: https://github.com/damballa/parkour/blob/master/src/clojure/parkour/io/range.clj
+
 ## Mapper and Reducer
 
 In Parkour, the var-bound functions standing in for `Mapper` and `Reducer`
@@ -116,7 +136,7 @@ return value should be a reducible collection, which is used as the task output.
          (r/map #(-> [% 1])))))
 ```
 
-### Input sources
+### Task input
 
 The task input parameter acts as a reducible collection over the task key-value
 input tuples.  That collection may be directly reduced, or may be “reshaped”
@@ -156,7 +176,7 @@ The following shape keywords are available only in reduce/combine tasks:
 - `:keysgroups` – Just the sub-collections all specific keys associated with
   each distinct grouping key.
 
-### Output sinks
+### Task output
 
 Task outputs are delivered to a “sink” – usually (and usually implicitly) the
 job context.  Many of the task adapter interfaces use the task function return
