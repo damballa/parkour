@@ -1,5 +1,12 @@
 # Parkour News – history of user-visible changes
 
+## 0.6.2 / ???
+
+- Support passing classes as task function etc parameters.
+- Interface for defining input formats from Clojure.
+- Added range dseq for jobs over ranges of integers.
+- Added dval dseq for jobs over the content of a dval.
+
 ## 0.6.1 / 2014-10-21
 
 - Ignore `Error`s during namespace loading.
