@@ -11,6 +11,7 @@
             [parkour.util :refer [returning ignore-errors]])
   (:import [java.io Writer]
            [clojure.lang IFn$OOLL Var]
+           [parkour.hadoop RecordSeqableRecordReader EdnInputSplit]
            [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce TaskAttemptContext TaskAttemptID]
            [org.apache.hadoop.mapreduce TaskInputOutputContext]
@@ -151,6 +152,18 @@ primitive-hinted as OOLL."
           (let [key (w/unwrap key), val (w/unwrap val)]
             (f key val nparts)))))))
 
+(defn recseqfn
+  "Input format record-reader creation function adapter for input formats
+implemented in terms of seqs.  The adapted function `v` should accept an input
+split and a task context, and should return a value which is `seq`able,
+`count`able, and optionally `Closeable`."
+  [v]
+  (fn [split context & args]
+    (RecordSeqableRecordReader.
+     (fn [split context]
+       (let [split (if-not (instance? EdnInputSplit split) split @split)]
+         (apply v split context args))))))
+
 (def ^:private job-factory-method?
   "True iff the `Job` class has a static factory method."
   (->> Job reflect/type-reflect :members (some #(= 'getInstance (:name %)))))
@@ -177,6 +190,37 @@ mechanism."
   [job ^Writer w]
   (.write w "#hadoop.mapreduce/job ")
   (print-method (conf/diff job) w))
+
+(defn input-format!
+  "Allocate and return a new input format class for `conf` as invoking `svar` to
+generate input-splits and invoking `rvar` to generate record-readers.
+
+During local job initialization, the function referenced by `svar` will be
+invoked with the job context followed by any provided `sargs` (which must be
+EDN-serializable); it should return a sequence of input split data.  Any values
+in the returned sequence which are not `InputSplit`s will be wrapped in
+`EdnInputSplit`s and must be EDN-serializable; in such a case, the `::mr/length`
+and `::mr/locations` keys of such data may provide the split byte-size and node
+locations respectively.
+
+Prior to use, the function reference by `rvar` will be transformed by the
+function specified as the value of the `readerv`'s `::mr/adapter` metadata,
+defaulting to `parkour.mapreduce/recseqfn`.  During remote task-setup, the
+transformed function will be invoked with the task input split and task context
+followed by any provided `rargs`; it should return a `RecordReader` generating
+the task input data.
+
+See also: `recseqfn`."
+  [conf svar sargs rvar rargs]
+  (assert (instance? Var svar))
+  (assert (instance? Var rvar))
+  (let [i (conf/get-int conf "parkour.input-format.next" 0)
+        k (format "parkour.input-format.%d" i)]
+    (conf/assoc! conf "parkour.input-format.next" (inc i))
+    (cser/assoc! conf
+      (str k ".svar") svar, (str k ".sargs") sargs
+      (str k ".rvar") rvar, (str k ".rargs") rargs)
+    (Class/forName (format "parkour.hadoop.InputFormats$_%d" i))))
 
 (defn mapper!
   "Allocate and return a new mapper class for `conf` as invoking `var`.

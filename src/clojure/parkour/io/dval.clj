@@ -1,14 +1,18 @@
 (ns parkour.io.dval
+  (:refer-clojure :exclude [eval])
   (:require [clojure.java.io :as io]
             [parkour (fs :as fs) (cser :as cser) (mapreduce :as mr)
              ,       (reducers :as pr)]
+            [parkour.io (dseq :as dseq)]
             [parkour.io.transient :refer [transient-path]]
             [parkour.util :as util :refer [doto-let]])
-  (:import [java.io Writer]
+  (:import [java.io Closeable Writer]
            [java.net URI]
            [clojure.lang IDeref IObj IPending]
+           [parkour.hadoop RecordSeqable]
            [org.apache.hadoop.fs Path]
-           [org.apache.hadoop.filecache DistributedCache]))
+           [org.apache.hadoop.filecache DistributedCache]
+           [org.apache.hadoop.mapreduce Job]))
 
 (defn ^:private cache-name
   "Generate distinct distcache-entry name for `source`."
@@ -58,17 +62,18 @@ original remote path when not (i.e. under local- or mixed-mode job execution)."
 available source path.  Result will usually be a local file path, but may be the
 original remote path under mixed-mode job execution."
   [[^URI remote local]]
-  (if-let [fragment (.getFragment remote)]
-    (let [symlink (io/file fragment), symlink? (.exists symlink)
-          local (io/file (str local)), local? (.exists local)
-          remote (unfragment remote), remote? (= "file" (.getScheme remote))
-          source (cond symlink? symlink, local? local, remote? remote
-                       ;; Could localize, but issues: clean-up, directories
-                       (mr/local-runner? cser/*conf*) remote
-                       :else (throw (ex-info
-                                     (str remote ": cannot locate local file")
-                                     {:remote remote, :local local})))]
-      (fs/path source))))
+  (let [fragment (.getFragment remote)
+        symlink (io/file fragment), symlink? (.exists symlink)
+        local (io/file (str local)), local? (.exists local)
+        remote (unfragment remote), remote? (= "file" (.getScheme remote))
+        source (cond symlink? symlink, local? local, remote? remote
+                     ;; Could localize, but issues: clean-up, directories
+                     (nil? mr/*context*) remote
+                     (mr/local-runner? cser/*conf*) remote
+                     :else (throw (ex-info
+                                   (str remote ": cannot locate local file")
+                                   {:remote remote, :local local})))]
+    (fs/path source)))
 
 (defn ^:private dcpath-reader
   "EDN tagged-literal reader for dcpaths."
@@ -103,7 +108,9 @@ original remote path under mixed-mode job execution."
 
 (defn ^:private dval-reader
   "EDN tagged-literal reader for dvals."
-  [[f & args]] (delay (apply f args)))
+  [form]
+  (let [value (delay (apply pr/funcall form))]
+    (DVal. value form)))
 
 (defn ^:private dval*
   "Return a dval which locally proxies to `valref` and remotely will deserialize
@@ -113,6 +120,10 @@ as a delay over applying var `readv` to `args`."
 (defn dval
   "Return a dval which acts as a delay over applying var `readv` to `args`."
   [readv & args] (apply dval* (delay (apply readv args)) readv args))
+
+(defn eval
+  "Evaluate `dval` form, recomputing value each time."
+  [dval] (apply pr/funcall (.-form ^DVal dval)))
 
 (defn ^:private identity-ref
   "Return reference which yields `x` when `deref`ed."
@@ -157,3 +168,43 @@ serialization path."
 (defn jser-dval
   "Java-serialize `value` to a transient location and yield a wrapping dval."
   [value] (transient-dval util/jser-spit #'util/jser-slurp value))
+
+(defn ^:private create-splits
+  "Sequence dval splits for provided parameters."
+  [context nper length]
+  (map (fn [start]
+         (let [end (min length (+ start nper))
+               length (- end start)]
+           {:start start, :end end, ::mr/length length}))
+       (range 0 length nper)))
+
+(defn ^:private maybe-subvec-seq
+  [x start length]
+  (if (vector? x)
+    (seq (subvec x start (+ start length)))
+    (->> x seq (drop start) (take length))))
+
+(defn ^:private create-recseq
+  "(Record)Seqable for sequence dval split `split`."
+  [split context dval]
+  (let [{:keys [start end ::mr/length]} split, val (eval dval)]
+    (if-not (instance? Closeable val)
+      (maybe-subvec-seq val start length)
+      (reify RecordSeqable
+        (count [_] length)
+        (seq [_] (maybe-subvec-seq val start length))
+        (close [_] (.close ^Closeable val))))))
+
+(defn dseq
+  "Distributed sequence over a sequence dval.  The dval will be deserialized in
+each map task and a range of the sequence records used as the task input.  Each
+task will receive `nper` values, the final task receiving fewer if the length of
+the number of values is not evenly divisible by `nper`."
+  [nper dval]
+  (dseq/dseq
+   (fn [^Job job]
+     (doto job
+       (.setInputFormatClass
+        (mr/input-format! job #'create-splits [nper (count @dval)]
+                          ,,, #'create-recseq [dval]))
+       (dseq/set-default-shape! :keys)))))

@@ -4,7 +4,8 @@
             [clojure.java.io :as io]
             [clojure.core.reducers :as r]
             [parkour (conf :as conf) (fs :as fs) (mapreduce :as mr)
-             ,       (graph :as pg) (reducers :as pr) (util :as pu)]
+             ,       (graph :as pg) (reducers :as pr) (util :as pu)
+             ,       (toolbox :as ptb)]
             [parkour.io (dval :as dval) (text :as text)]
             [parkour.test-helpers :as th]))
 
@@ -38,3 +39,19 @@
          (dval/load-dval #'pu/edn-slurp [(io/resource "words.edn")])
          (dval/copy-dval #'pu/edn-slurp [(io/resource "words.edn")])
          (dval/edn-dval #{"blue" "baz"}))))
+
+(deftest test-dseq-local
+  (th/with-config
+    (let [words ["foo" "bar" "baz" "quux"]]
+      (are [nper] (= words (into [] (dval/dseq nper (dval/edn-dval words))))
+           1 2 3 4))))
+
+(deftest test-dseq-job
+  (th/with-config
+    (let [words ["foo" "bar" "baz" "quux"]]
+      (is (= (into #{} words)
+             (-> (pg/input (dval/dseq 1 (dval/edn-dval words)))
+                 (pg/map #'ptb/identity-t :default :keys)
+                 (pg/output (text/dsink))
+                 (pg/fexecute (conf/ig) `test-dseq-job)
+                 (->> (into #{}))))))))
