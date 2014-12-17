@@ -2,7 +2,7 @@
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io])
   (:import [java.io PushbackReader Writer ObjectInputStream ObjectOutputStream]
-           [clojure.lang IPending]))
+           [clojure.lang IPending MapEntry]))
 
 (defmacro ignore-errors
   "Returns the result of evaluating body, or nil if it throws an exception."
@@ -48,6 +48,11 @@ already an instance of `c`."
      (if (realized? coll)
        (cons (first coll)
              (realized-seq (rest coll)))))))
+
+(defn mev
+  "Clojure `MapEntry`, as a stand-in for fast 2-element vector."
+  {:inline (fn [x y] `(new clojure.lang.MapEntry ~x ~y))}
+  [x y] (MapEntry. x y))
 
 (defn var-str
   "String fully-qualified name of a var."

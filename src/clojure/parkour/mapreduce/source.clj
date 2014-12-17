@@ -5,7 +5,7 @@
             [clojure.core.protocols :as ccp]
             [parkour (conf :as conf) (cser :as cser) (wrapper :as w)
              ,       (reducers :as pr)]
-            [parkour.util :refer [returning]]
+            [parkour.util :refer [returning mev]]
             [parkour.util.map-combine :refer [map-combine]])
   (:import [clojure.lang Seqable]
            [java.io Closeable]
@@ -57,11 +57,11 @@ of such tuples."
 
 (defn keyval
   "Pair of current tuple's key and value."
-  [context] [(key context) (val context)])
+  [context] (mev (key context) (val context)))
 
 (defn keyvals
   "Pair of current tuple's key and sequence of associated values."
-  [context] [(key context) (vals context)])
+  [context] (mev (key context) (vals context)))
 
 (defn mapping
   "A `seq`able or `reduce`able mapping of `f` for each item in `coll`."
@@ -80,7 +80,7 @@ of such tuples."
 
 (defn keykeyvals
   "Pair of current tuple's key and sequence of grouped key and value pairs."
-  [context] [(key context) (mapping #(-> [(key context) %]) (vals context))])
+  [context] [(key context) (mapping #(mev (key context) %) (vals context))])
 
 (defn keykeys
   "Pair of current tuple's key and sequence of grouped keys."
@@ -306,8 +306,8 @@ iteration function `nextf` and extraction function `dataf`."
   "Produce pairs of keys and values from the tuples in `context`."
   [context]
   (case (-> context meta :parkour.mapreduce.sink/sink-as)
-    :keys (mapping #(-> [% nil]) context)
-    :vals (mapping #(-> [nil %]) context)
+    :keys (mapping #(mev % nil) context)
+    :vals (mapping #(mev nil %) context)
     #_else (if-not (source? context)
              context
              (reducer next-keyval keyval context))))
