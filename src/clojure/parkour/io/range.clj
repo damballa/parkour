@@ -19,7 +19,7 @@
 (defn ^:private create-recseq
   "Record seqable for range split `split`."
   [split context]
-  (let [{:keys [start end step ::mr/length]} split]
+  (let [{:keys [start end step], length ::mr/length} split]
     (reify RecordSeqable
       (count [_] length)
       (seq [_] (range start end step))

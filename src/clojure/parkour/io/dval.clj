@@ -187,7 +187,7 @@ serialization path."
 (defn ^:private create-recseq
   "(Record)Seqable for sequence dval split `split`."
   [split context dval]
-  (let [{:keys [start end ::mr/length]} split, val (eval dval)]
+  (let [{:keys [start end], length ::mr/length} split, val (eval dval)]
     (if-not (instance? Closeable val)
       (maybe-subvec-seq val start length)
       (reify RecordSeqable

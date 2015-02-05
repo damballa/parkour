@@ -44,7 +44,7 @@
                          (map (partial clojure.string/join ","))
                          (clojure.string/join ":"))]
             "all" ["with-profile"
-                   ~(->> (for [c ["clojure-1-6-0" "clojure-1-7-0"]
+                   ~(->> (for [c ["clojure-1-5-1" "clojure-1-6-0"]
                                h ["hadoop-1-2-1" "hadoop-2-4-0" "hadoop-2-6-0"
                                   "hadoop-cdh4" "hadoop-cdh5"]]
                            ["default*" c h])
@@ -76,6 +76,7 @@
              [cascading/cascading-hadoop "2.2.0"
               :exclusions [org.codehaus.janino/janino]]]}]
      :test {:resource-paths ["test-resources"]}
+     :clojure-1-5-1 {:dependencies [[org.clojure/clojure "1.5.1"]]}
      :clojure-1-6-0 {:dependencies [[org.clojure/clojure "1.6.0"]]}
      :clojure-1-7-0 {:dependencies [[org.clojure/clojure "1.7.0-alpha5"]]}
      :hadoop-stable [:hadoop-2-6-0]
