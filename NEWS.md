@@ -1,5 +1,7 @@
 # Parkour News – history of user-visible changes
 
+## 0.6.3 / ???
+
 ## 0.6.2 / 2015-02-05
 
 - Support passing classes as task function etc parameters.
