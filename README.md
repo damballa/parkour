@@ -83,7 +83,7 @@ address will subscribe you without being posted.  Please report issues on the
 
 ## License
 
-Copyright © 2013-2014 Marshall Bockrath-Vandegrift & Damballa, Inc.
+Copyright © 2013-2015 Marshall Bockrath-Vandegrift & Damballa, Inc.
 
 Distributed under the Apache License, Version 2.0.
 
