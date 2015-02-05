@@ -84,6 +84,6 @@
   (let [^InputFormat ifi (w/new-instance job klass)
         splits (seq (.getSplits ifi job))]
     (case (count splits)
-      0 nil
+      0 (src/empty-source job)
       1 (split-source job ifi (first splits))
       , (splits-source job ifi splits))))

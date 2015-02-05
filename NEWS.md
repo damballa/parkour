@@ -6,6 +6,7 @@
 - Interface for defining input formats from Clojure.
 - Added range dseq for jobs over ranges of integers.
 - Added dval dseq for jobs over the content of a dval.
+- Correct local processing of zero-split dseqs.
 
 ## 0.6.1 / 2014-10-21
 

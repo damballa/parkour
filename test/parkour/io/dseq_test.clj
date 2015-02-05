@@ -106,3 +106,12 @@
         dst-dseq (dseq/move! src-dseq dst-path)]
     (is (= [dst-path] (dseq/input-paths dst-dseq)))
     (is (= ["apple" "carrot" "banana"] (into [] dst-dseq)))))
+
+(deftest test-empty
+  (th/with-config
+    (let [conf (conf/ig),
+          path (fs/path "tmp/empty")
+          fs (fs/path-fs conf path)
+          _ (.delete fs path true)
+          _ (.mkdirs fs path)]
+      (is (= [] (into [] (text/dseq path)))))))

@@ -139,6 +139,7 @@ and `dataf` to retrieve the tuple values passed to `f`."
    (initialize source)))
 
 (defn source-seq
+  "As per `seq`, but in terms of the `TupleSource` protocol."
   ([source]
      (source-seq next-keyval keyval source))
   ([nextf dataf source]
@@ -237,6 +238,34 @@ iteration function `nextf` and extraction function `dataf`."
   r/CollFold
   (coll-fold [this _ combinef reducef]
     (source-fold this combinef reducef)))
+
+(defn empty-source
+  "Concrete (non-`nil`) tuple source with no tuples."
+  [conf]
+  (let [conf (conf/ig conf)]
+    (reify
+      Configurable
+      (getConf [_] conf)
+
+      TupleSource
+      (next-keyval [this] false)
+      (-initialize [_])
+      (-close [_])
+      (-nsplits [_] 0)
+      (-splits [this] nil)
+
+      Closeable
+      (close [this])
+
+      ccp/CollReduce
+      (coll-reduce [this f] (f))
+      (coll-reduce [this f init] init)
+
+      r/CollFold
+      (coll-fold [this _ combinef reducef] (combinef))
+
+      Seqable
+      (seq [this] nil))))
 
 (defn unwrap-source
   "Produce \"unwrapper\" for `source`, which unwraps each accessed entry."
