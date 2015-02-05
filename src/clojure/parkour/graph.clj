@@ -386,14 +386,22 @@ base configuration `conf` and job name `jname`."
     (if-let [dseq (-> node :config first)]
       (vary-meta dseq assoc ::mr/counters (.getCounters job)))))
 
+(defn ^:private ensure-output-paths!
+  [job]
+  (doseq [path (dsink/output-paths job)
+          :let [fs (fs/path-fs job path)]
+          :when (not (.exists fs path))]
+    (.mkdirs fs path)))
+
 (defmethod node-fn :default
   [node conf jname]
   (fn [& args]
     (doto-let [job (node-job node conf jname)]
-      (when-not (run-job job)
+      (if (run-job job)
+        (ensure-output-paths! job)
         (let [cause (prev-reset! mr/task-ex nil)
               args (cond-> [(str "Job " jname " failed.") {:jname jname}]
-                           (not (nil? cause)) (conj cause))]
+                     (not (nil? cause)) (conj cause))]
           (throw (apply ex-info args)))))))
 
 (defn ^:private node-id

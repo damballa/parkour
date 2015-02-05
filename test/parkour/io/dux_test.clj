@@ -4,9 +4,10 @@
             [clojure.java.io :as io]
             [clojure.core.reducers :as r]
             [parkour (graph :as pg) (mapreduce :as mr) (reducers :as pr)
-             , (conf :as conf) (fs :as fs) (wrapper :as w)]
+             ,       (conf :as conf) (fs :as fs) (wrapper :as w)
+             ,       (toolbox :as ptb)]
             [parkour.io (text :as text) (seqf :as seqf) (avro :as mra)
-             , (dux :as dux) (dsink :as dsink) (mem :as mem)]
+             ,          (dux :as dux) (dsink :as dsink) (mem :as mem)]
             [parkour.util :refer [ignore-errors returning]]
             [parkour.test-helpers :as th])
   (:import [org.apache.hadoop.io Text LongWritable NullWritable]))
@@ -85,3 +86,17 @@
         [words counts] (mmo-word-count conf dseq words-dsink count-dsink)]
     (is (= #{"apple" "banana" "carrot"} (into #{} (r/map first words))))
     (is (= {"apple" 3, "banana" 2, "carrot" 1} (into {} counts)))))
+
+(defn no-output-m
+  {::mr/sink-as dux/named-keys}
+  [coll] (r/map #(-> [:ok %]) coll))
+
+(deftest test-no-output
+  (th/with-config
+    (let [dseq (text/dseq (io/resource "word-count-input.txt"))
+          [ok err] (-> (pg/input dseq)
+                       (pg/map #'no-output-m)
+                       (pg/output :ok (text/dsink), :err (text/dsink))
+                       (pg/execute (conf/ig) `no-output))]
+      (is (= #{"apple" "banana" "carrot"} (into #{} ok)))
+      (is (= #{} (into #{} err))))))
