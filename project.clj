@@ -52,7 +52,7 @@
                          (clojure.string/join ":"))]}
   :profiles
   , {:default* [:base :system :user :provided :dev],
-     :default+ [:clojure-1-6-0 :hadoop-stable],
+     :default+ ^:leaky [:clojure-1-6-0 :hadoop-stable],
      :default [:default* :default+]
      :conjars {:repositories
                [["conjars" "http://conjars.org/repo/"]]}
@@ -89,17 +89,19 @@
      :hadoop-1-2-1 [:avro-hadoop1
                     {:dependencies
                      [[org.apache.hadoop/hadoop-core "1.2.1"]]}]
-     :avro-hadoop2 {:dependencies
+     :avro-hadoop2 ^{:pom-scope :provided}
+     ,             {:dependencies
                     [[org.apache.avro/avro-mapred "1.7.7"
                       :classifier "hadoop2"]]}
      :hadoop-2-4-0 [:avro-hadoop2
                     {:dependencies
                      [[org.apache.hadoop/hadoop-client "2.4.0"]
                       [org.apache.hadoop/hadoop-common "2.4.0"]]}]
-     :hadoop-2-6-0 [:avro-hadoop2
-                    {:dependencies
-                     [[org.apache.hadoop/hadoop-client "2.6.0"]
-                      [org.apache.hadoop/hadoop-common "2.6.0"]]}]
+     :hadoop-2-6-0 [:avro-hadoop2 :client-2-6-0]
+     :client-2-6-0 ^{:pom-scope :provided}
+     ,             {:dependencies
+                    [[org.apache.hadoop/hadoop-client "2.6.0"]
+                     [org.apache.hadoop/hadoop-common "2.6.0"]]}
      :avro-cdh4 {:repositories
                  , [["platypope" "http://jars.platypope.org/release/"]]
                  :dependencies
