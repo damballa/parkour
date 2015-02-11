@@ -28,6 +28,7 @@ exception, return -1."
 
   Tool
   (run [_ args]
+    (conf/assoc! conf "mapred.used.genericoptionsparser" true)
     (integral
      (conf/with-default conf
        (apply f conf (seq args))))))
