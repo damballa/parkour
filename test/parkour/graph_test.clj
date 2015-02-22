@@ -208,3 +208,12 @@
                (catch Exception e
                  (-> e .getCause ex-data)))]
     (is (:from-task? info))))
+
+(deftest test-noop-input-graph
+  (th/with-config
+    (let [inpath (io/resource "word-count-input.txt")
+          indseq (text/dseq inpath)
+          word (->> (-> (pg/input indseq)
+                        (pg/fexecute (conf/ig) `noop-input-graph))
+                    (pr/first))]
+      (is (= "apple" word)))))

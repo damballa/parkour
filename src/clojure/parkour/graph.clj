@@ -382,9 +382,10 @@ base configuration `conf` and job name `jname`."
 
 (defmethod node-fn :input
   [node conf jname]
-  (fn [^Job job]
+  (fn [& [^Job job]]
     (if-let [dseq (-> node :config first)]
-      (vary-meta dseq assoc ::mr/counters (.getCounters job)))))
+      (cond-> dseq
+        job (vary-meta assoc ::mr/counters (.getCounters job))))))
 
 (defn ^:private ensure-output-paths!
   [job]
