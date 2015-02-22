@@ -83,10 +83,11 @@ vector of the result entries for the keys in the collection `outputs`."
    (map? node) (:stage node)
    :else (throw (ex-info "Invalid `node`" {:node node}))))
 
-(defn ^:private error
+(defmacro ^:private error
   [verb node]
-  (let [msg (str "Cannot `" verb "` from stage `" (stage node) "`.")]
-    (throw (ex-info msg {:node node}))))
+  `(let [node# ~node
+         msg# (str "Cannot `" ~verb "` from stage `" (stage node#) "`.")]
+     (throw (ex-info msg# {:node node#}))))
 
 (let [id (atom 0)]
   (defn ^:private gen-id
