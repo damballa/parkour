@@ -310,9 +310,7 @@ into the distributed cache files of a Hadoop configuration."
           uri-map (reduce (fn [result [local remote]]
                             (let [temp (path temp-dir local)]
                               (returning (assoc result local (uri temp))
-                                (with-open [inf (input-stream conf remote),
-                                            outf (.create temp-fs temp)]
-                                  (io/copy inf outf)))))
+                                  (do-copy remote temp nil))))
                           {} uri-map)]
       (f uri-map))))
 
