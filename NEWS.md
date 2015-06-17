@@ -2,6 +2,10 @@
 
 ## 0.6.3 / ???
 
+- “Run” no-op input-only graphs without error.
+- Support Clojure 1.7.  Due to CLJ-1738, Parkour >=0.6.3 will be required for in
+  order to use Clojure 1.7.
+
 ## 0.6.2 / 2015-02-05
 
 - Support passing classes as task function etc parameters.
