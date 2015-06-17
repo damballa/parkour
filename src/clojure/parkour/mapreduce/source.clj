@@ -7,7 +7,7 @@
              ,       (reducers :as pr)]
             [parkour.util :refer [returning mev]]
             [parkour.util.map-combine :refer [map-combine]])
-  (:import [clojure.lang Seqable]
+  (:import [clojure.lang Seqable IteratorSeq]
            [java.io Closeable]
            [java.util Collection]
            [org.apache.hadoop.conf Configurable]
@@ -221,7 +221,19 @@ iteration function `nextf` and extraction function `dataf`."
   ReduceContext
   (key [this] (.getCurrentKey this))
   (val [this] (.getCurrentValue this))
-  (vals [this] (.getValues this))
+  (vals [this]
+    (let [vals (.getValues this)]
+      (reify
+        Seqable
+        (seq [_] (-> vals .iterator IteratorSeq/create))
+
+        ccp/CollReduce
+        (coll-reduce [this f] (ccp/coll-reduce this f (f)))
+        (coll-reduce [_ f init] (r/reduce f init vals))
+
+        r/CollFold
+        (coll-fold [_ n combinef reducef]
+          (r/fold n combinef reducef vals)))))
   (next-keyval [this] (.nextKeyValue this))
   (next-key [this] (.nextKey this))
   (-initialize [_])
