@@ -2,9 +2,5 @@ language: clojure
 lein: lein2
 script: lein2 do clean, javac, all test
 jdk:
-  - openjdk6
   - openjdk7
-  - oraclejdk7
-matrix:
-  allow_failures:
-    - oraclejdk7
+  - openjdk8
