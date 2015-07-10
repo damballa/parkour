@@ -113,11 +113,11 @@
                      [org.apache.hadoop/hadoop-common "2.0.0-cdh4.1.2"]]}]
      :avro-cdh5 [:cloudera
                  {:dependencies
-                  [[org.apache.avro/avro "1.7.6-cdh5.3.1"]
-                   [org.apache.avro/avro-mapred "1.7.6-cdh5.3.1"
+                  [[org.apache.avro/avro "1.7.6-cdh5.4.2"]
+                   [org.apache.avro/avro-mapred "1.7.6-cdh5.4.2"
                     :classifier "hadoop2"]]}]
      :hadoop-cdh5 [:cloudera
                    :avro-cdh5
                    {:dependencies
-                    [[org.apache.hadoop/hadoop-client "2.5.0-cdh5.3.1"]
-                     [org.apache.hadoop/hadoop-common "2.5.0-cdh5.3.1"]]}]})
+                    [[org.apache.hadoop/hadoop-client "2.6.0-cdh5.4.2"]
+                     [org.apache.hadoop/hadoop-common "2.6.0-cdh5.4.2"]]}]})

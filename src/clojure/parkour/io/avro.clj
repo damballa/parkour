@@ -31,9 +31,10 @@
   {:-seekable-input (fn [p opts]
                       (FsInput.
                        (fs/path p)
-                       (cond (contains? opts :conf) (:conf opts)
-                             (contains? opts :fs) (conf/ig (:fs opts))
-                             :else (conf/ig))))})
+                       (conf/ig
+                        (cond (contains? opts :conf) (:conf opts)
+                              (contains? opts :fs) (:fs opts)
+                              :else {}))))})
 
 (extend Path avro/PSeekableInput fs-input-impl)
 (extend URI avro/PSeekableInput fs-input-impl)
