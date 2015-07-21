@@ -6,15 +6,13 @@ Parkour is a Clojure library, distributed as a Maven artifact on Clojars, and is
 designed to be used with a recent version of Leiningen (2.x, ideally 2.3.3 or
 later).  To use, add the appropriate version of `com.damballa/parkour` to your
 `project.clj`’s top-level `:dependencies` vector, then add appropriate versions
-of the Hadoop artifact(s) to the `:provided` profile’s `:dependencies`.  Parkour
-uses Clojure reducers, so for Java 6 you’ll also need to add `jsr166y`.  For
+of the Hadoop artifact(s) to the `:provided` profile’s `:dependencies`.  For
 example:
 
 ```clj
 (defproject ...
   ...
   :dependencies [...
-                 [org.codehaus.jsr166-mirror/jsr166y "1.7.0"]
                  [com.damballa/parkour "0.6.2"]
                  ...]
 
