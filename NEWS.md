@@ -1,6 +1,6 @@
 # Parkour News – history of user-visible changes
 
-## 0.6.3 / ???
+## 0.6.3 / 2015-07-21
 
 - “Run” no-op input-only graphs without error.
 - Support Clojure 1.7.  Due to CLJ-1738, Parkour >=0.6.3 will be required for in
