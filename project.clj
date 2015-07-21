@@ -15,7 +15,7 @@
                org.apache.avro/avro-mapred
                org.apache.avro/avro-ipc]
   :dependencies [[org.clojure/tools.logging "0.3.1"]
-                 [com.damballa/abracad "0.4.11"]
+                 [com.damballa/abracad "0.4.12"]
                  [org.apache.avro/avro "1.7.7"]
                  [org.platypope/letterpress "0.1.0"]
                  [pjstadig/scopes "0.3.0"]
@@ -39,13 +39,13 @@
           :output-dir "tmp/codox"}
   :aliases {"few" ["with-profile"
                    ~(->> (for [c ["clojure-1-7-0"]
-                               h ["hadoop-1-2-1" "hadoop-2-6-0"]]
+                               h ["hadoop-1-2-1" "hadoop-2-7-1"]]
                            ["default*" c h])
                          (map (partial clojure.string/join ","))
                          (clojure.string/join ":"))]
             "all" ["with-profile"
                    ~(->> (for [c ["clojure-1-6-0" "clojure-1-7-0"]
-                               h ["hadoop-1-2-1" "hadoop-2-4-0" "hadoop-2-6-0"
+                               h ["hadoop-1-2-1" "hadoop-2-4-0" "hadoop-2-7-1"
                                   "hadoop-cdh4" "hadoop-cdh5"]]
                            ["default*" c h])
                          (map (partial clojure.string/join ","))
@@ -59,15 +59,13 @@
      :cloudera {:repositories
                 [["cloudera" ~(str "https://repository.cloudera.com"
                                    "/artifactory/cloudera-repos/")]]}
-     :provided [:slf4j-log4j :java6]
+     :provided [:slf4j-log4j]
      :slf4j-log4j {:dependencies
                    [[org.slf4j/slf4j-api "1.6.1"]
                     [org.slf4j/slf4j-log4j12 "1.6.1"]
                     [log4j "1.2.17"]]}
-     :java6 {:dependencies
-             [[org.codehaus.jsr166-mirror/jsr166y "1.7.0"]]}
      :examples {:source-paths ["examples"]}
-     :hadoop-user [:java6 :avro-cdh4 :clojure-1-6-0]
+     :hadoop-user [:avro-cdh5 :clojure-1-7-0]
      :jobjar [:hadoop-user :examples]
      :dev [:examples
            :conjars ;; For cascading-* *
@@ -96,11 +94,11 @@
                     {:dependencies
                      [[org.apache.hadoop/hadoop-client "2.4.0"]
                       [org.apache.hadoop/hadoop-common "2.4.0"]]}]
-     :hadoop-2-6-0 [:avro-hadoop2 :client-2-6-0]
-     :client-2-6-0 ^{:pom-scope :provided}
+     :client-2-7-1 ^{:pom-scope :provided}
      ,             {:dependencies
-                    [[org.apache.hadoop/hadoop-client "2.6.0"]
-                     [org.apache.hadoop/hadoop-common "2.6.0"]]}
+                    [[org.apache.hadoop/hadoop-client "2.7.1"]
+                     [org.apache.hadoop/hadoop-common "2.7.1"]]}
+     :hadoop-2-7-1 [:avro-hadoop2 :client-2-7-1]
      :avro-cdh4 {:repositories
                  , [["platypope" "http://jars.platypope.org/release/"]]
                  :dependencies
