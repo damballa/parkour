@@ -2,6 +2,8 @@
 
 ## 0.6.4 / ???
 
+- Load namespaces during record-reader setup.
+
 ## 0.6.3 / 2015-07-21
 
 - “Run” no-op input-only graphs without error.
