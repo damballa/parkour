@@ -1,6 +1,6 @@
 (ns parkour.remote.input
   (:require [parkour (conf :as conf) (cser :as cser) (mapreduce :as mr)]
-            [parkour.remote.basic :refer [adapt]]
+            [parkour.remote.common :refer [adapt conf-require!]]
             [parkour.util :refer [coerce]])
   (:import [parkour.hadoop EdnInputSplit]
            [org.apache.hadoop.mapreduce
@@ -23,6 +23,7 @@
 (defn create-record-reader
   "Generic Parkour `InputFormat#createRecordReader()` implementation."
   [id ^InputSplit split ^TaskAttemptContext context]
+  (conf-require! context)
   (let [key (str "parkour.input-format." id)
         rvar (cser/get context (str key ".rvar"))
         args (cser/get context (str key ".rargs"))
