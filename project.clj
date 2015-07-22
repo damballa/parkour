@@ -1,4 +1,4 @@
-(defproject com.damballa/parkour "0.6.4-alpha1"
+(defproject com.damballa/parkour "0.6.4-SNAPSHOT"
   :description "Hadoop MapReduce in idiomatic Clojure."
   :url "http://github.com/damballa/parkour"
   :license {:name "Apache License, Version 2.0"
