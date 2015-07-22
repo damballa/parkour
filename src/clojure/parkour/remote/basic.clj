@@ -6,57 +6,21 @@
             [pjstadig.scopes :as s]
             [parkour (conf :as conf) (mapreduce :as mr) (wrapper :as w)
              ,       (cser :as cser)]
+            [parkour.remote.common :refer [adapt conf-require!]]
             [parkour.util :refer [ignore-errors returning]])
   (:import [clojure.lang IFn$OOLL Var]
            [org.apache.hadoop.mapreduce MapContext]))
-
-(defn ^:private try-require*
-  "Attempt to `require` namespace by symbol `ns`.  On success return `true` and
-on failure log and return `false`."
-  [ns]
-  (try
-    (returning true (require ns))
-    (catch Throwable e
-      (returning false
-        (log/warnf e "%s: failed to load namespace." ns)))))
-
-(defn ^:private ns-child-fn
-  "Return function which returns true iff the provided namespace-symbol is a
-child of namespace-symbol `prefix`."
- [prefix]
-  (let [prefix (str (name prefix) ".")]
-    (fn [sym] (.startsWith (name sym) prefix))))
-
-(defn try-require
-  "Load the namespaces `nses`.  On failure loading any particular namespace,
-skip namespaces which are children of the failing namespace."
-  [& nses]
-  (loop [nses (sort nses)]
-    (when-let [[ns & nses] (seq nses)]
-      (if (try-require* ns)
-        (recur nses)
-        (recur (drop-while (ns-child-fn ns) nses))))))
 
 (defn step-v-args
   "The tuple of (task function-var, args) for the task `key` (and optional `id`)
 in `conf`. "
   ([conf key]
-     (apply try-require (cser/get conf "parkour.namespaces"))
+     (conf-require! conf)
      (let [v (cser/get conf (str "parkour." key ".var"))
            args (cser/get conf (str "parkour." key ".args"))]
        [v args]))
   ([conf kind id]
      (step-v-args conf (str kind "." id))))
-
-(defn adapt
-  "Apply adapter function specified by var `v` via `::mr/adapter` metadata --
-`default` if unspecified -- to the value of `v` and return resulting function."
-  [default v]
-  (let [m (meta v)
-        w (if (::mr/raw m)
-            identity
-            (::mr/adapter m default))]
-    (w (with-meta @v m))))
 
 (defn with-task-ex*
   "Functional form of `with-task-ex` macro."
