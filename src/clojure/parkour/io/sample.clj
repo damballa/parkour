@@ -1,8 +1,22 @@
 (ns parkour.io.sample
-  (:require [parkour (conf :as conf) (cstep :as cstep)]
+  (:require [parkour (conf :as conf) (cstep :as cstep) (wrapper :as w)
+             ,       (mapreduce :as mr) (reducers :as pr)]
             [parkour.io (dseq :as dseq)])
-  (:import [org.apache.hadoop.mapreduce Job]
-           [parkour.hadoop Sample$InputFormat]))
+  (:import [java.util Random]
+           [org.apache.hadoop.mapreduce InputFormat Job]))
+
+(defn ^:private create-splits
+  [context klass nsplits seed]
+  (let [inform ^InputFormat (w/new-instance context klass)
+        splits (.getSplits inform context)
+        rnd (Random. seed)]
+    (pr/sample-reservoir rnd nsplits splits)))
+
+(defn ^:private create-rr
+  {::mr/adapter identity}
+  [split context klass]
+  (let [inform ^InputFormat (w/new-instance context klass)]
+    (.createRecordReader inform split context)))
 
 (def ^:private defaults
   "Default values for sample dseq options."
@@ -19,14 +33,13 @@ optionally configured by the map `options`.  Available options are:
   `:seed` -- Seed for random sampling process (default 1)."
   ([step] (dseq {} step))
   ([options step]
-     (let [{:keys [splits size seed]} (merge defaults options)]
-       (dseq/dseq
-        (fn [^Job job]
+   (let [{:keys [splits size seed]} (merge defaults options)]
+     (dseq/dseq
+      (fn [^Job job]
+        (cstep/apply! job step)
+        (let [klass (.getInputFormatClass job)]
           (doto job
-            (cstep/apply! step)
-            (conf/assoc! #_job
-              "mapred.max.split.size" size
-              "parkour.sample.class" (.getInputFormatClass job)
-              "parkour.sample.splits" splits
-              "parkour.sample.seed" seed)
-            (.setInputFormatClass Sample$InputFormat)))))))
+            (conf/assoc! "mapred.max.split.size" size)
+            (.setInputFormatClass
+             (mr/input-format! job #'create-splits [klass splits seed]
+                               ,,, #'create-rr [klass])))))))))
