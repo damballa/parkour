@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import clojure.lang.IFn;
 import clojure.lang.ISeq;
+import clojure.lang.Indexed;
 import clojure.lang.RT;
 
 import org.apache.hadoop.io.NullWritable;
@@ -12,17 +13,18 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-public class RecordSeqableRecordReader
-    extends RecordReader<Object, NullWritable> {
+public class KeyValueRecordSeqableRecordReader
+    extends RecordReader<Object, Object> {
 
   private final IFn f;
   private Object rs;
   private ISeq coll;
   private Object key;
+  private Object val;
   private int total;
   private int current;
 
-  public RecordSeqableRecordReader(IFn f) {
+  public KeyValueRecordSeqableRecordReader(IFn f) {
     this.f = f;
   }
 
@@ -37,9 +39,8 @@ public class RecordSeqableRecordReader
   }
 
   @Override
-  public NullWritable getCurrentValue()
-      throws IOException, InterruptedException {
-    return NullWritable.get();
+  public Object getCurrentValue() throws IOException, InterruptedException {
+    return val;
   }
 
   @Override
@@ -54,6 +55,7 @@ public class RecordSeqableRecordReader
     this.rs = f.invoke(split, context);
     this.coll = RT.seq(rs);
     this.key = null;
+    this.val = null;
     this.total = RT.count(rs);
     this.current = 0;
   }
@@ -61,7 +63,9 @@ public class RecordSeqableRecordReader
   @Override
   public boolean nextKeyValue() throws IOException, InterruptedException {
     if (coll == null) return false;
-    this.key = coll.first();
+    Indexed rec = (Indexed) coll.first();
+    this.key = rec.nth(0, NullWritable.get());
+    this.val = rec.nth(1, NullWritable.get());
     ++current;
     coll = coll.next();
     return true;

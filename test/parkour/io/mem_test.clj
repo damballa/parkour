@@ -11,17 +11,13 @@
 
 (deftest test-input
   (let [records [["foo" 9] ["bar" 8] ["baz" 7] ["quux" 6]]]
-    (is (= records (->> records mem/dseq w/unwrap (into []))))))
-
-(defn map-identity
-  [input] input)
+    (is (= records (->> records mem/dseq (into []))))))
 
 (deftest test-job-input
-  (let [records [["foo" 9] ["bar" 8] ["baz" 7] ["quux" 6]]
-        p (fs/path "tmp/seqf")]
-    (fs/path-delete p)
-    (let [[results] (-> (pg/input (mem/dseq records))
-                        (pg/map #'map-identity)
-                        (pg/sink (seqf/dsink [Text LongWritable] p))
-                        (pg/execute (th/config) "mem-test/test-job-input"))]
-      (is (= records (->> results w/unwrap (into [])))))))
+  (let [records [["foo" 9] ["bar" 8] ["baz" 7] ["quux" 6]]]
+    (is (= records
+           (-> (pg/input (mem/dseq records))
+               (pg/map #'identity)
+               (pg/sink (seqf/dsink [Text LongWritable]))
+               (pg/fexecute (th/config) "mem-test/test-job-input")
+               (->> (into [])))))))

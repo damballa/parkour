@@ -11,7 +11,9 @@
             [parkour.util :refer [returning ignore-errors]])
   (:import [java.io Writer]
            [clojure.lang IFn$OOLL Var]
-           [parkour.hadoop RecordSeqableRecordReader EdnInputSplit]
+           [parkour.hadoop
+            , EdnInputSplit KeyRecordSeqableRecordReader
+            , KeyValueRecordSeqableRecordReader]
            [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce TaskAttemptContext TaskAttemptID]
            [org.apache.hadoop.mapreduce TaskInputOutputContext]
@@ -152,17 +154,27 @@ primitive-hinted as OOLL."
           (let [key (w/unwrap key), val (w/unwrap val)]
             (f key val nparts)))))))
 
+(defn ^:private ->rsrr
+  "Record seqable record reader appropriate to keyword `kind`."
+  [kind f]
+  (case kind
+    :keyvals (KeyValueRecordSeqableRecordReader. f)
+    #_else (KeyRecordSeqableRecordReader. f)))
+
 (defn recseqfn
   "Input format record-reader creation function adapter for input formats
 implemented in terms of seqs.  The adapted function `v` should accept an input
 split and a task context, and should return a value which is `seq`able,
 `count`able, and optionally `Closeable`."
   [v]
-  (fn [split context & args]
-    (RecordSeqableRecordReader.
-     (fn [split context]
-       (let [split (if-not (instance? EdnInputSplit split) split @split)]
-         (apply v split context args))))))
+  (let [kind (-> v meta (::source-as :keys))]
+    (fn [split context & args]
+      (->> (fn [split context]
+             (let [split (if-not (instance? EdnInputSplit split)
+                           split
+                           @split)]
+               (apply v split context args)))
+           (->rsrr kind)))))
 
 (def ^:private job-factory-method?
   "True iff the `Job` class has a static factory method."
