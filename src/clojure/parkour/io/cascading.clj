@@ -1,6 +1,7 @@
 (ns parkour.io.cascading
   (:require [parkour (conf :as conf) (fs :as fs) (wrapper :as w)]
-            [parkour.io (dseq :as dseq) (dsink :as dsink) (seqf :as seqf)]
+            [parkour.io (dseq :as dseq) (dsink :as dsink) (seqf :as seqf)
+             ,          (empty :as empty)]
             [parkour.io.transient :refer [transient-path]]
             [parkour.util :refer [doto-let returning]])
   (:import [cascading.tuple Tuple]))
@@ -25,7 +26,10 @@
 
 (defn dseq
   "Distributed sequence for reading from Cascading sequence files at `paths`."
-  [& paths] (dseq/dseq [add-serializations (apply seqf/dseq paths)]))
+  [& paths]
+  (if (empty? paths)
+    (empty/dseq)
+    (dseq/dseq [add-serializations (apply seqf/dseq paths)])))
 
 (defn dsink
   "Distributed sink writing `Tuple`s to Cascading sequence files at `path`, or a

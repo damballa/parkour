@@ -1,6 +1,6 @@
 (ns parkour.io.text
   (:require [parkour (conf :as conf) (fs :as fs)]
-            [parkour.io (dseq :as dseq) (dsink :as dsink)]
+            [parkour.io (dseq :as dseq) (dsink :as dsink) (empty :as empty)]
             [parkour.io.transient :refer [transient-path]])
   (:import [org.apache.hadoop.mapreduce Job]
            [org.apache.hadoop.mapreduce.lib.input FileInputFormat]
@@ -12,12 +12,14 @@
   "Distributed sequence of input text file lines.  Tuples consist
 of (file offset, text line).  Default source shape is `:vals`."
   [& paths]
-  (dseq/dseq
-   (fn [^Job job]
-     (doto job
-       (.setInputFormatClass TextInputFormat)
-       (FileInputFormat/setInputPaths (fs/path-array paths))
-       (dseq/set-default-shape! :vals)))))
+  (if (empty? paths)
+    (empty/dseq)
+    (dseq/dseq
+     (fn [^Job job]
+       (doto job
+         (.setInputFormatClass TextInputFormat)
+         (FileInputFormat/setInputPaths (fs/path-array paths))
+         (dseq/set-default-shape! :vals))))))
 
 (defn dsink
   "Distributed sink for writing line-delimited text output at `path`, or a

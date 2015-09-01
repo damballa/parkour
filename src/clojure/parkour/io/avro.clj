@@ -4,7 +4,8 @@
             [abracad.avro.edn :as aedn]
             [parkour (conf :as conf) (fs :as fs) (wrapper :as w)
                      (mapreduce :as mr) (reducers :as pr) (cser :as cser)]
-            [parkour.io (dseq :as dseq) (dsink :as dsink) (dval :as dval)]
+            [parkour.io (dseq :as dseq) (dsink :as dsink) (dval :as dval)
+             ,          (empty :as empty)]
             [parkour.io.transient :refer [transient-path]]
             [parkour.util :refer [ignore-errors returning]])
   (:import [java.net URI]
@@ -138,10 +139,12 @@ when the output format has not been otherwise explicitly specified."
   "Distributed sequence of Avro input, applying the vector of `schemas` as per
 the arguments to `set-input`, and reading from `paths`."
   [schemas & paths]
-  (dseq/dseq
-   (fn [^Job job]
-     (apply set-input job schemas)
-     (FileInputFormat/setInputPaths job (fs/path-array paths)))))
+  (if (empty? paths)
+    (empty/dseq)
+    (dseq/dseq
+     (fn [^Job job]
+       (apply set-input job schemas)
+       (FileInputFormat/setInputPaths job (fs/path-array paths))))))
 
 (defn ^:private shuffle*
   "Internal implementation for `shuffle`."
