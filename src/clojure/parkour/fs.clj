@@ -224,7 +224,8 @@ filesystem.  May be overridden in configuration via the property
   "/tmp")
 
 (defn temp-root
-  [conf] (path (conf/get conf "parkour.temp.dir" *temp-dir*)))
+  ([] (temp-root (conf/ig)))
+  ([conf] (path (conf/get conf "parkour.temp.dir" *temp-dir*))))
 
 (defn ^:private new-temp-dir
   "Return path for a new temporary directory."
