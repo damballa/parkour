@@ -38,13 +38,13 @@
                     parkour.util.shutdown.hadoop2]
           :output-dir "tmp/codox"}
   :aliases {"few" ["with-profile"
-                   ~(->> (for [c ["clojure-1-7-0"]
+                   ~(->> (for [c ["clojure-1-8-0"]
                                h ["hadoop-1-2-1" "hadoop-2-7-1"]]
                            ["default*" c h])
                          (map (partial clojure.string/join ","))
                          (clojure.string/join ":"))]
             "all" ["with-profile"
-                   ~(->> (for [c ["clojure-1-6-0" "clojure-1-7-0"]
+                   ~(->> (for [c ["clojure-1-7-0" "clojure-1-8-0"]
                                h ["hadoop-1-2-1" "hadoop-2-4-0" "hadoop-2-7-1"
                                   "hadoop-cdh4" "hadoop-cdh5"]]
                            ["default*" c h])
@@ -52,7 +52,7 @@
                          (clojure.string/join ":"))]}
   :profiles
   , {:default* [:base :system :user :provided :dev],
-     :default+ ^:leaky [:clojure-1-7-0 :hadoop-stable],
+     :default+ ^:leaky [:clojure-1-8-0 :hadoop-stable],
      :default [:default* :default+]
      :conjars {:repositories
                [["conjars" "http://conjars.org/repo/"]]}
@@ -65,7 +65,7 @@
                     [org.slf4j/slf4j-log4j12 "1.6.1"]
                     [log4j "1.2.17"]]}
      :examples {:source-paths ["examples"]}
-     :hadoop-user [:avro-cdh5 :clojure-1-7-0]
+     :hadoop-user [:avro-cdh5 :clojure-1-8-0]
      :jobjar [:hadoop-user :examples]
      :dev [:examples
            :conjars ;; For cascading-* *
@@ -74,8 +74,8 @@
              [cascading/cascading-hadoop "2.2.0"
               :exclusions [org.codehaus.janino/janino]]]}]
      :test {:resource-paths ["test-resources"]}
-     :clojure-1-6-0 {:dependencies [[org.clojure/clojure "1.6.0"]]}
-     :clojure-1-7-0 {:dependencies [[org.clojure/clojure "1.7.0-RC1"]]}
+     :clojure-1-7-0 {:dependencies [[org.clojure/clojure "1.7.0"]]}
+     :clojure-1-8-0 {:dependencies [[org.clojure/clojure "1.8.0-RC2"]]}
      :hadoop-stable [:hadoop-2-7-1]
      :avro-hadoop1 {:dependencies
                     [[org.apache.avro/avro-mapred "1.7.7"]]}
