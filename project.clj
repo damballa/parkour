@@ -75,7 +75,7 @@
               :exclusions [org.codehaus.janino/janino]]]}]
      :test {:resource-paths ["test-resources"]}
      :clojure-1-7-0 {:dependencies [[org.clojure/clojure "1.7.0"]]}
-     :clojure-1-8-0 {:dependencies [[org.clojure/clojure "1.8.0-RC2"]]}
+     :clojure-1-8-0 {:dependencies [[org.clojure/clojure "1.8.0"]]}
      :hadoop-stable [:hadoop-2-7-1]
      :avro-hadoop1 {:dependencies
                     [[org.apache.avro/avro-mapred "1.7.7"]]}
